@@ -1,0 +1,108 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Hero Mindset 3.0 | Forje Sua Lenda</title>
+
+  <!-- SEO -->
+  <meta name="description" content="O Sistema Operacional da Vida. Mapeie sua existência, descubra seu arquétipo e execute com disciplina militar.">
+  
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- Custom Favicon -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%2309090b' stroke='%23dc2626' stroke-width='5'/%3E%3Cpath d='M50 20 L65 50 L50 80 L35 50 Z' fill='%23dc2626'/%3E%3Cpath d='M50 20 L65 50 L50 50 Z' fill='%23ef4444'/%3E%3Ccircle cx='50' cy='50' r='5' fill='%23ffffff'/%3E%3C/svg%3E">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              850: '#1a1f2e',
+              900: '#0f172a',
+              950: '#020617',
+            },
+            zinc: {
+               950: '#09090b', // Match Hero Mindset Dark Theme
+            },
+            red: {
+              950: '#450a0a',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.5s ease-out forwards',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            }
+          }
+        },
+      },
+    }
+  </script>
+  <style>
+    /* Scrollbar Customization for Webkit */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #09090b; 
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #27272a; 
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3f3f46; 
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    
+    body {
+      background-color: #000000; /* Prevents white flash on load */
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.553.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.3.0",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^6.25.1",
+    "@stripe/stripe-js": "https://esm.sh/@stripe/stripe-js@4.1.0",
+    "@vercel/node": "https://aistudiocdn.com/@vercel/node@^5.5.5",
+    "stripe": "https://aistudiocdn.com/stripe@^19.3.0",
+    "micro": "https://aistudiocdn.com/micro@^10.0.1",
+    "node-fetch": "https://aistudiocdn.com/node-fetch@^3.3.2",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.81.0"
+  }
+}
+</script>
+</head>
+<body class="bg-black text-zinc-100 antialiased selection:bg-red-900 selection:text-white">
+  <div id="root"></div>
+</body>
+</html>
