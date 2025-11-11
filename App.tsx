@@ -18,6 +18,7 @@ import PaymentSuccess from './components/PaymentSuccess';
 import { generateDailyMissionsAI, generateWeeklyMissionsAI, generateMilestoneMissionsAI, generateProactiveOracleGuidance } from './services/geminiService';
 import { buyProduct } from './services/paymentService';
 import { Compass, Book, Shield, Bot, ScrollText, GitMerge, Sparkles, User as UserIcon, LogOut, ArrowLeft, Target, Menu } from 'lucide-react';
+import { ErrorProvider, useError } from './contexts/ErrorContext';
 
 const XP_PER_LEVEL_FORMULA = (level: number) => Math.floor(100 * Math.pow(level, 1.5));
 
@@ -257,6 +258,7 @@ const AppContent: React.FC = () => {
     };
   });
   const navigate = useNavigate();
+  const { showError } = useError();
   const [isMissionsLoading, setIsMissionsLoading] = useState(false);
 
   useEffect(() => {
@@ -301,14 +303,15 @@ const AppContent: React.FC = () => {
                   try {
                       const guidance = await generateProactiveOracleGuidance(user);
                       setUser(prev => ({ ...prev, dailyGuidance: guidance }));
-                  } catch (e) {
+                  } catch (e: any) {
                       console.error("Failed to generate daily guidance", e);
+                      showError(e.message);
                   }
               }
           }
       };
       checkOracleGuidance();
-  }, [user.isLoggedIn, user.hasSubscription, user.onboardingCompleted]); // Add explicit dependencies if deep check needed, but simple login check is safer for loop prevention.
+  }, [user.isLoggedIn, user.hasSubscription, user.onboardingCompleted, showError]); // Add explicit dependencies if deep check needed, but simple login check is safer for loop prevention.
 
   // Mission System Logic
   useEffect(() => {
@@ -342,64 +345,65 @@ const AppContent: React.FC = () => {
       
       setIsMissionsLoading(true);
 
-      try {
-        let dailyMissions: Mission[] = user.missions.filter(m => m.type === 'daily');
-        let weeklyMissions: Mission[] = user.missions.filter(m => m.type === 'weekly');
-        let milestoneMissions: Mission[] = user.missions.filter(m => m.type === 'milestone');
-        
-        let newDailyTimestamp = user.lastDailyMissionRefresh;
-        let newWeeklyTimestamp = user.lastWeeklyMissionRefresh;
-        let newMilestoneTimestamp = user.lastMilestoneMissionRefresh;
+      let dailyMissions: Mission[] = user.missions.filter(m => m.type === 'daily');
+      let weeklyMissions: Mission[] = user.missions.filter(m => m.type === 'weekly');
+      let milestoneMissions: Mission[] = user.missions.filter(m => m.type === 'milestone');
+      
+      let newDailyTimestamp = user.lastDailyMissionRefresh;
+      let newWeeklyTimestamp = user.lastWeeklyMissionRefresh;
+      let newMilestoneTimestamp = user.lastMilestoneMissionRefresh;
 
-        if (needsDailyRefresh) {
-            dailyMissions = user.hasSubscription 
-                ? await generateDailyMissionsAI(user.level, user.rank) 
-                : STATIC_DAILY_MISSIONS.map(m => ({ ...m, completed: false }));
-            if (dailyMissions.length === 0) dailyMissions = STATIC_DAILY_MISSIONS.map(m => ({ ...m, completed: false }));
-            newDailyTimestamp = now;
-        }
-
-        if (needsWeeklyRefresh) {
-            weeklyMissions = user.hasSubscription
-                ? await generateWeeklyMissionsAI(user.level, user.rank)
-                : STATIC_WEEKLY_MISSIONS.map(m => ({ ...m, completed: false }));
-            if (weeklyMissions.length === 0) weeklyMissions = STATIC_WEEKLY_MISSIONS.map(m => ({ ...m, completed: false }));
-            newWeeklyTimestamp = now;
-        }
-
-        if (needsMilestoneRefresh) {
-            milestoneMissions = user.hasSubscription
-                ? await generateMilestoneMissionsAI(user.level, user.rank, user.stats, user.journalEntries)
-                : STATIC_MILESTONE_MISSIONS.map(m => ({ ...m, completed: false }));
-            if (milestoneMissions.length === 0) milestoneMissions = STATIC_MILESTONE_MISSIONS.map(m => ({ ...m, completed: false }));
-            newMilestoneTimestamp = now;
-        }
-
-        setUser(prev => ({
-          ...prev,
-          missions: [...dailyMissions, ...weeklyMissions, ...milestoneMissions],
-          lastDailyMissionRefresh: newDailyTimestamp,
-          lastWeeklyMissionRefresh: newWeeklyTimestamp,
-          lastMilestoneMissionRefresh: newMilestoneTimestamp,
-        }));
-
-      } catch (error) {
-        console.error("Failed to refresh missions:", error);
-        // Fallback to static missions on error
-         setUser(prev => ({
-            ...prev,
-            missions: [
-                ...STATIC_DAILY_MISSIONS.map(m => ({ ...m, completed: false })), 
-                ...STATIC_WEEKLY_MISSIONS.map(m => ({ ...m, completed: false })), 
-                ...STATIC_MILESTONE_MISSIONS.map(m => ({ ...m, completed: false }))
-            ],
-            lastDailyMissionRefresh: now,
-            lastWeeklyMissionRefresh: now,
-            lastMilestoneMissionRefresh: now,
-        }));
-      } finally {
-        setIsMissionsLoading(false);
+      if (needsDailyRefresh) {
+          try {
+              dailyMissions = user.hasSubscription 
+                  ? await generateDailyMissionsAI(user.level, user.rank) 
+                  : STATIC_DAILY_MISSIONS.map(m => ({ ...m, completed: false }));
+              if (dailyMissions.length === 0) throw new Error("AI returned empty array for daily missions");
+          } catch(e: any) {
+              console.error("Daily mission generation failed:", e.message);
+              showError("Oráculo falhou nas missões diárias. Usando protocolo padrão.");
+              dailyMissions = STATIC_DAILY_MISSIONS.map(m => ({ ...m, completed: false }));
+          }
+          newDailyTimestamp = now;
       }
+      
+      if (needsWeeklyRefresh) {
+          try {
+              weeklyMissions = user.hasSubscription
+                  ? await generateWeeklyMissionsAI(user.level, user.rank)
+                  : STATIC_WEEKLY_MISSIONS.map(m => ({ ...m, completed: false }));
+              if (weeklyMissions.length === 0) throw new Error("AI returned empty array for weekly missions");
+          } catch(e: any) {
+              console.error("Weekly mission generation failed:", e.message);
+              showError("Oráculo falhou nos desafios semanais. Usando protocolo padrão.");
+              weeklyMissions = STATIC_WEEKLY_MISSIONS.map(m => ({ ...m, completed: false }));
+          }
+          newWeeklyTimestamp = now;
+      }
+
+      if (needsMilestoneRefresh) {
+          try {
+              milestoneMissions = user.hasSubscription
+                  ? await generateMilestoneMissionsAI(user.level, user.rank, user.stats, user.journalEntries)
+                  : STATIC_MILESTONE_MISSIONS.map(m => ({ ...m, completed: false }));
+              if (milestoneMissions.length === 0) throw new Error("AI returned empty array for milestone missions");
+          } catch(e: any) {
+              console.error("Milestone mission generation failed:", e.message);
+              showError("Oráculo falhou nos marcos épicos. Usando protocolo padrão.");
+              milestoneMissions = STATIC_MILESTONE_MISSIONS.map(m => ({ ...m, completed: false }));
+          }
+          newMilestoneTimestamp = now;
+      }
+      
+      setUser(prev => ({
+        ...prev,
+        missions: [...dailyMissions, ...weeklyMissions, ...milestoneMissions],
+        lastDailyMissionRefresh: newDailyTimestamp,
+        lastWeeklyMissionRefresh: newWeeklyTimestamp,
+        lastMilestoneMissionRefresh: newMilestoneTimestamp,
+      }));
+
+      setIsMissionsLoading(false);
     };
 
     if (user.isLoggedIn && user.onboardingCompleted) {
@@ -567,7 +571,7 @@ const AppContent: React.FC = () => {
           await buyProduct(productId);
       } catch (err: any) {
           console.error("Purchase Error:", err);
-          alert(err.message || 'Erro ao iniciar compra');
+          showError(err.message || 'Erro ao iniciar compra.');
       }
   };
 
@@ -576,7 +580,7 @@ const AppContent: React.FC = () => {
           await buyProduct(productId, { userId: user.email });
       } catch (err: any) {
           console.error("Upgrade Error:", err);
-          alert(err.message || 'Erro ao iniciar upgrade');
+          showError(err.message || 'Erro ao iniciar upgrade.');
       }
   };
 
@@ -719,7 +723,9 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => (
   <HashRouter>
+    <ErrorProvider>
      <AppContent />
+    </ErrorProvider>
   </HashRouter>
 );
 

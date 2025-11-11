@@ -17,16 +17,62 @@ const initializeGenAI = () => {
 };
 
 // Helper avançado para extrair e limpar JSON de respostas com texto extra
-const cleanJsonString = (text: string) => {
-  const arrayMatch = text.match(/\[[\s\S]*\]/);
-  if (arrayMatch) {
-    return arrayMatch[0];
+const cleanJsonString = (text: string): string => {
+  // Case 1: JSON is inside markdown code blocks
+  const markdownMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+  if (markdownMatch && markdownMatch[1]) {
+    text = markdownMatch[1].trim();
   }
-  const objectMatch = text.match(/\{[\s\S]*\}/);
-  if (objectMatch) {
-    return objectMatch[0];
+
+  // Case 2: Raw JSON, possibly with leading/trailing garbage
+  const firstBracket = text.indexOf('[');
+  const firstBrace = text.indexOf('{');
+
+  if (firstBracket === -1 && firstBrace === -1) {
+    return text; // No JSON found, return as-is
   }
-  return text.replace(/```json\s*|\s*```/g, '').trim();
+
+  let start = -1;
+  let isArray = false;
+  
+  if (firstBracket !== -1 && (firstBrace === -1 || firstBracket < firstBrace)) {
+      start = firstBracket;
+      isArray = true;
+  } else if (firstBrace !== -1) {
+      start = firstBrace;
+      isArray = false;
+  } else {
+      return text; // Should not happen given previous check
+  }
+  
+  const openChar = isArray ? '[' : '{';
+  const closeChar = isArray ? ']' : '}';
+  let openCount = 0;
+  
+  for (let i = start; i < text.length; i++) {
+    if (text[i] === openChar) {
+      openCount++;
+    } else if (text[i] === closeChar) {
+      openCount--;
+    }
+    
+    if (openCount === 0) {
+      // We found the matching end brace/bracket
+      return text.substring(start, i + 1);
+    }
+  }
+
+  // Fallback: If no matching brace is found (malformed), try a simpler slice
+  // This helps with truncated responses.
+  const lastBracket = text.lastIndexOf(']');
+  const lastBrace = text.lastIndexOf('}');
+  const end = isArray ? lastBracket : lastBrace;
+
+  if (end > start) {
+      return text.substring(start, end + 1);
+  }
+
+  return text.substring(start);
 };
 
 // --- DEEP INSIGHT ENGINE (MODELO PRO) ---

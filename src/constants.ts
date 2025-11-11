@@ -1,5 +1,4 @@
-
-import { UserState, ArchetypeInfo, Archetype, ArchetypeQuestion, LifeMapCategory, LifeMapCategoriesList, RankTitle, SkillTree, ParagonPerk, Module, Mission, Skill, ProtectionModuleInfo, GuildChannelId, ProtectionModuleId, PaymentProvider, ProductDef } from './types';
+import { UserState, ArchetypeInfo, Archetype, ArchetypeQuestion, LifeMapCategory, LifeMapCategoriesList, RankTitle, SkillTree, ParagonPerk, Module, Mission, Skill, ProtectionModuleInfo, GuildChannelId, ProtectionModuleId, PaymentProvider, ProductDef, LifeMapQuestion } from './types';
 import {
   Heart, Mountain, BookOpen, Shield, Clapperboard, Wand2, Users, Sun, Laugh, HandHelping, Gem, Crown,
   Zap, Brain, Dumbbell, PiggyBank, BarChart, Repeat, Award, Activity, Sunrise, Moon, DollarSign, Timer, Wind, ListTodo, Calculator,
@@ -7,14 +6,15 @@ import {
 } from 'lucide-react';
 
 // --- CONFIGURATION ---
-export const FRONTEND_URL = process.env.REACT_APP_FRONTEND_URL || "http://localhost:3000";
-export const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "/api"; // Use relative path for Vercel or absolute if needed
-export const STRIPE_PUBLIC_KEY = process.env.REACT_APP_STRIPE_PUBLIC_KEY || "";
+// These should be set in your environment variables (.env file or hosting provider settings)
+export const FRONTEND_URL = "https://aistudio.google.com/app/project/66a858e5f3c09f3c78f8";
+export const BACKEND_URL = "/api";
+export const STRIPE_PUBLIC_KEY = process.env.STRIPE_PUBLIC_KEY || "pk_test_51PshpdELwcc78QutRKyf8k57Yj88Abp322a3TzL2Yqom5j3931V7XyF4wODx4qN1nOuef836f1eP0scl78HMCRe800P0LGAJmX"; // Replace with your actual public key
 
-// --- STRIPE PRICE IDS MAPPING (From Env or Hardcoded for Demo) ---
-export const STRIPE_HERO_PRICE_ID = process.env.REACT_APP_STRIPE_PRICE_HERO_BASIC || "price_1SRx9eELwcc78QutsxtesYl0";
-export const STRIPE_IA_PRICE_ID = process.env.REACT_APP_STRIPE_PRICE_HERO_PRO || "price_1SRxBwELwcc78QutnLm4OcVA";
-export const STRIPE_SUCESSO_PRICE_ID = process.env.REACT_APP_STRIPE_PRICE_HERO_ENTERPRISE || "price_1SRxSucesso360Placeholder";
+// --- STRIPE PRICE IDS MAPPING ---
+export const STRIPE_HERO_PRICE_ID = "price_1PshrWELwcc78QutdK8hB29k";
+export const STRIPE_IA_PRICE_ID = "price_1PshtPELwcc78QutMvFlf3wR";
+export const STRIPE_SUCESSO_PRICE_ID = "price_1PshtzELwcc78QutlH2r7l9f";
 
 // --- EDUZZ CONFIGURATION (Legacy/Fallback) ---
 export const EDUZZ_HERO_ID = "1725528";
@@ -47,6 +47,7 @@ export const PRODUCTS: ProductDef[] = [
     price: 27500
   }
 ];
+
 
 export const ARCHETYPES: Record<Archetype, ArchetypeInfo> = {
   'O Inocente': { name: 'O Inocente', description: 'Busca a felicidade e a segurança, temendo o abandono. Vê o bem em tudo.', icon: Sun, motto: 'Livre para ser eu e você.' },
@@ -83,138 +84,36 @@ export const INITIAL_LIFE_MAP_SCORES: Record<LifeMapCategory, number> = LifeMapC
   return acc;
 }, {} as Record<LifeMapCategory, number>);
 
-export const LIFE_MAP_QUESTIONS: Record<LifeMapCategory, {id: string, text: string}[]> = {
-    'Saúde & Fitness': [
-        { id: 'sf1', text: 'Tenho energia constante ao longo do dia sem depender de estimulantes.' },
-        { id: 'sf2', text: 'Pratico atividades físicas intensas pelo menos 3x na semana.' },
-        { id: 'sf3', text: 'Minha alimentação é nutritiva e alinhada com meus objetivos.' },
-        { id: 'sf4', text: 'Durmo bem e acordo revigorado na maioria dos dias.' },
-        { id: 'sf5', text: 'Sinto-me forte e capaz fisicamente.' }
-    ],
-    'Intelectual': [
-        { id: 'int1', text: 'Dedico tempo diário para aprender algo novo.' },
-        { id: 'int2', text: 'Consigo manter foco profundo em tarefas complexas.' },
-        { id: 'int3', text: 'Tenho lido livros ou consumido conteúdo denso regularmente.' },
-        { id: 'int4', text: 'Sinto que minha memória e raciocínio estão afiados.' },
-        { id: 'int5', text: 'Aplico o que aprendo na prática.' }
-    ],
-    'Emocional': [
-        { id: 'emo1', text: 'Lido bem com o estresse e pressão.' },
-        { id: 'emo2', text: 'Identifico e compreendo minhas emoções facilmente.' },
-        { id: 'emo3', text: 'Recupero-me rapidamente de contratempos emocionais.' },
-        { id: 'emo4', text: 'Sinto gratidão e alegria com frequência.' },
-        { id: 'emo5', text: 'Não sou refém de impulsos emocionais.' }
-    ],
-    'Caráter': [
-        { id: 'car1', text: 'Cumpro as promessas que faço a mim mesmo e aos outros.' },
-        { id: 'car2', text: 'Minhas ações estão alinhadas com meus valores.' },
-        { id: 'car3', text: 'Sou honesto mesmo quando não é conveniente.' },
-        { id: 'car4', text: 'Assumo responsabilidade total pelos meus erros.' },
-        { id: 'car5', text: 'Sinto orgulho da pessoa que sou.' }
-    ],
-    'Espiritual': [
-        { id: 'esp1', text: 'Sinto que minha vida tem um propósito maior.' },
-        { id: 'esp2', text: 'Dedico tempo para reflexão, meditação ou oração.' },
-        { id: 'esp3', text: 'Sinto-me conectado com algo além de mim mesmo.' },
-        { id: 'esp4', text: 'Tenho clareza sobre meus princípios fundamentais.' },
-        { id: 'esp5', text: 'Encontro paz interior mesmo em momentos difíceis.' }
-    ],
-    'Amoroso': [
-        { id: 'amo1', text: 'Estou satisfeito com minha situação amorosa atual.' },
-        { id: 'amo2', text: 'Comunico-me abertamente com meu parceiro(a) ou interesses.' },
-        { id: 'amo3', text: 'Sinto-me amado e valorizado.' },
-        { id: 'amo4', text: 'Dedico tempo de qualidade para cultivar o amor.' },
-        { id: 'amo5', text: 'Tenho clareza sobre o que busco em um relacionamento.' }
-    ],
-    'Social': [
-        { id: 'soc1', text: 'Tenho amigos verdadeiros com quem posso contar.' },
-        { id: 'soc2', text: 'Sinto-me parte de uma comunidade ou grupo.' },
-        { id: 'soc3', text: 'Faço novas conexões interessantes regularmente.' },
-        { id: 'soc4', text: 'Sou capaz de estabelecer limites saudáveis.' },
-        { id: 'soc5', text: 'Divirto-me e relaxo com outras pessoas.' }
-    ],
-    'Financeiro': [
-        { id: 'fin1', text: 'Tenho controle total sobre minhas receitas e despesas.' },
-        { id: 'fin2', text: 'Tenho uma reserva de emergência sólida.' },
-        { id: 'fin3', text: 'Invisto regularmente para o meu futuro.' },
-        { id: 'fin4', text: 'Sinto-me seguro em relação ao dinheiro.' },
-        { id: 'fin5', text: 'Minha renda tem crescido ao longo do tempo.' }
-    ],
-    'Carreira': [
-        { id: 'crr1', text: 'Sinto-me realizado com meu trabalho atual.' },
-        { id: 'crr2', text: 'Tenho oportunidades claras de crescimento profissional.' },
-        { id: 'crr3', text: 'Meu trabalho utiliza meus pontos fortes.' },
-        { id: 'crr4', text: 'Sinto que sou bem remunerado pelo que faço.' },
-        { id: 'crr5', text: 'Tenho uma visão clara para minha carreira.' }
-    ],
-    'Qualidade de Vida': [
-        { id: 'qdv1', text: 'Vivo em um ambiente que me agrada e inspira.' },
-        { id: 'qdv2', text: 'Tenho tempo livre para hobbies e lazer.' },
-        { id: 'qdv3', text: 'Sinto-me seguro no meu dia a dia.' },
-        { id: 'qdv4', text: 'Tenho acesso a experiências que me enriquecem.' },
-        { id: 'qdv5', text: 'Estou satisfeito com meu estilo de vida geral.' }
-    ],
-    'Visão de Vida': [
-        { id: 'vis1', text: 'Tenho metas claras para os próximos 5 anos.' },
-        { id: 'vis2', text: 'Sinto que estou progredindo na direção certa.' },
-        { id: 'vis3', text: 'Acordo motivado para construir meu futuro.' },
-        { id: 'vis4', text: 'Sei qual legado quero deixar.' },
-        { id: 'vis5', text: 'Minhas decisões diárias servem minha visão de longo prazo.' }
-    ],
-    'Família': [
-        { id: 'fam1', text: 'Tenho um bom relacionamento com meus familiares próximos.' },
-        { id: 'fam2', text: 'Sinto-me apoiado pela minha família.' },
-        { id: 'fam3', text: 'Dedico tempo de qualidade para a família.' },
-        { id: 'fam4', text: 'Consigo resolver conflitos familiares de forma saudável.' },
-        { id: 'fam5', text: 'Sinto que contribuo positivamente para meu núcleo familiar.' }
-    ]
+export const LIFE_MAP_QUESTIONS: Record<LifeMapCategory, LifeMapQuestion[]> = {
+    'Saúde & Fitness': [ { id: 'sf1', text: 'Tenho energia constante ao longo do dia.', category: 'Saúde & Fitness' }, { id: 'sf2', text: 'Pratico atividades físicas intensas regularmente.', category: 'Saúde & Fitness' } ],
+    'Intelectual': [ { id: 'int1', text: 'Dedico tempo para aprender algo novo.', category: 'Intelectual' }, { id: 'int2', text: 'Consigo manter foco profundo em tarefas.', category: 'Intelectual' } ],
+    'Emocional': [ { id: 'emo1', text: 'Lido bem com o estresse e pressão.', category: 'Emocional' }, { id: 'emo2', text: 'Recupero-me rapidamente de contratempos.', category: 'Emocional' } ],
+    'Caráter': [ { id: 'car1', text: 'Minhas ações estão alinhadas com meus valores.', category: 'Caráter' }, { id: 'car2', text: 'Assumo responsabilidade total pelos meus erros.', category: 'Caráter' } ],
+    'Espiritual': [ { id: 'esp1', text: 'Sinto que minha vida tem um propósito.', category: 'Espiritual' }, { id: 'esp2', text: 'Dedico tempo para reflexão ou meditação.', category: 'Espiritual' } ],
+    'Amoroso': [ { id: 'amo1', text: 'Estou satisfeito com minha situação amorosa.', category: 'Amoroso' }, { id: 'amo2', text: 'Comunico-me abertamente com meu parceiro(a).', category: 'Amoroso' } ],
+    'Social': [ { id: 'soc1', text: 'Tenho amigos verdadeiros com quem posso contar.', category: 'Social' }, { id: 'soc2', text: 'Sinto-me parte de uma comunidade.', category: 'Social' } ],
+    'Financeiro': [ { id: 'fin1', text: 'Tenho controle total sobre minhas finanças.', category: 'Financeiro' }, { id: 'fin2', text: 'Invisto regularmente para o meu futuro.', category: 'Financeiro' } ],
+    'Carreira': [ { id: 'crr1', text: 'Sinto-me realizado com meu trabalho atual.', category: 'Carreira' }, { id: 'crr2', text: 'Tenho oportunidades claras de crescimento.', category: 'Carreira' } ],
+    'Qualidade de Vida': [ { id: 'qdv1', text: 'Tenho tempo livre para hobbies e lazer.', category: 'Qualidade de Vida' }, { id: 'qdv2', text: 'Estou satisfeito com meu estilo de vida geral.', category: 'Qualidade de Vida' } ],
+    'Visão de Vida': [ { id: 'vis1', text: 'Tenho metas claras para os próximos 5 anos.', category: 'Visão de Vida' }, { id: 'vis2', text: 'Minhas decisões diárias servem minha visão de longo prazo.', category: 'Visão de Vida' } ],
+    'Família': [ { id: 'fam1', text: 'Tenho um bom relacionamento com meus familiares.', category: 'Família' }, { id: 'fam2', text: 'Sinto-me apoiado pela minha família.', category: 'Família' } ]
 };
 
 export const PROTECTION_MODULES: Record<string, ProtectionModuleInfo> = {
   'soberano': {
-    id: 'soberano',
-    name: 'Soberano (Financeiro)',
-    description: 'Gestão de recursos e expansão patrimonial.',
-    monthlyPrice: 97,
-    coveredAreas: ['Financeiro', 'Carreira'],
-    icon: TrendingUp,
-    color: 'yellow'
+    id: 'soberano', name: 'Soberano (Business)', description: 'Gestão de recursos e expansão patrimonial.', monthlyPrice: 97, coveredAreas: ['Financeiro', 'Carreira'], icon: TrendingUp, color: 'yellow'
   },
   'tita': {
-    id: 'tita',
-    name: 'Titã (Saúde)',
-    description: 'Biohacking e performance física máxima.',
-    monthlyPrice: 67,
-    coveredAreas: ['Saúde & Fitness', 'Qualidade de Vida'],
-    icon: Activity,
-    color: 'red'
+    id: 'tita', name: 'Titã (Saúde)', description: 'Biohacking e performance física máxima.', monthlyPrice: 67, coveredAreas: ['Saúde & Fitness', 'Qualidade de Vida'], icon: Activity, color: 'red'
   },
   'sabio': {
-    id: 'sabio',
-    name: 'Sábio (Intelectual)',
-    description: 'Aprendizado acelerado e gestão do conhecimento.',
-    monthlyPrice: 47,
-    coveredAreas: ['Intelectual', 'Visão de Vida'],
-    icon: Brain,
-    color: 'blue'
+    id: 'sabio', name: 'Sábio (Intelectual)', description: 'Aprendizado acelerado e gestão do conhecimento.', monthlyPrice: 47, coveredAreas: ['Intelectual', 'Visão de Vida'], icon: Brain, color: 'blue'
   },
   'monge': {
-    id: 'monge',
-    name: 'Monge (Espiritual)',
-    description: 'Controle emocional e propósito inabalável.',
-    monthlyPrice: 47,
-    coveredAreas: ['Espiritual', 'Emocional', 'Caráter'],
-    icon: Zap,
-    color: 'purple'
+    id: 'monge', name: 'Monge (Espiritual)', description: 'Controle emocional e propósito inabalável.', monthlyPrice: 47, coveredAreas: ['Espiritual', 'Emocional', 'Caráter'], icon: Zap, color: 'purple'
   },
   'lider': {
-    id: 'lider',
-    name: 'Líder (Social)',
-    description: 'Networking, influência e liderança de tribo.',
-    monthlyPrice: 57,
-    coveredAreas: ['Social', 'Amoroso', 'Família'],
-    icon: HeartHandshake,
-    color: 'pink'
+    id: 'lider', name: 'Líder (Social)', description: 'Networking, influência e liderança de tribo.', monthlyPrice: 57, coveredAreas: ['Social', 'Amoroso', 'Família'], icon: HeartHandshake, color: 'pink'
   }
 };
 
@@ -223,8 +122,9 @@ export const GUILD_CHANNELS: { id: GuildChannelId, name: string, description: st
     { id: 'wins', name: 'Salão de Vitórias', description: 'Compartilhe suas conquistas.', icon: Trophy },
     { id: 'support', name: 'Enfermaria', description: 'Ajuda mútua e suporte.', icon: HeartHandshake },
     { id: 'boss_strategy', name: 'Sala de Guerra', description: 'Estratégia contra Chefes.', icon: Shield },
-    { id: 'protection_360', name: 'Conselho Elite', description: 'Networking de alto nível (Sucesso 360).', icon: Globe, exclusiveModule: 'soberano' },
+    { id: 'protection_360', name: 'Conselho Elite', description: 'Networking de alto nível.', icon: Briefcase, exclusiveModule: 'soberano' },
 ];
+
 
 export const MENTOR_SYSTEM_INSTRUCTION = `Você é o Oráculo, um mentor estratégico, observador e militar na Jornada do Herói.
 Você tem acesso total aos dados da vida do usuário (Mapa de Vida, Missões, Aulas, Diário).
@@ -268,7 +168,7 @@ export const SKILL_TREES: SkillTree = {
     { id: 'fin_2', name: 'Escudo Patrimonial', description: 'Defesa contra gastos impulsivos.', icon: Shield, cost: 2, missionCategoryReq: 'Finance', missionCountReq: 6, toolId: 'passive_buff' },
     { id: 'fin_3', name: 'Alquimia de Renda', description: 'Multiplicação de fontes de receita.', icon: Sparkles, cost: 3, missionCategoryReq: 'Finance', missionCountReq: 10, toolId: 'passive_buff' },
     { id: 'fin_4', name: 'Visão do Investidor', description: 'Identificação de oportunidades ocultas.', icon: Eye, cost: 4, missionCategoryReq: 'Finance', missionCountReq: 15, toolId: 'passive_buff' },
-    { id: 'fin_5', name: 'Negociação Mestra', description: 'Vantagem tática em acordos.', icon: HandHelping, cost: 5, missionCategoryReq: 'Finance', missionCountReq: 20, toolId: 'passive_buff' },
+    { id: 'fin_5', 'name': 'Negociação Mestra', 'description': 'Vantagem tática em acordos.', 'icon': HandHelping, cost: 5, missionCategoryReq: 'Finance', missionCountReq: 20, toolId: 'passive_buff' },
     createPassiveSkill('fin_6', 'Juros Compostos', 'Aceleração exponencial de ganhos.', 6, 'Finance'),
     createPassiveSkill('fin_7', 'Mentalidade de Abundância', 'Remoção de crenças limitantes.', 7, 'Finance'),
     createPassiveSkill('fin_8', 'Gestão de Risco', 'Mitigação de perdas financeiras.', 8, 'Finance'),
@@ -339,7 +239,7 @@ export const CODEX_MODULES: Module[] = [
       { id: 'l1-5', title: 'Mente, Corpo e Espírito', subtitle: 'Os Três Pilares da Força do Herói', videoId: 'to-UUgfA0ng', locked: true, completed: false, description: 'Um herói não é apenas forte fisicamente; ele é mentalmente resiliente e espiritualmente ancorado. Explore a interconexão desses três pilares e por que negligenciar um deles compromete toda a sua estrutura.', quote: 'Um corpo saudável é um abrigo para a alma, um corpo doente, uma prisão.', mission: 'Hoje, realize uma atividade para cada pilar: 30 min de exercício (Corpo), 10 min de leitura focada (Mente), 5 min de silêncio/meditação (Espírito).', tool: 'A Santíssima Trindade do Herói: Avalie de 1 a 5 sua dedicação a cada pilar no final do dia. Identifique o pilar mais fraco para focar no dia seguinte.', tags: ['Equilíbrio', 'Fundamentos'] },
       { id: 'l1-6', title: 'O Poder da Palavra', subtitle: 'Comunicação como Ferramenta de Influência', videoId: 'HS0KOM1eEQ0', locked: true, completed: false, description: 'Suas palavras criam sua realidade. Uma comunicação clara e assertiva é fundamental para liderança, negociações e relacionamentos. Aprenda a usar sua voz como uma ferramenta de precisão.', quote: 'As palavras têm o poder de destruir e de curar. Quando as palavras são verdadeiras e gentis, elas podem mudar nosso mundo.', mission: 'Em sua próxima conversa importante, pratique a escuta ativa: não interrompa e resuma o que a outra pessoa disse antes de dar sua resposta.', tool: 'A Regra dos 3 Segundos: Antes de responder a uma pergunta complexa, faça uma pausa de três segundos. Isso transmite controle e permite uma resposta mais elaborada.', tags: ['Comunicação', 'Social'] },
       { id: 'l1-7', title: 'Foco: O Superpoder Moderno', subtitle: 'Vencendo a Guerra Contra a Distração', videoId: 'J_em4c9On6U', locked: true, completed: false, description: 'Em um mundo projetado para roubar sua atenção, a capacidade de se concentrar em uma única tarefa é uma habilidade de elite. Descubra técnicas para blindar seu foco e entrar em estado de fluxo.', quote: 'Concentre todas as suas energias em dominar uma coisa de cada vez.', mission: 'Use a técnica Pomodoro: trabalhe por 25 minutos com foco total (sem celular, sem abas extras) e depois faça uma pausa de 5 minutos.', tool: 'O Ambiente de Batalha: Prepare seu ambiente físico e digital para o trabalho focado, eliminando todas as possíveis fontes de distração antes de começar.', tags: ['Foco', 'Produtividade'] },
-      { id: 'l1-8', title: 'O Valor do Tempo', subtitle: 'O Ativo Mais Escasso do Herói', videoId: '0AwbwJB_5LQ', locked: true, completed: false, description: 'Você não pode comprar mais tempo. Cada segundo desperdiçado é uma oportunidade perdida. Trate seu tempo como o recurso mais valioso e aprenda a alocá-lo com intenção estratégica.', quote: 'A má notícia é o tempo voa. A boa notícia é que você é o piloto.', mission: 'Monitore seu tempo por 2 horas. Anote exatamente o que você fez. Identifique um "ladrão de tempo" e crie uma regra para limitá-lo amanhã.', tool: 'O Bloco de Tempo: Agende blocos de tempo específicos para suas tarefas mais importantes, tratando-os como compromissos inadiáveis.', tags: ['Produtividade', 'Tempo'] },
+      { id: 'l1-8', title: 'O Valor do Tempo', subtitle: 'O Ativo Mais Escasso do Herói', videoId: '0AwbwJB_5LQ', locked: true, completed: false, description: 'Você não pode comprar mais tempo. Cada segundo desperdiçado é uma oportunidade perdida. Trate seu tempo como o recurso mais valioso e aprenda a alocá-lo com intenção estratégica.', quote: 'A má notícia é que o tempo voa. A boa notícia é que você é o piloto.', mission: 'Monitore seu tempo por 2 horas. Anote exatamente o que você fez. Identifique um "ladrão de tempo" e crie uma regra para limitá-lo amanhã.', tool: 'O Bloco de Tempo: Agende blocos de tempo específicos para suas tarefas mais importantes, tratando-os como compromissos inadiáveis.', tags: ['Produtividade', 'Tempo'] },
     ]
   },
   {

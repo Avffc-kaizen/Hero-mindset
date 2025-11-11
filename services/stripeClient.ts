@@ -49,6 +49,6 @@ export const startStripeCheckout = async (priceId: string, metadata?: Record<str
     if (error) throw error;
   } catch (err: any) {
       console.error("Stripe Checkout failed:", err);
-      throw new Error(err.message || "Could not start Stripe checkout.");
+      throw new Error("Falha na comunicação com o sistema de pagamento. Tente novamente.");
   }
 };

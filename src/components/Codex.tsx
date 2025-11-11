@@ -1,17 +1,12 @@
-
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Book, Lock, Play, ChevronLeft, CheckCircle, Zap, Quote as QuoteIcon, PenTool, MonitorPlay, Loader2, Search, Tag, AlertCircle, Maximize, Music, Headphones, Cloud } from 'lucide-react';
 import { Module, LessonDetails } from '../types';
+import { useUser } from '../contexts/UserContext';
 
-interface CodexProps {
-  modules: Module[];
-  onCompleteLesson: (lesson: LessonDetails) => void;
-  hasSubscription: boolean;
-  onUpgrade: () => void;
-  isDailyLimitReached: boolean;
-}
+const Codex: React.FC<{isDailyLimitReached: boolean}> = ({ isDailyLimitReached }) => {
+  const { user, handleCompleteLesson: onCompleteLesson, handleUpgrade: onUpgrade } = useUser();
+  const { modules, hasSubscription } = user;
 
-const Codex: React.FC<CodexProps> = ({ modules, onCompleteLesson, hasSubscription, onUpgrade, isDailyLimitReached }) => {
   const [selectedLesson, setSelectedLesson] = useState<LessonDetails | null>(null);
   const [activeTab, setActiveTab] = useState<'knowledge' | 'harmony'>('knowledge');
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,7 +48,7 @@ const Codex: React.FC<CodexProps> = ({ modules, onCompleteLesson, hasSubscriptio
   const handleSelectLesson = useCallback((lesson: LessonDetails) => {
     if (lesson.locked) return;
     setSelectedLesson(lesson);
-    setPlayVideo(false); // Reset video state on new lesson selection
+    setPlayVideo(false);
   }, []);
 
   const handleComplete = useCallback(() => {
@@ -232,7 +227,6 @@ const Codex: React.FC<CodexProps> = ({ modules, onCompleteLesson, hasSubscriptio
               <p className="text-zinc-400 text-sm mt-1">A biblioteca da sabedoria heroica.</p>
             </div>
             
-            {/* Tab Switcher */}
             <div className="flex bg-zinc-900 p-1 rounded-lg border border-zinc-800">
               <button
                 onClick={() => setActiveTab('knowledge')}
@@ -367,21 +361,10 @@ const Codex: React.FC<CodexProps> = ({ modules, onCompleteLesson, hasSubscriptio
               </div>
             </>
           ) : (
-            /* --- HERO HARMONY TAB --- */
             <div className="animate-in fade-in slide-in-from-right-4 space-y-6">
               <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
-                {/* Video Container */}
                 <div className="aspect-video w-full bg-black relative group">
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    src="https://www.youtube.com/embed/y9tuE8CeWyA?start_radio=1"
-                    title="Final Fantasy 7 Rebirth (Ambient Theme)"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                    className="w-full h-full"
-                  ></iframe>
+                  <iframe width="100%" height="100%" src="https://www.youtube.com/embed/y9tuE8CeWyA?start_radio=1" title="Final Fantasy 7 Rebirth (Ambient Theme)" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen className="w-full h-full"></iframe>
                 </div>
                 
                 <div className="p-6">
@@ -402,19 +385,13 @@ const Codex: React.FC<CodexProps> = ({ modules, onCompleteLesson, hasSubscriptio
                   <div className="prose prose-invert prose-sm max-w-none border-t border-zinc-800 pt-6">
                     <h3 className="text-cyan-400 font-mono uppercase text-sm tracking-widest mb-4">Arquivo: A Marionete que Cortou os Fios</h3>
                     <p className="leading-relaxed text-zinc-300 mb-4">
-                      Cloud Strife não nasceu um herói. Ele não era o "SOLDIER de 1ª Classe" que proclamava ser. Ele era um menino de Nibelheim, fraco demais para salvar quem amava, envergonhado demais para encarar a verdade. Sua persona foi forjada em mentiras, um escudo construído com as memórias de seu melhor amigo, Zack, para proteger uma psique estilhaçada pelo trauma e pela experimentação de Hojo.
-                    </p>
-                    <p className="leading-relaxed text-zinc-300 mb-4">
-                      Por muito tempo, Cloud foi apenas um reflexo. Uma marionete dançando conforme a vontade de Sephiroth, acreditando ser forte enquanto sua mente sangrava. Mas a verdadeira força de Cloud não veio da Espada Buster ou das células de Jenova. Veio do momento em que ele caiu na Corrente da Vida (Lifestream).
+                      Cloud Strife não nasceu um herói. Ele era um menino de Nibelheim, fraco demais para salvar quem amava. Sua persona foi forjada em mentiras, um escudo construído com as memórias de seu amigo, Zack, para proteger uma psique estilhaçada.
                     </p>
                     <blockquote className="border-l-4 border-cyan-500 pl-4 italic text-zinc-400 my-6 bg-zinc-900/50 p-4 rounded-r-lg">
-                      "Eu não sou um herói porque nunca falho. Sou um herói porque me quebrei em mil pedaços e tive a coragem de remontar cada um deles, aceitando que a fraqueza faz parte de quem eu sou."
+                      "Eu não sou um herói porque nunca falho. Sou um herói porque me quebrei em mil pedaços e tive a coragem de remontar cada um deles."
                     </blockquote>
-                    <p className="leading-relaxed text-zinc-300 mb-4">
-                      Lá, despido de suas máscaras, guiado por Tifa, ele confrontou sua maior vergonha: sua própria mediocridade. Ele aceitou que não era o "especial". E nesse ato de aceitação radical, ele encontrou algo mais poderoso que a perfeição: a <strong>Integridade</strong>.
-                    </p>
                     <p className="leading-relaxed text-zinc-300">
-                      Ao ouvir esta frequência, visualize o Lifestream fluindo através de você. Não como uma força mágica distante, mas como a capacidade humana de curar, de lembrar quem você realmente é sob as camadas de expectativas e traumas. Entre no estado de fluxo. Restaure sua força. O peso da sua espada (seus deveres, seus sonhos) é suportável quando você para de fingir ser outra pessoa e abraça o guerreiro imperfeito que você já é.
+                      Ao ouvir esta frequência, visualize o Lifestream fluindo através de você. Não como uma força mágica, mas como a capacidade humana de curar, de lembrar quem você realmente é. Entre no estado de fluxo. Restaure sua força. O peso da sua espada é suportável quando você abraça o guerreiro imperfeito que já é.
                     </p>
                   </div>
                 </div>

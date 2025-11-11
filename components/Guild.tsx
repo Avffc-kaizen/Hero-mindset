@@ -3,6 +3,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { RankTitle, UserState, GuildPost } from '../types';
 import { Shield, Trophy, ThumbsUp, MessageSquare, Loader2, Sword, Skull, Sparkles, Crown, Star, Hexagon, Clock, Send, User as UserIcon } from 'lucide-react';
 import { generateBossVictorySpeech } from '../services/geminiService';
+import { useError } from '../contexts/ErrorContext';
 
 interface GuildProps {
   hasSubscription: boolean;
@@ -86,6 +87,7 @@ const Guild: React.FC<GuildProps> = ({ hasSubscription, onUpgrade, user, onAscen
   const [activeTab, setActiveTab] = useState<'boss' | 'feed'>('boss');
   const [activeBossTab, setActiveBossTab] = useState<BossType>('daily');
   const [isGeneratingSpeech, setIsGeneratingSpeech] = useState(false);
+  const { showError } = useError();
   
   // Feed State
   const [posts, setPosts] = useState<GuildPost[]>(initialPosts);
@@ -169,14 +171,22 @@ const Guild: React.FC<GuildProps> = ({ hasSubscription, onUpgrade, user, onAscen
                 isSystem: true 
             };
             setPosts(prev => [victoryPost, ...prev]);
+        } catch (error: any) {
+            showError(error.message || "O Oráculo falhou ao registrar o feito.");
+             const fallbackPost: GuildPost = { 
+                id: `sys-win-fallback-${Date.now()}`, 
+                author: 'CRÔNICAS DA GUILDA', 
+                rank: RankTitle.Lendario, 
+                content: `ATENÇÃO, HERÓIS: ${currentBoss.name} CAIU PERANTE SUA CORAGEM! A CRÔNICA FOI ESCRITA. UM NOVO CAPÍTULO AGUARDA.`,
+                likes: 999, comments: [], timestamp: Date.now(), isSystem: true 
+            };
+            setPosts(prev => [fallbackPost, ...prev]);
+        } finally {
             setTimeout(() => {
               const newMaxHp = Math.floor(currentBoss.maxHp * 1.5);
               setBosses(prev => ({ ...prev, [activeBossTab]: { ...prev[activeBossTab], hp: newMaxHp, maxHp: newMaxHp, name: `${prev[activeBossTab].name.split(' (')[0]} (Renascido)` } }));
+              setIsGeneratingSpeech(false);
             }, 3000);
-        } catch (error) {
-            // Fallback
-        } finally {
-            setTimeout(() => setIsGeneratingSpeech(false), 3000);
         }
       }
     }

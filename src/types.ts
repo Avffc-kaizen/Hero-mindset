@@ -1,4 +1,3 @@
-
 import { LucideIcon } from "lucide-react";
 
 export const LifeMapCategoriesList = [
@@ -144,10 +143,10 @@ export interface GuildComment {
 export interface GuildPost {
   id: string;
   author: string;
-  rank: string;
+  rank: RankTitle | string;
   content: string;
   channel: GuildChannelId;
-  likes: number;
+  likes: number; // Deprecated, use reactions
   reactions: Record<string, number>; // ex: { 'fire': 5, 'muscle': 2 }
   comments: GuildComment[];
   timestamp: number;
@@ -155,6 +154,7 @@ export interface GuildPost {
   aiAnalysis?: string; // Para posts analisados pelo Oráculo
   action?: 'attack_boss';
 }
+
 
 export interface SquadMember {
   id: string;
@@ -234,7 +234,7 @@ export interface UserState {
   
   // Subscription & Protection System
   activeModules: ProtectionModuleId[]; // Lista de módulos ativos
-  hasSubscription: boolean; // Mantido para compatibilidade (acesso base)
+  hasSubscription: boolean; // Mantido para compatibilidade (acesso base + IA)
   
   // Module Specific Data
   company?: CompanyInfo; // Soberano

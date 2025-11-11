@@ -1,4 +1,3 @@
-
 import { startStripeCheckout } from './stripeClient';
 import { PRODUCTS, BACKEND_URL } from '../constants';
 import { PaymentProvider } from '../types';

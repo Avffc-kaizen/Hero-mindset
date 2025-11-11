@@ -1,15 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { generateDailyAnalysisAI } from '../services/geminiService';
-import { UserState } from '../types';
 import { Bot, Lock, ChevronRight, Zap } from 'lucide-react';
-import { STRIPE_IA_PRICE_ID } from '../constants';
-
-interface IAMentorProps {
-  user: UserState;
-  hasSubscription: boolean;
-  onUpgrade: (productId: string) => void;
-}
+import { useError } from '../contexts/ErrorContext';
+import { useUser } from '../contexts/UserContext';
 
 const isSameDay = (ts1: number, ts2: number) => {
     if (!ts1 || !ts2) return false;
@@ -20,9 +14,13 @@ const isSameDay = (ts1: number, ts2: number) => {
            d1.getDate() === d2.getDate();
 };
 
-const IAMentor: React.FC<IAMentorProps> = ({ user, hasSubscription, onUpgrade }) => {
+const IAMentor: React.FC = () => {
+  const { user, handleUpgrade: onUpgrade } = useUser();
+  const { hasSubscription } = user;
+
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { showError } = useError();
   const [lastAnalysisTimestamp, setLastAnalysisTimestamp] = useState<number | null>(() => {
       const saved = localStorage.getItem('hero_last_analysis');
       return saved ? parseInt(saved, 10) : null;
@@ -49,8 +47,8 @@ const IAMentor: React.FC<IAMentorProps> = ({ user, hasSubscription, onUpgrade })
       });
       setAnalysis(responseText);
       setLastAnalysisTimestamp(Date.now());
-    } catch (error) {
-      setAnalysis("Ocorreu um erro ao contatar o Oráculo. Tente novamente mais tarde.");
+    } catch (error: any) {
+      showError(error.message || "Ocorreu um erro ao contatar o Oráculo.");
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +64,7 @@ const IAMentor: React.FC<IAMentorProps> = ({ user, hasSubscription, onUpgrade })
             ELEVE SUA JORNADA COM SABEDORIA DIVINA. O Oráculo não é um assistente. É um mentor ancestral, que analisa sua jornada e oferece a clareza necessária para superar seus maiores desafios.
           </p>
           <button
-            onClick={() => onUpgrade(STRIPE_IA_PRICE_ID)}
+            onClick={() => onUpgrade('mentor_ia')}
             className="bg-white text-black px-8 py-3 rounded font-bold uppercase tracking-wider hover:bg-zinc-200 inline-flex items-center gap-2 transition-transform active:scale-95"
           >
             Consultar o Oráculo <ChevronRight className="w-4 h-4" />

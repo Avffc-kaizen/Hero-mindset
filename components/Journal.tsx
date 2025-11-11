@@ -1,7 +1,9 @@
+
 import React, { useState } from 'react';
 import { JournalEntry } from '../types';
 import { ScrollText, Send, Lock, Zap, CheckCircle, ChevronRight, Bot } from 'lucide-react';
 import { analyzeJournalAI } from '../services/geminiService';
+import { useError } from '../contexts/ErrorContext';
 
 interface JournalProps {
   entries: JournalEntry[];
@@ -15,6 +17,7 @@ interface JournalProps {
 const Journal: React.FC<JournalProps> = ({ entries, onAddEntry, onUpdateEntry, userName, hasSubscription, onUpgrade }) => {
   const [newContent, setNewContent] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const { showError } = useError();
 
   const handleSaveEntry = () => {
     if (newContent.trim()) {
@@ -48,9 +51,9 @@ const Journal: React.FC<JournalProps> = ({ entries, onAddEntry, onUpdateEntry, u
           onUpdateEntry(entry.id, { isAnalyzed: true });
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to analyze journal", error);
-      // Opcional: Mostrar uma mensagem de erro ao usuário.
+      showError(error.message || "Falha ao analisar o diário. A conexão neural pode estar instável.");
     } finally {
       setIsAnalyzing(false);
     }

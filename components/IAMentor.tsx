@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { generateDailyAnalysisAI } from '../services/geminiService';
 import { UserState } from '../types';
 import { Bot, Lock, ChevronRight, Zap } from 'lucide-react';
+import { useError } from '../contexts/ErrorContext';
 
 interface IAMentorProps {
   user: UserState;
@@ -21,6 +23,7 @@ const isSameDay = (ts1: number, ts2: number) => {
 const IAMentor: React.FC<IAMentorProps> = ({ user, hasSubscription, onUpgrade }) => {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { showError } = useError();
   const [lastAnalysisTimestamp, setLastAnalysisTimestamp] = useState<number | null>(() => {
       const saved = localStorage.getItem('hero_last_analysis');
       return saved ? parseInt(saved, 10) : null;
@@ -47,8 +50,8 @@ const IAMentor: React.FC<IAMentorProps> = ({ user, hasSubscription, onUpgrade })
       });
       setAnalysis(responseText);
       setLastAnalysisTimestamp(Date.now());
-    } catch (error) {
-      setAnalysis("Ocorreu um erro ao contatar o Oráculo. Tente novamente mais tarde.");
+    } catch (error: any) {
+      showError(error.message || "Ocorreu um erro ao contatar o Oráculo.");
     } finally {
       setIsLoading(false);
     }

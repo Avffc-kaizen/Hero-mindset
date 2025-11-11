@@ -1,21 +1,17 @@
-
 import React, { useState } from 'react';
 import { JournalEntry } from '../types';
 import { ScrollText, Send, Lock, Zap, CheckCircle, ChevronRight, Bot } from 'lucide-react';
 import { analyzeJournalAI } from '../services/geminiService';
+import { useError } from '../contexts/ErrorContext';
+import { useUser } from '../contexts/UserContext';
 
-interface JournalProps {
-  entries: JournalEntry[];
-  onAddEntry: (content: string) => void;
-  onUpdateEntry: (id: string, updates: Partial<JournalEntry>) => void;
-  userName: string;
-  hasSubscription: boolean;
-  onUpgrade: () => void;
-}
-
-const Journal: React.FC<JournalProps> = ({ entries, onAddEntry, onUpdateEntry, userName, hasSubscription, onUpgrade }) => {
+const Journal: React.FC = () => {
+  const { user, handleAddJournalEntry: onAddEntry, handleUpdateJournalEntry: onUpdateEntry, handleUpgrade: onUpgrade } = useUser();
+  const { journalEntries: entries, name: userName, hasSubscription } = user;
+  
   const [newContent, setNewContent] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const { showError } = useError();
 
   const handleSaveEntry = () => {
     if (newContent.trim()) {
@@ -27,11 +23,9 @@ const Journal: React.FC<JournalProps> = ({ entries, onAddEntry, onUpdateEntry, u
   const handleRequestAnalysis = async () => {
     if (!hasSubscription || isAnalyzing) return;
 
-    // Seleciona os 5 registros mais recentes que ainda não foram analisados.
     const entriesToAnalyze = entries.filter(e => !e.isAnalyzed).slice(0, 5);
     
     if (entriesToAnalyze.length === 0) {
-      // Nenhuma entrada nova para analisar.
       return;
     }
 
@@ -39,19 +33,14 @@ const Journal: React.FC<JournalProps> = ({ entries, onAddEntry, onUpdateEntry, u
     try {
       const feedback = await analyzeJournalAI(entriesToAnalyze, userName);
       
-      // O feedback é para o lote. Anexe ao mais recente e marque todos como analisados.
       entriesToAnalyze.forEach((entry, index) => {
-        if (index === 0) {
-          // Anexa o feedback ao registro mais recente do lote.
-          onUpdateEntry(entry.id, { aiFeedback: feedback, isAnalyzed: true });
-        } else {
-          // Apenas marca os outros como analisados.
-          onUpdateEntry(entry.id, { isAnalyzed: true });
-        }
+        onUpdateEntry(entry.id, { 
+            aiFeedback: index === 0 ? feedback : undefined, 
+            isAnalyzed: true 
+        });
       });
-    } catch (error) {
-      console.error("Failed to analyze journal", error);
-      // Opcional: Mostrar uma mensagem de erro ao usuário.
+    } catch (error: any) {
+      showError(error.message || "Falha ao analisar o diário.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -106,15 +95,11 @@ const Journal: React.FC<JournalProps> = ({ entries, onAddEntry, onUpdateEntry, u
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   Analisando...
                 </span>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4" /> Solicitar Análise
-                </>
-              )}
+              ) : ( <> <Zap className="w-4 h-4" /> Solicitar Análise </> )}
             </button>
           ) : (
             <button
-              onClick={onUpgrade}
+              onClick={() => onUpgrade('mentor_ia')}
               className="bg-zinc-800 text-zinc-400 px-4 py-2 rounded font-bold uppercase tracking-wider flex items-center gap-2 text-sm hover:bg-zinc-700 transition active:scale-95"
             >
               <Lock className="w-3 h-3" /> Desbloquear Análise IA
@@ -160,19 +145,6 @@ const Journal: React.FC<JournalProps> = ({ entries, onAddEntry, onUpdateEntry, u
           ))
         )}
       </div>
-      
-      {!hasSubscription && entries.length > 0 && (
-        <div className="bg-zinc-900 border border-red-900/30 rounded-xl p-6 text-center mt-4">
-          <Lock className="w-8 h-8 text-red-500 mx-auto mb-2 opacity-50" />
-          <h3 className="text-white font-bold uppercase font-mono mb-2">Análise do Mentor Bloqueada</h3>
-          <p className="text-zinc-400 text-sm mb-4 max-w-md mx-auto">
-            Assinantes recebem feedback, identificação de padrões e perguntas estratégicas do Mentor sobre seus registros.
-          </p>
-          <button onClick={onUpgrade} className="bg-white text-black px-4 py-2 rounded font-bold uppercase tracking-wider inline-flex items-center gap-2 hover:bg-zinc-200 transition active:scale-95 text-sm">
-            Fazer Upgrade Agora <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
     </div>
   );
 };

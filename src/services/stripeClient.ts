@@ -1,4 +1,3 @@
-
 import { loadStripe } from '@stripe/stripe-js';
 
 let stripePromise: Promise<import('@stripe/stripe-js').Stripe | null> | null = null;
