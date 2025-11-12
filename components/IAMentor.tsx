@@ -1,15 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { generateDailyAnalysisAI } from '../services/geminiService';
-import { UserState } from '../types';
 import { Bot, Lock, ChevronRight, Zap } from 'lucide-react';
 import { useError } from '../contexts/ErrorContext';
-
-interface IAMentorProps {
-  user: UserState;
-  hasSubscription: boolean;
-  onUpgrade: (productId: string) => void;
-}
+import { useUser } from '../contexts/UserContext';
 
 const isSameDay = (ts1: number, ts2: number) => {
     if (!ts1 || !ts2) return false;
@@ -20,7 +13,10 @@ const isSameDay = (ts1: number, ts2: number) => {
            d1.getDate() === d2.getDate();
 };
 
-const IAMentor: React.FC<IAMentorProps> = ({ user, hasSubscription, onUpgrade }) => {
+const IAMentor: React.FC = () => {
+  const { user, handleUpgrade: onUpgrade } = useUser();
+  const { hasSubscription } = user;
+
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { showError } = useError();

@@ -40,6 +40,7 @@ export enum IAMode {
   Deep = 'deep',
 }
 
+// FIX: Added missing '|' operator to correctly define the union type.
 export type MissionCategory = 'Fitness' | 'Learning' | 'Finance' | 'Mindset';
 export type MissionType = 'daily' | 'weekly' | 'milestone';
 
@@ -143,6 +144,7 @@ export interface GuildComment {
 export interface GuildPost {
   id: string;
   author: string;
+  authorId: string; // UID do autor para regras de segurança
   rank: RankTitle | string;
   content: string;
   channel: GuildChannelId;
@@ -215,12 +217,27 @@ export interface BioData {
 }
 
 export interface FocusSession {
-    date: number;
-    duration: number; // minutes
+    id: string;
     task: string;
+    duration: number; // minutes
+    completed: boolean;
+}
+
+export interface DailyIntention {
+    id: string;
+    text: string;
+    completed: boolean;
+}
+
+export interface KeyConnection {
+    id: string;
+    name: string;
+    lastContact?: number; // timestamp
+    completed: boolean;
 }
 
 export interface UserState {
+  uid: string;
   isLoggedIn: boolean;
   name: string;
   onboardingCompleted: boolean;
@@ -230,17 +247,18 @@ export interface UserState {
   focusAreas: LifeMapCategory[];
   createdAt: number;
   email?: string;
-  password?: string; 
   
   // Subscription & Protection System
   activeModules: ProtectionModuleId[]; // Lista de módulos ativos
   hasSubscription: boolean; // Mantido para compatibilidade (acesso base + IA)
   
   // Module Specific Data
-  company?: CompanyInfo; // Soberano
+  company?: CompanyInfo | null; // Soberano
   businessRoadmap?: RoadmapItem[]; // Soberano
   bioData?: BioData; // Tita
   focusHistory?: FocusSession[]; // Sabio
+  dailyIntention?: DailyIntention | null; // Monge
+  keyConnections?: KeyConnection[]; // Lider
   
   level: number;
   currentXP: number;
@@ -277,8 +295,12 @@ export enum PaymentProvider {
 export interface ProductDef {
   id: string;
   name: string;
+  description: string;
   provider: PaymentProvider;
   priceId?: string; // Stripe Price ID
   eduzzId?: string; // Eduzz Content ID
   price: number; // In cents
+  // FIX: Added missing 'originalPrice' property to support showing a discounted price.
+  originalPrice?: number; // In cents, for sales
+  isSubscription: boolean;
 }

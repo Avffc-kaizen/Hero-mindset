@@ -1,4 +1,3 @@
-
 import { LucideIcon } from "lucide-react";
 
 export const LifeMapCategoriesList = [
@@ -30,11 +29,18 @@ export interface ArchetypeQuestion {
   archetype: Archetype;
 }
 
+export interface LifeMapQuestion {
+  id: string;
+  text: string;
+  category: LifeMapCategory;
+}
+
 export enum IAMode {
   Fast = 'fast',
   Deep = 'deep',
 }
 
+// FIX: Added missing '|' operator to correctly define the union type.
 export type MissionCategory = 'Fitness' | 'Learning' | 'Finance' | 'Mindset';
 export type MissionType = 'daily' | 'weekly' | 'milestone';
 
@@ -108,7 +114,7 @@ export interface ParagonPerk {
   maxLevel: number;
 }
 
-export type ToolType = 'pomodoro' | 'breathing' | 'eisenhower' | 'budget' | 'passive_buff';
+export type ToolType = 'pomodoro' | 'breathing' | 'eisenhower' | 'budget' | 'passive_buff' | 'habit_tracker';
 
 export interface Skill {
   id: string;
@@ -126,6 +132,8 @@ export interface Skill {
 // A SkillTree agora usa as categorias do LifeMap como chaves
 export type SkillTree = Record<LifeMapCategory, Skill[]>;
 
+export type GuildChannelId = 'general' | 'wins' | 'support' | 'boss_strategy' | 'protection_360';
+
 export interface GuildComment {
   id: string;
   author: string;
@@ -136,12 +144,35 @@ export interface GuildComment {
 export interface GuildPost {
   id: string;
   author: string;
-  rank: string;
+  rank: RankTitle | string;
   content: string;
-  likes: number;
+  channel: GuildChannelId;
+  likes: number; // Deprecated, use reactions
+  reactions: Record<string, number>; // ex: { 'fire': 5, 'muscle': 2 }
   comments: GuildComment[];
   timestamp: number;
   isSystem?: boolean;
+  aiAnalysis?: string; // Para posts analisados pelo Oráculo
+  action?: 'attack_boss';
+}
+
+
+export interface SquadMember {
+  id: string;
+  name: string;
+  rank: RankTitle;
+  level: number;
+  archetype: Archetype | null;
+}
+
+export interface Squad {
+  id: string;
+  name: string;
+  motto: string;
+  leaderId: string;
+  leaderName: string;
+  members: SquadMember[];
+  createdAt: number;
 }
 
 export interface DailyGuidance {
@@ -150,25 +181,98 @@ export interface DailyGuidance {
   type: 'alert' | 'praise' | 'strategy';
 }
 
+// --- PROTECTION MODULE TYPES ---
+
+export type ProtectionModuleId = 'soberano' | 'tita' | 'sabio' | 'monge' | 'lider';
+
+export interface ProtectionModuleInfo {
+    id: ProtectionModuleId;
+    name: string;
+    description: string;
+    monthlyPrice: number;
+    coveredAreas: LifeMapCategory[];
+    icon: LucideIcon;
+    color: string; // Tailwind color class base (e.g., "yellow", "red")
+}
+
+export interface RoadmapItem {
+    id: string;
+    title: string;
+    completed: boolean;
+    targetDate?: number;
+}
+
+export interface CompanyInfo {
+    name: string;
+    description: string;
+    website?: string;
+}
+
+// --- WIDGET DATA TYPES ---
+export interface BioData {
+    sleepHours: number;
+    workoutsThisWeek: number;
+    waterIntake: number;
+}
+
+export interface FocusSession {
+    date: number;
+    duration: number; // minutes
+    task: string;
+}
+
+// FIX: Add missing types for UserState to align with INITIAL_USER_STATE in constants.ts
+export interface DailyIntention {
+    id: string;
+    text: string;
+    completed: boolean;
+}
+
+export interface KeyConnection {
+    id: string;
+    name: string;
+    lastContact?: number; // timestamp
+    completed: boolean;
+}
+
+
 export interface UserState {
+  // FIX: Add missing uid property to fix type error in constants.ts
+  uid: string;
   isLoggedIn: boolean;
   name: string;
   onboardingCompleted: boolean;
   archetype: Archetype | null;
   lifeMapScores: Record<LifeMapCategory, number> | null;
+  mapAnalysis?: string;
   focusAreas: LifeMapCategory[];
   createdAt: number;
   email?: string;
   password?: string; 
+  
+  // Subscription & Protection System
+  activeModules: ProtectionModuleId[]; // Lista de módulos ativos
+  hasSubscription: boolean; // Mantido para compatibilidade (acesso base + IA)
+  
+  // Module Specific Data
+  // FIX: Allow company to be null to match INITIAL_USER_STATE
+  company?: CompanyInfo | null; // Soberano
+  businessRoadmap?: RoadmapItem[]; // Soberano
+  bioData?: BioData; // Tita
+  focusHistory?: FocusSession[]; // Sabio
+  // FIX: Add missing properties to align with INITIAL_USER_STATE
+  dailyIntention?: DailyIntention | null;
+  keyConnections?: KeyConnection[];
+  
   level: number;
   currentXP: number;
   rank: RankTitle;
-  hasSubscription: boolean;
   lastBossAttacks?: {
     daily?: number;
     weekly?: number;
     monthly?: number;
   };
+  joinedSquadIds: string[]; // IDs dos esquadrões que o usuário participa
   isAscended?: boolean;
   paragonPoints: number;
   paragonPerks: Record<string, number>;
@@ -195,8 +299,12 @@ export enum PaymentProvider {
 export interface ProductDef {
   id: string;
   name: string;
+  description: string;
   provider: PaymentProvider;
   priceId?: string; // Stripe Price ID
   eduzzId?: string; // Eduzz Content ID
   price: number; // In cents
+  // FIX: Added missing 'originalPrice' property to support showing a discounted price.
+  originalPrice?: number; // In cents, for sales
+  isSubscription: boolean;
 }

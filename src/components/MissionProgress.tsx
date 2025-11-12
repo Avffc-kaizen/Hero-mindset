@@ -11,13 +11,12 @@ const ProgressBar: React.FC<{ progress: number; label: string; count: string; co
       </label>
       <span className="text-xs font-mono font-bold text-white">{count}</span>
     </div>
-    <div className="w-full bg-zinc-950 rounded-full h-2 border border-zinc-800">
+    <div className="w-full bg-zinc-950 rounded-full h-2 border border-zinc-800 overflow-hidden">
       <div className={`${color} h-full rounded-full transition-all duration-500`} style={{ width: `${progress}%` }}></div>
     </div>
   </div>
 );
 
-// FIX: Refactored component to use useUser context instead of props.
 const MissionProgress: React.FC = () => {
   const { user } = useUser();
   const { missions } = user;
@@ -39,7 +38,7 @@ const MissionProgress: React.FC = () => {
   const milestoneProgress = totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0;
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-lg space-y-4">
+    <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-6 shadow-lg space-y-4 backdrop-blur-md">
       <h3 className="text-sm font-bold text-zinc-300 font-mono uppercase flex items-center gap-2">
         <Target className="w-4 h-4 text-zinc-400" />
         Progresso das Missões
@@ -48,15 +47,15 @@ const MissionProgress: React.FC = () => {
         label="Diárias"
         progress={dailyProgress}
         count={`${completedDaily}/${totalDaily}`}
-        color="bg-gradient-to-r from-red-600 to-red-500"
+        color="bg-red-600"
         allCompleted={totalDaily > 0 && completedDaily === totalDaily}
         icon={Target}
       />
       <ProgressBar
-        label="Semanais"
+        label="Desafios"
         progress={weeklyProgress}
         count={`${completedWeekly}/${totalWeekly}`}
-        color="bg-gradient-to-r from-blue-600 to-blue-500"
+        color="bg-blue-600"
         allCompleted={totalWeekly > 0 && completedWeekly === totalWeekly}
         icon={CalendarDays}
       />
@@ -64,7 +63,7 @@ const MissionProgress: React.FC = () => {
         label="Marcos"
         progress={milestoneProgress}
         count={`${completedMilestones}/${totalMilestones}`}
-        color="bg-gradient-to-r from-yellow-600 to-yellow-500"
+        color="bg-yellow-600"
         allCompleted={totalMilestones > 0 && completedMilestones === totalMilestones}
         icon={Flag}
       />

@@ -1,53 +1,77 @@
-import { UserState, ArchetypeInfo, Archetype, ArchetypeQuestion, LifeMapCategory, LifeMapCategoriesList, RankTitle, SkillTree, ParagonPerk, Module, Mission, Skill, ProtectionModuleInfo, GuildChannelId, ProtectionModuleId, PaymentProvider, ProductDef, LifeMapQuestion } from './types';
+import { UserState, ArchetypeInfo, Archetype, ArchetypeQuestion, LifeMapCategory, LifeMapCategoriesList, RankTitle, SkillTree, ParagonPerk, Module, Mission, Skill, ProtectionModuleInfo, GuildChannelId, ProtectionModuleId, PaymentProvider, ProductDef, LifeMapQuestion, Squad, SquadMember } from './types';
 import {
   Heart, Mountain, BookOpen, Shield, Clapperboard, Wand2, Users, Sun, Laugh, HandHelping, Gem, Crown,
   Zap, Brain, Dumbbell, PiggyBank, BarChart, Repeat, Award, Activity, Sunrise, Moon, DollarSign, Timer, Wind, ListTodo, Calculator,
   Briefcase, Smile, Home, Eye, Star, Anchor, Lock, Sparkles, Flag, Flame, TrendingUp, HeartHandshake, Globe, Hash, Trophy
 } from 'lucide-react';
 
+// --- GAMEPLAY CONFIGURATION ---
+export const MAX_SQUAD_SIZE = 5;
+export const MIN_LEVEL_TO_CREATE_SQUAD = 10;
+
 // --- CONFIGURATION ---
 // These should be set in your environment variables (.env file or hosting provider settings)
 export const FRONTEND_URL = "https://aistudio.google.com/app/project/66a858e5f3c09f3c78f8";
 export const BACKEND_URL = "/api";
-export const STRIPE_PUBLIC_KEY = process.env.STRIPE_PUBLIC_KEY || "pk_test_51PshpdELwcc78QutRKyf8k57Yj88Abp322a3TzL2Yqom5j3931V7XyF4wODx4qN1nOuef836f1eP0scl78HMCRe800P0LGAJmX"; // Replace with your actual public key
+export const STRIPE_PUBLIC_KEY = process.env.STRIPE_PUBLIC_KEY || "pk_live_51RoTtnELwcc78QutLToQM50aQtE7YEnjEMJwBBxhAMguKiBqNWOqXqi0tixmKxnO6WVNPNRCFvGSIoatViXE2jw500H45RN2Ro"; // Replace with your actual public key
 
 // --- STRIPE PRICE IDS MAPPING ---
 export const STRIPE_HERO_PRICE_ID = "price_1PshrWELwcc78QutdK8hB29k";
 export const STRIPE_IA_PRICE_ID = "price_1PshtPELwcc78QutMvFlf3wR";
-export const STRIPE_SUCESSO_PRICE_ID = "price_1PshtzELwcc78QutlH2r7l9f";
+export const STRIPE_PROTECAO_360_PRICE_ID = "price_1Pshv8ELwcc78Qut2qfW5oUh";
+
 
 // --- EDUZZ CONFIGURATION (Legacy/Fallback) ---
-export const EDUZZ_HERO_ID = "1725528";
+export const EDUZZ_HERO_ID = "E05XKGE7WX";
 export const EDUZZ_IA_UPGRADE_CHECKOUT_ID = "89AQD6Y8WD";
-export const EDUZZ_SUCESSO_360_ID = "9999999";
 
 export const PRODUCTS: ProductDef[] = [
   {
     id: 'hero_vitalicio',
     name: 'Hero Mindset Vitalício',
-    provider: PaymentProvider.STRIPE,
+    description: 'Acesso único à plataforma base e todas as ferramentas estáticas.',
+    provider: PaymentProvider.EDUZZ,
     priceId: STRIPE_HERO_PRICE_ID,
     eduzzId: EDUZZ_HERO_ID,
-    price: 49700
+    price: 49700,
+    originalPrice: 99700,
+    isSubscription: false,
   },
   {
     id: 'mentor_ia',
-    name: 'Mentor IA Upgrade',
+    name: 'Assinatura: Mentor IA',
+    description: 'Desbloqueie o Oráculo. Missões, análises e guias gerados por IA.',
     provider: PaymentProvider.STRIPE,
     priceId: STRIPE_IA_PRICE_ID,
-    eduzzId: EDUZZ_IA_UPGRADE_CHECKOUT_ID,
-    price: 9700
+    price: 4700, // Monthly
+    isSubscription: true,
   },
   {
-    id: 'sucesso_360',
-    name: 'Sucesso 360',
+    id: 'protecao_360',
+    name: 'Assinatura: Proteção 360',
+    description: 'Acesso total. Inclui Mentor IA + todos os Módulos de Proteção (Business, Saúde, etc).',
     provider: PaymentProvider.STRIPE,
-    priceId: STRIPE_SUCESSO_PRICE_ID,
-    eduzzId: EDUZZ_SUCESSO_360_ID,
-    price: 27500
+    priceId: STRIPE_PROTECAO_360_PRICE_ID,
+    price: 9700, // Monthly
+    isSubscription: true,
   }
 ];
 
+// FIX: Export MOCK_SQUADS from a central location.
+export const MOCK_SQUADS: Squad[] = [
+  { 
+    id: 'sq-1', 
+    name: 'Vanguarda Estoica', 
+    motto: 'Suportar e Renunciar.', 
+    leaderId: '2', 
+    leaderName: 'Ricardo M.', 
+    members: [ 
+      { id: '2', name: 'Ricardo M.', rank: RankTitle.Lendario, level: 48, archetype: 'O Sábio' }, 
+      { id: '99', name: 'Membro 2', rank: RankTitle.Aventureiro, level: 12, archetype: 'O Inocente' } 
+    ], 
+    createdAt: Date.now() - 10000000 
+  }
+];
 
 export const ARCHETYPES: Record<Archetype, ArchetypeInfo> = {
   'O Inocente': { name: 'O Inocente', description: 'Busca a felicidade e a segurança, temendo o abandono. Vê o bem em tudo.', icon: Sun, motto: 'Livre para ser eu e você.' },
@@ -303,15 +327,15 @@ export const STATIC_MILESTONE_MISSIONS: Mission[] = [
 
 
 export const INITIAL_USER_STATE: UserState = {
+  uid: '',
   isLoggedIn: false,
   name: "Herói",
   onboardingCompleted: false,
   archetype: null,
   lifeMapScores: null,
   focusAreas: [],
-  createdAt: Date.now(),
+  createdAt: 0,
   email: '',
-  password: '', // DEMO ONLY
   level: 1,
   currentXP: 0,
   rank: RankTitle.Iniciante,
@@ -340,9 +364,11 @@ export const INITIAL_USER_STATE: UserState = {
   lastLessonCompletionDate: 0,
   dailyGuidance: null,
   activeModules: [],
-  company: undefined,
+  company: null,
   businessRoadmap: [],
   bioData: { sleepHours: 0, workoutsThisWeek: 0, waterIntake: 0 },
   focusHistory: [],
+  dailyIntention: null,
+  keyConnections: [],
   joinedSquadIds: [],
 };

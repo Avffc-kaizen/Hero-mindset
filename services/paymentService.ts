@@ -1,30 +1,44 @@
-
-import { startStripeCheckout } from './stripeClient';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { PRODUCTS } from '../constants';
 import { PaymentProvider } from '../types';
+import { functions, isFirebaseConfigured } from '../firebase';
 
-export const buyProduct = async (productId: string, userMetadata?: Record<string, string>) => {
+export const buyProduct = async (productId: string, metadata?: Record<string, any>) => {
   const product = PRODUCTS.find(p => p.id === productId);
   if (!product) throw new Error('Produto não encontrado');
 
-  // Use Eduzz as a fallback or for specific products if needed
   if (product.provider === PaymentProvider.EDUZZ && product.eduzzId) {
-    // For Eduzz, we still need to construct the URL with user info for post-purchase flow
-    let url = `https://chk.eduzz.com/${product.eduzzId}`;
-    if (userMetadata?.userId) {
-        // This is a simplified example; a robust solution might involve a backend to pre-fill Eduzz checkout
-    }
-    window.location.href = url;
+    // Fallback Eduzz
+    window.location.href = `https://chk.eduzz.com/${product.eduzzId}`;
     return;
   }
 
-  // Primary Flow: Stripe
+  // Primary Flow: Stripe via Firebase Functions
   if (product.provider === PaymentProvider.STRIPE && product.priceId) {
-      await startStripeCheckout(product.priceId, {
-          ...userMetadata,
-          internalProductId: productId
+    if (!isFirebaseConfigured) {
+      throw new Error('Firebase não está configurado. Pagamento indisponível.');
+    }
+    try {
+      const createCheckoutSession = httpsCallable(functions, 'createCheckoutSession');
+      
+      const response = await createCheckoutSession({ 
+          priceId: product.priceId,
+          internalProductId: product.id,
+          metadata: metadata,
       });
+
+      const { url } = response.data as { url?: string };
+      
+      if (url) {
+        window.location.href = url;
+      } else {
+        throw new Error('URL de checkout não recebida.');
+      }
+    } catch (error) {
+      console.error("Firebase Functions call failed:", error);
+      throw new Error('Falha ao iniciar o processo de pagamento.');
+    }
   } else {
-      throw new Error('Configuração de pagamento inválida para este produto.');
+    throw new Error('Configuração de pagamento inválida para este produto.');
   }
 };

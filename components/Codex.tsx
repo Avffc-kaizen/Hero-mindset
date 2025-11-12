@@ -1,17 +1,15 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Book, Lock, Play, ChevronLeft, CheckCircle, Zap, Quote as QuoteIcon, PenTool, MonitorPlay, Loader2, Search, Tag, AlertCircle, Maximize } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { Book, Lock, Play, ChevronLeft, CheckCircle, Zap, Quote as QuoteIcon, PenTool, MonitorPlay, Loader2, Search, Tag, AlertCircle, Maximize, Music } from 'lucide-react';
 import { Module, LessonDetails } from '../types';
+import { useUser } from '../contexts/UserContext';
+import HeroSoundtrack from './HeroSoundtrack';
 
-interface CodexProps {
-  modules: Module[];
-  onCompleteLesson: (lesson: LessonDetails) => void;
-  hasSubscription: boolean;
-  onUpgrade: () => void;
-  isDailyLimitReached: boolean;
-}
+const Codex: React.FC<{isDailyLimitReached: boolean}> = ({ isDailyLimitReached }) => {
+  const { user, handleCompleteLesson: onCompleteLesson, handleUpgrade: onUpgrade } = useUser();
+  const { modules, hasSubscription } = user;
 
-const Codex: React.FC<CodexProps> = ({ modules, onCompleteLesson, hasSubscription, onUpgrade, isDailyLimitReached }) => {
   const [selectedLesson, setSelectedLesson] = useState<LessonDetails | null>(null);
+  const [activeTab, setActiveTab] = useState<'knowledge' | 'trilha'>('knowledge');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string>('all');
   const [isVideoLoading, setIsVideoLoading] = useState(true);
@@ -24,7 +22,7 @@ const Codex: React.FC<CodexProps> = ({ modules, onCompleteLesson, hasSubscriptio
     }
   }, [selectedLesson]);
 
-  const handleFullscreen = () => {
+  const handleFullscreen = useCallback(() => {
     if (iframeRef.current) {
       if (iframeRef.current.requestFullscreen) {
         iframeRef.current.requestFullscreen();
@@ -36,7 +34,7 @@ const Codex: React.FC<CodexProps> = ({ modules, onCompleteLesson, hasSubscriptio
         (iframeRef.current as any).msRequestFullscreen();
       }
     }
-  };
+  }, []);
 
   const allTags = useMemo(() => {
     const tagsSet = new Set<string>();
@@ -48,21 +46,22 @@ const Codex: React.FC<CodexProps> = ({ modules, onCompleteLesson, hasSubscriptio
     return Array.from(tagsSet).sort();
   }, [modules]);
 
-  const handleSelectLesson = (lesson: LessonDetails) => {
+  const handleSelectLesson = useCallback((lesson: LessonDetails) => {
     if (lesson.locked) return;
     setSelectedLesson(lesson);
-    setPlayVideo(false); // Reset video state on new lesson selection
-  };
+    setPlayVideo(false);
+  }, []);
 
-  const handleComplete = () => {
+  const handleComplete = useCallback(() => {
     if (selectedLesson && !isDailyLimitReached) {
        const updatedLesson = { ...selectedLesson, completed: true };
        setSelectedLesson(updatedLesson);
        onCompleteLesson(selectedLesson);
     }
-  };
+  }, [selectedLesson, isDailyLimitReached, onCompleteLesson]);
 
-  const filteredModules = modules.map(mod => ({
+  const filteredModules = useMemo(() => {
+    return modules.map(mod => ({
       ...mod,
       lessons: mod.lessons.filter(lesson => {
         const searchLower = searchQuery.toLowerCase();
@@ -76,6 +75,7 @@ const Codex: React.FC<CodexProps> = ({ modules, onCompleteLesson, hasSubscriptio
         return matchesSearch && matchesTag;
       })
     })).filter(mod => mod.lessons.length > 0);
+  }, [modules, searchQuery, selectedTag]);
 
   return (
     <>
@@ -220,120 +220,152 @@ const Codex: React.FC<CodexProps> = ({ modules, onCompleteLesson, hasSubscriptio
         </div>
       ) : (
         <div key="codex-list" className="p-4 sm:p-6 max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold mb-6 font-mono flex items-center gap-2 uppercase">
-            <Book className="w-6 h-6 text-zinc-100" /> Codex do Conhecimento
-          </h2>
-
-          <div className="mb-6 space-y-4">
-            <div className="relative">
-              <Search className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500" />
-              <input
-                type="text"
-                placeholder="Buscar sabedoria..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-700 transition-colors font-mono text-sm"
-              />
+          <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold font-mono flex items-center gap-2 uppercase text-zinc-100">
+                <Book className="w-6 h-6" /> Codex do Conhecimento
+              </h2>
+              <p className="text-zinc-400 text-sm mt-1">A biblioteca da sabedoria heroica.</p>
             </div>
-            <div className="flex flex-wrap gap-2 items-center">
-              <Tag className="w-4 h-4 text-zinc-500" />
+            
+            <div className="flex bg-zinc-900 p-1 rounded-lg border border-zinc-800">
               <button
-                  onClick={() => setSelectedTag('all')}
-                  className={`px-3 py-1 text-xs font-mono uppercase rounded-full transition-colors active:scale-95 ${
-                    selectedTag === 'all' ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700/80'
-                  }`}
-                >
-                  Todas
-                </button>
-                {allTags.map(tag => (
+                onClick={() => setActiveTab('knowledge')}
+                className={`px-4 py-2 text-xs font-bold uppercase rounded-md transition-all flex items-center gap-2 ${
+                  activeTab === 'knowledge' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                <Book className="w-3 h-3" /> Módulos
+              </button>
+              <button
+                onClick={() => setActiveTab('trilha')}
+                className={`px-4 py-2 text-xs font-bold uppercase rounded-md transition-all flex items-center gap-2 ${
+                  activeTab === 'trilha' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                <Music className="w-3 h-3" /> Trilha Sonora
+              </button>
+            </div>
+          </header>
+
+          {activeTab === 'knowledge' ? (
+            <>
+              <div className="mb-6 space-y-4 animate-in fade-in slide-in-from-left-4">
+                <div className="relative">
+                  <Search className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500" />
+                  <input
+                    type="text"
+                    placeholder="Buscar sabedoria..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-700 transition-colors font-mono text-sm"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2 items-center">
+                  <Tag className="w-4 h-4 text-zinc-500" />
                   <button
-                      key={tag}
-                      onClick={() => setSelectedTag(tag)}
+                      onClick={() => setSelectedTag('all')}
                       className={`px-3 py-1 text-xs font-mono uppercase rounded-full transition-colors active:scale-95 ${
-                        selectedTag === tag ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700/80'
+                        selectedTag === 'all' ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700/80'
                       }`}
                     >
-                      {tag}
+                      Todas
                     </button>
-                ))}
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            {filteredModules.length === 0 ? (
-              <div className="text-center py-8 text-zinc-500 font-mono">
-                Nenhum registro encontrado para os filtros atuais.
-              </div>
-            ) : (
-              filteredModules.map((mod) => {
-                const completedCount = mod.lessons.filter(l => l.completed).length;
-                const totalCount = mod.lessons.length;
-                const progressPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
-
-                return (
-                  <div key={mod.id} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                    <div className="bg-zinc-800 px-4 py-3">
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-bold font-mono uppercase tracking-wider text-sm">{mod.title}</h3>
-                        <span className="text-xs bg-zinc-900 px-2 py-1 rounded-full text-zinc-400 font-mono">{completedCount}/{totalCount}</span>
-                      </div>
-                      <div className="w-full bg-zinc-950 rounded-full h-1.5">
-                        <div
-                          className="bg-red-700 h-1.5 rounded-full transition-all duration-500"
-                          style={{ width: `${progressPercentage}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    <div className="divide-y divide-zinc-800">
-                      {mod.lessons.map((lesson) => (
-                        <div 
-                          key={lesson.id} 
-                          className={`p-4 transition ${lesson.locked ? 'opacity-50 cursor-not-allowed bg-zinc-950' : 'hover:bg-zinc-900/50 cursor-pointer'}`}
-                          onClick={() => handleSelectLesson(lesson)}
+                    {allTags.map(tag => (
+                      <button
+                          key={tag}
+                          onClick={() => setSelectedTag(tag)}
+                          className={`px-3 py-1 text-xs font-mono uppercase rounded-full transition-colors active:scale-95 ${
+                            selectedTag === tag ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700/80'
+                          }`}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              {lesson.locked ? (
-                                <div className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center flex-shrink-0">
-                                  <Lock className="w-4 h-4 text-zinc-600" />
-                                </div>
-                              ) : (
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${lesson.completed ? 'bg-green-900/20 text-green-500' : 'bg-zinc-800 text-zinc-100'}`}>
-                                  {lesson.completed ? <CheckCircle className="w-4 h-4" /> : <Play className="w-4 h-4 ml-1" />}
-                                </div>
-                              )}
-                              <div>
-                                <p className={`${lesson.locked ? 'text-zinc-600' : 'text-zinc-200'} font-medium`}>{lesson.title}</p>
-                                {lesson.subtitle && !lesson.locked && (
-                                  <p className="text-xs text-zinc-500 font-mono mt-1">{lesson.subtitle}</p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              {!lesson.locked && !lesson.completed && (
-                                <span className="hidden sm:inline-flex text-xs bg-zinc-800 text-zinc-300 px-3 py-1 rounded font-mono uppercase items-center gap-1">
-                                  <MonitorPlay className="w-3 h-3" /> Iniciar
-                                </span>
-                              )}
-                              {lesson.completed && <span className="hidden sm:inline-flex text-xs text-zinc-500 font-mono uppercase">Concluído</span>}
-                              {lesson.locked && <Lock className="w-4 h-4 text-zinc-700" />}
-                            </div>
-                          </div>
-                          {lesson.tags && !lesson.locked && (
-                              <div className="mt-3 flex flex-wrap gap-2 pl-11">
-                                {lesson.tags.map(tag => (
-                                  <span key={tag} className="text-xs bg-zinc-800/80 text-zinc-400 px-2 py-0.5 rounded-full font-mono">{tag}</span>
-                                ))}
-                              </div>
-                            )}
-                        </div>
-                      ))}
-                    </div>
+                          {tag}
+                        </button>
+                    ))}
+                </div>
+              </div>
+
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                {filteredModules.length === 0 ? (
+                  <div className="text-center py-8 text-zinc-500 font-mono">
+                    Nenhum registro encontrado para os filtros atuais.
                   </div>
-                );
-              })
-            )}
-          </div>
+                ) : (
+                  filteredModules.map((mod) => {
+                    const completedCount = mod.lessons.filter(l => l.completed).length;
+                    const totalCount = mod.lessons.length;
+                    const progressPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+                    return (
+                      <div key={mod.id} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                        <div className="bg-zinc-800 px-4 py-3">
+                          <div className="flex justify-between items-center mb-2">
+                            <h3 className="font-bold font-mono uppercase tracking-wider text-sm">{mod.title}</h3>
+                            <span className="text-xs bg-zinc-900 px-2 py-1 rounded-full text-zinc-400 font-mono">{completedCount}/{totalCount}</span>
+                          </div>
+                          <div className="w-full bg-zinc-950 rounded-full h-1.5">
+                            <div
+                              className="bg-red-700 h-1.5 rounded-full transition-all duration-500"
+                              style={{ width: `${progressPercentage}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        <div className="divide-y divide-zinc-800">
+                          {mod.lessons.map((lesson) => (
+                            <div 
+                              key={lesson.id} 
+                              className={`p-4 transition ${lesson.locked ? 'opacity-50 cursor-not-allowed bg-zinc-950' : 'hover:bg-zinc-900/50 cursor-pointer'}`}
+                              onClick={() => handleSelectLesson(lesson)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  {lesson.locked ? (
+                                    <div className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center flex-shrink-0">
+                                      <Lock className="w-4 h-4 text-zinc-600" />
+                                    </div>
+                                  ) : (
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${lesson.completed ? 'bg-green-900/20 text-green-500' : 'bg-zinc-800 text-zinc-100'}`}>
+                                      {lesson.completed ? <CheckCircle className="w-4 h-4" /> : <Play className="w-4 h-4 ml-1" />}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <p className={`${lesson.locked ? 'text-zinc-600' : 'text-zinc-200'} font-medium`}>{lesson.title}</p>
+                                    {lesson.subtitle && !lesson.locked && (
+                                      <p className="text-xs text-zinc-500 font-mono mt-1">{lesson.subtitle}</p>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  {!lesson.locked && !lesson.completed && (
+                                    <span className="hidden sm:inline-flex text-xs bg-zinc-800 text-zinc-300 px-3 py-1 rounded font-mono uppercase items-center gap-1">
+                                      <MonitorPlay className="w-3 h-3" /> Iniciar
+                                    </span>
+                                  )}
+                                  {lesson.completed && <span className="hidden sm:inline-flex text-xs text-zinc-500 font-mono uppercase">Concluído</span>}
+                                  {lesson.locked && <Lock className="w-4 h-4 text-zinc-700" />}
+                                </div>
+                              </div>
+                              {lesson.tags && !lesson.locked && (
+                                  <div className="mt-3 flex flex-wrap gap-2 pl-11">
+                                    {lesson.tags.map(tag => (
+                                      <span key={tag} className="text-xs bg-zinc-800/80 text-zinc-400 px-2 py-0.5 rounded-full font-mono">{tag}</span>
+                                    ))}
+                                  </div>
+                                )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="animate-in fade-in slide-in-from-right-4">
+              <HeroSoundtrack />
+            </div>
+          )}
         </div>
       )}
     </>

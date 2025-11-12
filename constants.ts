@@ -1,10 +1,13 @@
-
-import { UserState, ArchetypeInfo, Archetype, ArchetypeQuestion, LifeMapCategory, LifeMapCategoriesList, RankTitle, SkillTree, ParagonPerk, Module, Mission, Skill, PaymentProvider, ProductDef } from './types';
+import { UserState, ArchetypeInfo, Archetype, ArchetypeQuestion, LifeMapCategory, LifeMapCategoriesList, RankTitle, SkillTree, ParagonPerk, Module, Mission, Skill, ProtectionModuleInfo, GuildChannelId, ProtectionModuleId, PaymentProvider, ProductDef, LifeMapQuestion, Squad, SquadMember } from './types';
 import {
   Heart, Mountain, BookOpen, Shield, Clapperboard, Wand2, Users, Sun, Laugh, HandHelping, Gem, Crown,
   Zap, Brain, Dumbbell, PiggyBank, BarChart, Repeat, Award, Activity, Sunrise, Moon, DollarSign, Timer, Wind, ListTodo, Calculator,
-  Briefcase, Smile, Home, Eye, Star, Anchor, Lock, Sparkles, Flag, Flame
+  Briefcase, Smile, Home, Eye, Star, Anchor, Lock, Sparkles, Flag, Flame, TrendingUp, HeartHandshake, Globe, Hash, Trophy
 } from 'lucide-react';
+
+// --- GAMEPLAY CONFIGURATION ---
+export const MAX_SQUAD_SIZE = 5;
+export const MIN_LEVEL_TO_CREATE_SQUAD = 10;
 
 // --- CONFIGURATION ---
 // These should be set in your environment variables (.env file or hosting provider settings)
@@ -15,40 +18,60 @@ export const STRIPE_PUBLIC_KEY = process.env.STRIPE_PUBLIC_KEY || "pk_test_51Psh
 // --- STRIPE PRICE IDS MAPPING ---
 export const STRIPE_HERO_PRICE_ID = "price_1PshrWELwcc78QutdK8hB29k";
 export const STRIPE_IA_PRICE_ID = "price_1PshtPELwcc78QutMvFlf3wR";
-export const STRIPE_SUCESSO_PRICE_ID = "price_1PshtzELwcc78QutlH2r7l9f";
+export const STRIPE_PROTECAO_360_PRICE_ID = "price_1Pshv8ELwcc78Qut2qfW5oUh";
+
 
 // --- EDUZZ CONFIGURATION (Legacy/Fallback) ---
-export const EDUZZ_HERO_ID = "1725528";
+export const EDUZZ_HERO_ID = "E05XKGE7WX";
 export const EDUZZ_IA_UPGRADE_CHECKOUT_ID = "89AQD6Y8WD";
-export const EDUZZ_SUCESSO_360_ID = "9999999";
 
 export const PRODUCTS: ProductDef[] = [
   {
     id: 'hero_vitalicio',
     name: 'Hero Mindset Vitalício',
-    provider: PaymentProvider.STRIPE,
+    description: 'Acesso único à plataforma base e todas as ferramentas estáticas.',
+    provider: PaymentProvider.EDUZZ,
     priceId: STRIPE_HERO_PRICE_ID,
     eduzzId: EDUZZ_HERO_ID,
-    price: 49700
+    price: 49700,
+    originalPrice: 99700,
+    isSubscription: false,
   },
   {
     id: 'mentor_ia',
-    name: 'Mentor IA Upgrade',
+    name: 'Assinatura: Mentor IA',
+    description: 'Desbloqueie o Oráculo. Missões, análises e guias gerados por IA.',
     provider: PaymentProvider.STRIPE,
     priceId: STRIPE_IA_PRICE_ID,
-    eduzzId: EDUZZ_IA_UPGRADE_CHECKOUT_ID,
-    price: 9700
+    price: 4700, // Monthly
+    isSubscription: true,
   },
   {
-    id: 'sucesso_360',
-    name: 'Sucesso 360',
+    id: 'protecao_360',
+    name: 'Assinatura: Proteção 360',
+    description: 'Acesso total. Inclui Mentor IA + todos os Módulos de Proteção (Business, Saúde, etc).',
     provider: PaymentProvider.STRIPE,
-    priceId: STRIPE_SUCESSO_PRICE_ID,
-    eduzzId: EDUZZ_SUCESSO_360_ID,
-    price: 27500
+    priceId: STRIPE_PROTECAO_360_PRICE_ID,
+    price: 9700, // Monthly
+    isSubscription: true,
   }
 ];
 
+// FIX: Export MOCK_SQUADS from a central location.
+export const MOCK_SQUADS: Squad[] = [
+  { 
+    id: 'sq-1', 
+    name: 'Vanguarda Estoica', 
+    motto: 'Suportar e Renunciar.', 
+    leaderId: '2', 
+    leaderName: 'Ricardo M.', 
+    members: [ 
+      { id: '2', name: 'Ricardo M.', rank: RankTitle.Lendario, level: 48, archetype: 'O Sábio' }, 
+      { id: '99', name: 'Membro 2', rank: RankTitle.Aventureiro, level: 12, archetype: 'O Inocente' } 
+    ], 
+    createdAt: Date.now() - 10000000 
+  }
+];
 
 export const ARCHETYPES: Record<Archetype, ArchetypeInfo> = {
   'O Inocente': { name: 'O Inocente', description: 'Busca a felicidade e a segurança, temendo o abandono. Vê o bem em tudo.', icon: Sun, motto: 'Livre para ser eu e você.' },
@@ -84,6 +107,47 @@ export const INITIAL_LIFE_MAP_SCORES: Record<LifeMapCategory, number> = LifeMapC
   acc[cat] = 5;
   return acc;
 }, {} as Record<LifeMapCategory, number>);
+
+export const LIFE_MAP_QUESTIONS: Record<LifeMapCategory, LifeMapQuestion[]> = {
+    'Saúde & Fitness': [ { id: 'sf1', text: 'Tenho energia constante ao longo do dia.', category: 'Saúde & Fitness' }, { id: 'sf2', text: 'Pratico atividades físicas intensas regularmente.', category: 'Saúde & Fitness' } ],
+    'Intelectual': [ { id: 'int1', text: 'Dedico tempo para aprender algo novo.', category: 'Intelectual' }, { id: 'int2', text: 'Consigo manter foco profundo em tarefas.', category: 'Intelectual' } ],
+    'Emocional': [ { id: 'emo1', text: 'Lido bem com o estresse e pressão.', category: 'Emocional' }, { id: 'emo2', text: 'Recupero-me rapidamente de contratempos.', category: 'Emocional' } ],
+    'Caráter': [ { id: 'car1', text: 'Minhas ações estão alinhadas com meus valores.', category: 'Caráter' }, { id: 'car2', text: 'Assumo responsabilidade total pelos meus erros.', category: 'Caráter' } ],
+    'Espiritual': [ { id: 'esp1', text: 'Sinto que minha vida tem um propósito.', category: 'Espiritual' }, { id: 'esp2', text: 'Dedico tempo para reflexão ou meditação.', category: 'Espiritual' } ],
+    'Amoroso': [ { id: 'amo1', text: 'Estou satisfeito com minha situação amorosa.', category: 'Amoroso' }, { id: 'amo2', text: 'Comunico-me abertamente com meu parceiro(a).', category: 'Amoroso' } ],
+    'Social': [ { id: 'soc1', text: 'Tenho amigos verdadeiros com quem posso contar.', category: 'Social' }, { id: 'soc2', text: 'Sinto-me parte de uma comunidade.', category: 'Social' } ],
+    'Financeiro': [ { id: 'fin1', text: 'Tenho controle total sobre minhas finanças.', category: 'Financeiro' }, { id: 'fin2', text: 'Invisto regularmente para o meu futuro.', category: 'Financeiro' } ],
+    'Carreira': [ { id: 'crr1', text: 'Sinto-me realizado com meu trabalho atual.', category: 'Carreira' }, { id: 'crr2', text: 'Tenho oportunidades claras de crescimento.', category: 'Carreira' } ],
+    'Qualidade de Vida': [ { id: 'qdv1', text: 'Tenho tempo livre para hobbies e lazer.', category: 'Qualidade de Vida' }, { id: 'qdv2', text: 'Estou satisfeito com meu estilo de vida geral.', category: 'Qualidade de Vida' } ],
+    'Visão de Vida': [ { id: 'vis1', text: 'Tenho metas claras para os próximos 5 anos.', category: 'Visão de Vida' }, { id: 'vis2', text: 'Minhas decisões diárias servem minha visão de longo prazo.', category: 'Visão de Vida' } ],
+    'Família': [ { id: 'fam1', text: 'Tenho um bom relacionamento com meus familiares.', category: 'Família' }, { id: 'fam2', text: 'Sinto-me apoiado pela minha família.', category: 'Família' } ]
+};
+
+export const PROTECTION_MODULES: Record<string, ProtectionModuleInfo> = {
+  'soberano': {
+    id: 'soberano', name: 'Soberano (Business)', description: 'Gestão de recursos e expansão patrimonial.', monthlyPrice: 97, coveredAreas: ['Financeiro', 'Carreira'], icon: TrendingUp, color: 'yellow'
+  },
+  'tita': {
+    id: 'tita', name: 'Titã (Saúde)', description: 'Biohacking e performance física máxima.', monthlyPrice: 67, coveredAreas: ['Saúde & Fitness', 'Qualidade de Vida'], icon: Activity, color: 'red'
+  },
+  'sabio': {
+    id: 'sabio', name: 'Sábio (Intelectual)', description: 'Aprendizado acelerado e gestão do conhecimento.', monthlyPrice: 47, coveredAreas: ['Intelectual', 'Visão de Vida'], icon: Brain, color: 'blue'
+  },
+  'monge': {
+    id: 'monge', name: 'Monge (Espiritual)', description: 'Controle emocional e propósito inabalável.', monthlyPrice: 47, coveredAreas: ['Espiritual', 'Emocional', 'Caráter'], icon: Zap, color: 'purple'
+  },
+  'lider': {
+    id: 'lider', name: 'Líder (Social)', description: 'Networking, influência e liderança de tribo.', monthlyPrice: 57, coveredAreas: ['Social', 'Amoroso', 'Família'], icon: HeartHandshake, color: 'pink'
+  }
+};
+
+export const GUILD_CHANNELS: { id: GuildChannelId, name: string, description: string, icon: any, exclusiveModule?: ProtectionModuleId }[] = [
+    { id: 'general', name: 'Praça Central', description: 'Discussões gerais e avisos.', icon: Hash },
+    { id: 'wins', name: 'Salão de Vitórias', description: 'Compartilhe suas conquistas.', icon: Trophy },
+    { id: 'support', name: 'Enfermaria', description: 'Ajuda mútua e suporte.', icon: HeartHandshake },
+    { id: 'boss_strategy', name: 'Sala de Guerra', description: 'Estratégia contra Chefes.', icon: Shield },
+    { id: 'protection_360', name: 'Conselho Elite', description: 'Networking de alto nível.', icon: Briefcase, exclusiveModule: 'soberano' },
+];
 
 
 export const MENTOR_SYSTEM_INSTRUCTION = `Você é o Oráculo, um mentor estratégico, observador e militar na Jornada do Herói.
@@ -128,7 +192,7 @@ export const SKILL_TREES: SkillTree = {
     { id: 'fin_2', name: 'Escudo Patrimonial', description: 'Defesa contra gastos impulsivos.', icon: Shield, cost: 2, missionCategoryReq: 'Finance', missionCountReq: 6, toolId: 'passive_buff' },
     { id: 'fin_3', name: 'Alquimia de Renda', description: 'Multiplicação de fontes de receita.', icon: Sparkles, cost: 3, missionCategoryReq: 'Finance', missionCountReq: 10, toolId: 'passive_buff' },
     { id: 'fin_4', name: 'Visão do Investidor', description: 'Identificação de oportunidades ocultas.', icon: Eye, cost: 4, missionCategoryReq: 'Finance', missionCountReq: 15, toolId: 'passive_buff' },
-    { id: 'fin_5', name: 'Negociação Mestra', description: 'Vantagem tática em acordos.', icon: HandHelping, cost: 5, missionCategoryReq: 'Finance', missionCountReq: 20, toolId: 'passive_buff' },
+    { id: 'fin_5', 'name': 'Negociação Mestra', 'description': 'Vantagem tática em acordos.', 'icon': HandHelping, cost: 5, missionCategoryReq: 'Finance', missionCountReq: 20, toolId: 'passive_buff' },
     createPassiveSkill('fin_6', 'Juros Compostos', 'Aceleração exponencial de ganhos.', 6, 'Finance'),
     createPassiveSkill('fin_7', 'Mentalidade de Abundância', 'Remoção de crenças limitantes.', 7, 'Finance'),
     createPassiveSkill('fin_8', 'Gestão de Risco', 'Mitigação de perdas financeiras.', 8, 'Finance'),
@@ -263,15 +327,15 @@ export const STATIC_MILESTONE_MISSIONS: Mission[] = [
 
 
 export const INITIAL_USER_STATE: UserState = {
+  uid: '',
   isLoggedIn: false,
   name: "Herói",
   onboardingCompleted: false,
   archetype: null,
   lifeMapScores: null,
   focusAreas: [],
-  createdAt: Date.now(),
+  createdAt: 0,
   email: '',
-  password: '', // DEMO ONLY
   level: 1,
   currentXP: 0,
   rank: RankTitle.Iniciante,
@@ -299,4 +363,12 @@ export const INITIAL_USER_STATE: UserState = {
   lessonsCompletedToday: 0,
   lastLessonCompletionDate: 0,
   dailyGuidance: null,
+  activeModules: [],
+  company: null,
+  businessRoadmap: [],
+  bioData: { sleepHours: 0, workoutsThisWeek: 0, waterIntake: 0 },
+  focusHistory: [],
+  dailyIntention: null,
+  keyConnections: [],
+  joinedSquadIds: [],
 };

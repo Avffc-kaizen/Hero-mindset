@@ -1,158 +1,211 @@
 
-// GUIA DE CONFIGURAÇÃO EDUZZ - LEITURA OBRIGATÓRIA
-// --------------------------------------------------------------------
-// 1. LINKS DE PAGAMENTO (CHECKOUT)
-//    - Hero Mindset (Base): https://chk.eduzz.com/1725528
-//    - Mentor IA (Upgrade): https://chk.eduzz.com/89AQD6Y8WD
-//    - Sucesso 360 (Upgrade): https://chk.eduzz.com/9999999 (Substitua pelo ID real)
-
-// 2. URL DE DESTINO (PÁGINA DE AGRADECIMENTO / OBRIGADO)
-//    - Configure DENTRO do produto na Eduzz.
-//    - Esta é a URL para onde o usuário é enviado APÓS a compra.
-//    - Produto Base: https://consegvida.com/#/payment-success/1725528?name={customer_name}&email={customer_email}
-//    - Upgrades: https://consegvida.com/#/payment-success/{ID_DO_PRODUTO} (Ex: 89AQD6Y8WD)
-//    - IMPORTANTE: Certifique-se de que o domínio 'consegvida.com' esteja apontando para o seu deploy atual.
-
 const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
-const cors = require('cors')({origin: true});
 
-// Only load stripe if key is present to prevent crashes in dev
-const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
+// Initialize Stripe with API version for consistency and stability.
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? require('stripe')(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' })
+  : null;
 
 admin.initializeApp();
 const db = admin.firestore();
 
-// --- STRIPE PRICE IDS MAPPING ---
-// Ensure these match src/constants.ts
+// UPDATED: Replaced placeholder Price IDs with the ones from the client-side constants.ts for consistency.
 const STRIPE_PRICES = {
-  HERO_BASE: "price_1SRx9eELwcc78QutsxtesYl0",
-  IA_UPGRADE: "price_1SRxBwELwcc78QutnLm4OcVA",
-  SUCESSO_360: "price_1SRxSucesso360Placeholder"
+  HERO_BASE: "price_1PshrWELwcc78QutdK8hB29k",
+  IA_UPGRADE: "price_1PshtPELwcc78QutMvFlf3wR",
+  PROTECAO_360: "price_1Pshv8ELwcc78Qut2qfW5oUh",
 };
+
+const ONE_TIME_PAYMENT_PRICE_IDS = [STRIPE_PRICES.HERO_BASE];
 
 exports.createCheckoutSession = functions
     .region("southamerica-east1")
-    .https.onRequest((req, res) => {
-      cors(req, res, async () => {
-        if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
-        if (!stripe) return res.status(500).send("Stripe not configured");
-        
-        try {
-            const { priceId, email } = req.body;
-            
-            if (!priceId) return res.status(400).send("Price ID required");
+    .https.onCall(async (data, context) => {
+      if (!stripe) {
+        throw new functions.https.HttpsError("internal", "Stripe não está configurado.");
+      }
 
-            // Determine mode based on price ID
-            const isSubscription = priceId === STRIPE_PRICES.IA_UPGRADE || priceId === STRIPE_PRICES.SUCESSO_360;
-            const mode = isSubscription ? 'subscription' : 'payment';
-            
-            const session = await stripe.checkout.sessions.create({
-                mode: mode,
-                payment_method_types: ['card'],
-                line_items: [{
-                    price: priceId,
-                    quantity: 1,
-                }],
-                customer_email: email,
-                success_url: `https://consegvida.com/#/payment-success/${priceId}?session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `https://consegvida.com/`,
-            });
-            
-            res.json({ sessionId: session.id });
-        } catch(e) {
-            console.error("Stripe Session Error:", e);
-            res.status(500).json({ error: e.message });
-        }
-      });
-    });
+      const { priceId, internalProductId } = data;
+      if (!priceId || !internalProductId) {
+        throw new functions.https.HttpsError("invalid-argument", "priceId e internalProductId são obrigatórios.");
+      }
+      
+      const isBaseProductPurchase = internalProductId === 'hero_vitalicio';
+      const mode = ONE_TIME_PAYMENT_PRICE_IDS.includes(priceId) ? 'payment' : 'subscription';
+      const frontendUrl = "https://aistudio.google.com/app/project/66a858e5f3c09f3c78f8";
 
-exports.eduzzWebhook = functions
-    .region("southamerica-east1")
-    .runWith({memory: "128MB"})
-    .https.onRequest(async (req, res) => {
-      if (req.method !== "POST") {
-        console.warn("Requisição não-POST recebida e ignorada.");
-        return res.status(405).send("Método não permitido. Use POST.");
+      const sessionParams = {
+          mode: mode,
+          payment_method_types: ['card'],
+          line_items: [{
+              price: priceId,
+              quantity: 1,
+          }],
+          success_url: `${frontendUrl}/#/payment-success/${internalProductId}?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${frontendUrl}/`,
+          metadata: {
+            internalProductId: internalProductId,
+            priceId: priceId,
+          }
+      };
+
+      if (context.auth) {
+          sessionParams.customer_email = context.auth.token.email;
+          sessionParams.metadata.uid = context.auth.uid;
+      } else if (isBaseProductPurchase) {
+          // Let Stripe collect customer details for new signups
+          sessionParams.billing_address_collection = 'required';
+      } else {
+          // Any other purchase requires authentication.
+          throw new functions.https.HttpsError("unauthenticated", "Ação requer autenticação.");
       }
 
       try {
-        const data = req.body;
-        console.log("Webhook Eduzz recebido:", JSON.stringify(data));
-
-        const HERO_CONTENT_ID = "1725528";
-        const IA_UPGRADE_PRODUCT_ID = "89AQD6Y8WD"; // Mentor IA ID correto
-        const SUCESSO_360_ID = "9999999"; // Sucesso 360 ID (Exemplo/Placeholder)
-
-        // Eduzz status 3 = Aprovado/Pago
-        const isApproved = data.edz_fat_status === "3";
-        const userEmail = data.edz_cli_email;
-        const productId = data.edz_cnt_cod;
-
-        console.log(
-            `Dados: Aprovado=${isApproved}, Email=${userEmail}, ` +
-            `ID=${productId}`,
-        );
-
-        if (!isApproved || !userEmail || !productId) {
-          console.warn("Dados insuficientes ou pagamento não aprovado.");
-          return res.status(200).send("Ação não necessária.");
-        }
-
-        console.log(
-            `Pagamento aprovado para ${userEmail}, produto ${productId}`,
-        );
-
-        const userRef = db.collection("users").doc(userEmail);
-        
-        // Prepara objeto de atualização
-        let updateData = { email: userEmail };
-        let productName = "";
-
-        if (productId.toString() === HERO_CONTENT_ID) {
-          productName = "Hero Mindset Base";
-          updateData.hasPaid = true;
-          updateData.plan = "vitalicio";
-        } else if (productId.toString() === IA_UPGRADE_PRODUCT_ID) {
-          productName = "Mentor IA";
-          updateData.hasSubscription = true; // Atualiza flag de subscrição (IA)
-        } else if (productId.toString() === SUCESSO_360_ID) {
-          productName = "Sucesso 360";
-          // Desbloqueia módulo soberano e garante acesso IA
-          updateData.hasSubscription = true;
-          updateData.activeModules = admin.firestore.FieldValue.arrayUnion("soberano");
-        } else {
-          console.warn(`ID de produto ${productId} não reconhecido.`);
-          return res.status(200).send("Produto não reconhecido.");
-        }
-
-        console.log(`Liberando acesso: ${productName} para ${userEmail}`);
-        
-        // Usa set com merge: true para criar se não existir ou atualizar
-        await userRef.set(updateData, {merge: true});
-        console.log("Banco de dados atualizado com sucesso.");
-
-        return res.status(200).send("Recebido e processado com sucesso.");
-      } catch (error) {
-        console.error("ERRO CRÍTICO no webhook da Eduzz:", error);
-        return res.status(500).send("Erro interno do servidor.");
+        const session = await stripe.checkout.sessions.create(sessionParams);
+        return { url: session.url };
+      } catch(e) {
+          console.error("Stripe Session Error:", e);
+          throw new functions.https.HttpsError("internal", "Falha ao criar sessão de checkout.");
       }
     });
+
+exports.verifyHeroPurchaseAndGetData = functions
+  .region("southamerica-east1")
+  .https.onCall(async (data, context) => {
+    if (!stripe) {
+      throw new functions.https.HttpsError("internal", "Stripe não está configurado.");
+    }
+    const { sessionId } = data;
+    if (!sessionId) {
+      throw new functions.https.HttpsError("invalid-argument", "sessionId é obrigatório.");
+    }
+
+    try {
+      const purchaseRef = db.collection("purchases").doc(sessionId);
+      const purchaseDoc = await purchaseRef.get();
+      if (purchaseDoc.exists && purchaseDoc.data().status === 'account_created') {
+        throw new functions.https.HttpsError("already-exists", "Este pagamento já foi usado para criar uma conta.");
+      }
+
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+      if (session.payment_status !== 'paid') {
+        throw new functions.https.HttpsError("failed-precondition", "Pagamento não concluído.");
+      }
+
+      if (session.metadata.internalProductId !== 'hero_vitalicio') {
+        throw new functions.https.HttpsError("permission-denied", "Rota inválida para este produto.");
+      }
+      
+      const name = session.customer_details?.name;
+      const email = session.customer_details?.email;
+      
+      if (!name || !email) {
+        throw new functions.https.HttpsError("internal", "Não foi possível recuperar os dados do cliente do Stripe.");
+      }
+      
+      if (!purchaseDoc.exists()) {
+          await purchaseRef.set({
+            email: email,
+            name: name,
+            sessionId: sessionId,
+            priceId: session.metadata.priceId,
+            processedAt: admin.firestore.FieldValue.serverTimestamp(),
+            status: 'verified_for_signup'
+          });
+      }
+
+      return { success: true, name, email };
+    } catch (e) {
+        console.error("Verify New Purchase Error:", e);
+        if (e instanceof functions.https.HttpsError) throw e;
+        throw new functions.https.HttpsError("internal", "Falha ao verificar sua compra.");
+    }
+  });
+
+
+exports.verifyCheckoutSession = functions
+  .region("southamerica-east1")
+  .https.onCall(async (data, context) => {
+    if (!stripe) {
+      throw new functions.https.HttpsError("internal", "Stripe não está configurado.");
+    }
+    if (!context.auth) {
+      throw new functions.https.HttpsError("unauthenticated", "Ação requer autenticação.");
+    }
+    const { sessionId } = data;
+    const uid = context.auth.uid;
+
+    if (!sessionId) {
+      throw new functions.https.HttpsError("invalid-argument", "sessionId é obrigatório.");
+    }
+
+    try {
+      const purchaseRef = db.collection("purchases").doc(sessionId);
+      const purchaseDoc = await purchaseRef.get();
+      if (purchaseDoc.exists) {
+        console.log(`Purchase ${sessionId} já processada.`);
+        return { success: true, message: "Pagamento já verificado." };
+      }
+
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+      if (session.payment_status !== 'paid') {
+        throw new functions.https.HttpsError("failed-precondition", "Pagamento não concluído.");
+      }
+
+      const { priceId, internalProductId } = session.metadata;
+
+      if (session.metadata.uid !== uid) {
+          console.error(`UID Mismatch: Auth UID ${uid} vs Metadata UID ${session.metadata.uid}`);
+          throw new functions.https.HttpsError("permission-denied", "UID do checkout não corresponde ao usuário autenticado.");
+      }
+
+      const userRef = db.collection("users").doc(uid);
+      
+      let updateData = {};
+      if (priceId === STRIPE_PRICES.IA_UPGRADE || internalProductId === 'mentor_ia') {
+          updateData = { hasSubscription: true };
+      } else if (priceId === STRIPE_PRICES.PROTECAO_360 || internalProductId === 'protecao_360') {
+          const allModules = ["soberano", "tita", "sabio", "monge", "lider"];
+          updateData = { hasSubscription: true, activeModules: admin.firestore.FieldValue.arrayUnion(...allModules) };
+      }
+      if (Object.keys(updateData).length > 0) {
+          await userRef.update(updateData);
+      }
+      
+      await purchaseRef.set({
+        uid: uid,
+        email: session.customer_email,
+        sessionId: sessionId,
+        priceId: priceId,
+        processedAt: admin.firestore.FieldValue.serverTimestamp(),
+        processedBy: 'client_verification'
+      });
+      
+      return { success: true };
+    } catch (e) {
+      console.error("Verify Session Error:", e);
+      if (e instanceof functions.https.HttpsError) throw e;
+      throw new functions.https.HttpsError("internal", "Falha ao verificar sessão de pagamento.");
+    }
+  });
+
 
 exports.stripeWebhook = functions
     .region("southamerica-east1")
     .runWith({memory: "128MB"})
     .https.onRequest(async (req, res) => {
-      if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
-      if (!stripe) return res.status(500).send("Stripe not configured");
+      if (req.method !== "POST" || !stripe) {
+        return res.status(400).send("Bad Request");
+      }
 
       const sig = req.headers['stripe-signature'];
       const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
       let event;
-
       try {
-        // Use rawBody for signature verification in Firebase Functions
         event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);
       } catch (err) {
         console.error(`Webhook Signature Error: ${err.message}`);
@@ -162,36 +215,62 @@ exports.stripeWebhook = functions
       try {
         if (event.type === 'checkout.session.completed') {
           const session = event.data.object;
-          const customerEmail = session.customer_details?.email || session.customer_email;
-          
-          // Retrieve line items to identify the product
-          const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
-          const priceId = lineItems.data[0]?.price?.id;
+          const { uid, priceId, internalProductId } = session.metadata;
 
-          if (!customerEmail || !priceId) {
-             console.warn("Missing email or price ID in session");
-             return res.status(200).send("Missing info");
+          const purchaseRef = db.collection("purchases").doc(session.id);
+          const purchaseDoc = await purchaseRef.get();
+          if (purchaseDoc.exists) {
+              console.log(`Webhook: Purchase ${session.id} já processada.`);
+              return res.json({ received: true, message: "Already processed." });
           }
 
-          const userRef = db.collection("users").doc(customerEmail);
-          let updateData = { email: customerEmail };
-          let logMsg = "";
+          if (uid) {
+              const userRef = db.collection("users").doc(uid);
+              let logMsg = "";
+              let updateData = {};
+              if (priceId === STRIPE_PRICES.IA_UPGRADE || internalProductId === 'mentor_ia') {
+                 updateData = { hasSubscription: true };
+                 logMsg = "Activated IA Mentor";
+              } else if (priceId === STRIPE_PRICES.PROTECAO_360 || internalProductId === 'protecao_360') {
+                 const allModules = ["soberano", "tita", "sabio", "monge", "lider"];
+                 updateData = { hasSubscription: true, activeModules: admin.firestore.FieldValue.arrayUnion(...allModules) };
+                 logMsg = "Activated Proteção 360";
+              }
 
-          if (priceId === STRIPE_PRICES.HERO_BASE) {
-             updateData.hasPaid = true;
-             updateData.plan = "vitalicio";
-             logMsg = "Activated Base Plan";
-          } else if (priceId === STRIPE_PRICES.IA_UPGRADE) {
-             updateData.hasSubscription = true;
-             logMsg = "Activated IA Mentor";
-          } else if (priceId === STRIPE_PRICES.SUCESSO_360) {
-             updateData.hasSubscription = true;
-             updateData.activeModules = admin.firestore.FieldValue.arrayUnion("soberano");
-             logMsg = "Activated Sucesso 360";
+              if (Object.keys(updateData).length > 0) {
+                  await userRef.update(updateData);
+                  logMsg += ` for user ${uid}`;
+              }
+              
+              await purchaseRef.set({
+                uid: uid,
+                email: session.customer_email,
+                sessionId: session.id,
+                priceId: priceId,
+                processedAt: admin.firestore.FieldValue.serverTimestamp(),
+                processedBy: 'webhook'
+              });
+              console.log(`Stripe Success (Upgrade): ${logMsg}`);
+
+          } else if (internalProductId === 'hero_vitalicio') {
+              const name = session.customer_details?.name;
+              const email = session.customer_details?.email;
+
+              if (name && email) {
+                await purchaseRef.set({
+                  email: email,
+                  name: name,
+                  sessionId: session.id,
+                  priceId: priceId,
+                  processedAt: admin.firestore.FieldValue.serverTimestamp(),
+                  processedBy: 'webhook',
+                  status: 'verified_for_signup'
+                });
+                console.log(`Stripe Success (New User): Purchase ${session.id} logged for ${email}.`);
+              } else {
+                console.error(`Webhook: Missing customer details for new user purchase ${session.id}.`);
+              }
           }
-
-          await userRef.set(updateData, { merge: true });
-          console.log(`Stripe Success: ${logMsg} for ${customerEmail}`);
         }
 
         res.json({received: true});

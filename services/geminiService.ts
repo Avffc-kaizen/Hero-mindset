@@ -1,6 +1,8 @@
 
+
 import { GoogleGenAI } from "@google/genai";
-import { Mission, RankTitle, JournalEntry, UserStats, ChatMessage, UserState, DailyGuidance, LifeMapCategory } from "../types";
+// FIX: Add GuildPost to imports.
+import { Mission, RankTitle, JournalEntry, UserStats, ChatMessage, UserState, DailyGuidance, LifeMapCategory, GuildPost } from "../types";
 import { MENTOR_SYSTEM_INSTRUCTION } from "../constants";
 
 let genAI: GoogleGenAI | null = null;
@@ -301,3 +303,75 @@ export const getMentorChatReply = async (chatHistory: ChatMessage[], userName: s
     throw new Error("A conexão com o Oráculo falhou. Busque a sabedoria no silêncio.");
   }
 };
+
+// FIX: Add missing function generateChannelInsightAI
+export const generateChannelInsightAI = async (
+    channelName: string,
+    lastPosts: GuildPost[]
+): Promise<string> => {
+    try {
+        const client = initializeGenAI();
+        if (!client) return "Sistemas de comunicação offline.";
+
+        const conversation = lastPosts.slice(-5).map(p => `${p.author}: ${p.content}`).join('\n');
+        const prompt = `ATUE COMO O ORÁCULO. Analise os últimos posts no canal #${channelName} e forneça um resumo tático ou insight militar. Seja breve e direto.\n\nCONVERSA:\n${conversation}`;
+
+        const response = await client.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                systemInstruction: MENTOR_SYSTEM_INSTRUCTION
+            }
+        });
+
+        return response.text || "Mantenham a disciplina. Nenhuma anomalia detectada.";
+    } catch (error) {
+        console.error("Channel Insight Error:", error);
+        return "Interferência no sinal. Comunicação com o Oráculo perdida.";
+    }
+}
+
+// FIX: Add missing function generateGuildMemberReply
+export const generateGuildMemberReply = async (
+    channelName: string,
+    lastPosts: GuildPost[]
+): Promise<{author: string, rank: RankTitle, content: string} | null> => {
+    try {
+        const client = initializeGenAI();
+        if (!client) return null;
+
+        const context = lastPosts.slice(-3).map(p => `${p.author}: ${p.content}`).join('\n');
+        const prompt = `
+        Você está simulando um chat de RPG/Desenvolvimento Pessoal.
+        Canal: #${channelName}.
+        Contexto recente:
+        ${context}
+
+        Crie UMA resposta curta (máximo 1-2 frases) de um membro fictício da guilda reagindo ao último post.
+        Escolha um nome heroico (ex: "Alex o Bravo", "Seraphina", "Kael Titã") e uma patente aleatória entre "Iniciante", "Aventureiro", "Campeão", "Paladino".
+        
+        Retorne APENAS o objeto JSON com o seguinte formato:
+        {"author": "Nome Fictício", "rank": "Patente Escolhida", "content": "Sua mensagem curta"}
+        `;
+
+        const response = await client.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: { 
+                responseMimeType: 'application/json',
+            }
+        });
+
+        if(response.text) {
+            const cleaned = cleanJsonString(response.text);
+            const data = JSON.parse(cleaned);
+            if (data.author && data.rank && data.content) {
+                return data;
+            }
+        }
+        return null;
+    } catch (e) {
+        console.error("Guild Member Reply Error:", e);
+        return null;
+    }
+}

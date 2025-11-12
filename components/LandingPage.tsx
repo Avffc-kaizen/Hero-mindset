@@ -1,570 +1,341 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Shield, Skull, Target, ChevronRight, LogIn, CheckCircle, Zap, Brain, Sword, Share2, X, Copy, MessageCircle, Play, Bot, Crown, Map, Users, GitMerge, Sparkles, Lock, Hexagon, LayoutDashboard, ArrowDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Shield, ChevronRight, LogIn, CheckCircle, Play, Bot, Award, Share2, Briefcase, TrendingUp, Activity, Brain, Zap, HeartHandshake, Target, Book, ScrollText, Sparkles, GitMerge } from 'lucide-react';
+import { useUser } from '../contexts/UserContext';
+import { PRODUCTS, FRONTEND_URL, PROTECTION_MODULES } from '../constants';
+import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 
-interface LandingPageProps {
-  onBuy: (productId: string) => void;
-  onGoToLogin: () => void;
-}
-
-// Componente para Lazy Loading de Seções (Performance)
-const LazySection = ({ children, className = "", ...props }: React.HTMLAttributes<HTMLDivElement> & { children: React.ReactNode }) => {
+const LazySection = ({ children, className = "", id = "", ...props }: React.HTMLAttributes<HTMLDivElement> & { children: React.ReactNode, id?: string }) => {
   const [isVisible, setIsVisible] = useState(false);
   const elementRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0, rootMargin: '200px' } // Começa a carregar 200px antes de entrar na tela
+        if (entries[0].isIntersecting) { setIsVisible(true); observer.disconnect(); }
+      }, { threshold: 0.1, rootMargin: '100px' }
     );
-
-    if (elementRef.current) {
-      observer.observe(elementRef.current);
-    }
-
+    if (elementRef.current) { observer.observe(elementRef.current); }
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={elementRef} className={`transition-opacity duration-700 ${isVisible ? 'opacity-100' : 'opacity-0'} ${className}`} {...props}>
-      {isVisible ? children : <div className="h-32 w-full flex items-center justify-center opacity-5"><div className="w-8 h-8 border-2 border-zinc-800 border-t-zinc-500 rounded-full animate-spin"></div></div>}
+    <div id={id} ref={elementRef} className={`transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'} ${className}`} {...props}>
+      {children}
     </div>
   );
 };
 
-// Componente Otimizado para Carregamento de Vídeo (Fachada)
-const LiteYouTubeEmbed = ({ videoId, title, coverImage }: { videoId: string, title: string, coverImage?: string }) => {
+const LiteYouTubeEmbed = ({ videoId, title }: { videoId: string, title: string }) => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+  const embedRef = useRef<HTMLDivElement>(null);
 
-  if (isLoaded) {
-    return (
-      <iframe
-        width="100%"
-        height="100%"
-        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&showinfo=0`}
-        title={title}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        className="absolute inset-0 w-full h-full rounded-xl animate-in fade-in"
-      />
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (embedRef.current) {
+             const image = new Image();
+             image.src = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
+             image.onload = () => {
+                 if(embedRef.current) {
+                    (embedRef.current.querySelector('.yt-thumb') as HTMLImageElement).src = image.src;
+                 }
+             }
+          }
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '50px', threshold: 0.1 }
     );
-  }
+
+    if (embedRef.current) {
+      observer.observe(embedRef.current);
+    }
+
+    return () => {
+      if (embedRef.current) {
+        observer.unobserve(embedRef.current);
+      }
+    };
+  }, [videoId]);
 
   return (
-    <button
-      onClick={() => setIsLoaded(true)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className="absolute inset-0 w-full h-full bg-black group cursor-pointer overflow-hidden rounded-xl relative"
-      aria-label={`Reproduzir vídeo: ${title}`}
-    >
-      <img
-        src={coverImage || `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`}
-        alt={title}
-        className="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity duration-300"
-        loading="lazy"
-      />
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className={`w-16 h-16 sm:w-20 sm:h-20 bg-red-600 rounded-full flex items-center justify-center shadow-lg shadow-red-900/50 transition-transform duration-300 ${isHovered ? 'scale-110' : 'scale-100'}`}>
-          <Play className="w-8 h-8 text-white ml-1 fill-current" />
-        </div>
-      </div>
-      {isHovered && <link rel="preconnect" href="https://www.youtube.com" />}
-    </button>
+    <div ref={embedRef} className="absolute inset-0 w-full h-full bg-black group cursor-pointer overflow-hidden rounded-xl">
+      {!isLoaded ? (
+        <button onClick={() => setIsLoaded(true)} className="w-full h-full">
+            <img 
+              src=""
+              alt={title} 
+              className="yt-thumb w-full h-full object-cover opacity-80 group-hover:opacity-60 animate-fade-in" 
+            />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20"><div className="w-20 h-20 bg-red-600/80 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-white/20 group-hover:bg-red-500 transition-colors"><Play className="w-8 h-8 text-white ml-1" /></div></div>
+        </button>
+      ) : (
+        <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`} title={title} allow="autoplay; encrypted-media" allowFullScreen className="w-full h-full" />
+      )}
+    </div>
   );
 };
 
-const ChevronDownIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m6 9 6 6 6-6"/></svg>
-);
+const CountdownTimer = ({ targetDate }: { targetDate: string }) => {
+    const calculateTimeLeft = () => {
+        const difference = +new Date(targetDate) - +new Date();
+        let timeLeft: any = {};
+
+        if (difference > 0) {
+            timeLeft = {
+                dias: Math.floor(difference / (1000 * 60 * 60 * 24)),
+                horas: Math.floor((difference / (1000 * 60 * 60)) % 24),
+                minutos: Math.floor((difference / 1000 / 60) % 60),
+            };
+        }
+        return timeLeft;
+    };
+
+    const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
+    useEffect(() => {
+        const timer = setTimeout(() => setTimeLeft(calculateTimeLeft()), 1000);
+        return () => clearTimeout(timer);
+    });
+    
+    return (
+      <div className="flex justify-center gap-2 sm:gap-4">
+        {Object.entries(timeLeft).map(([unit, value]) => (
+            <div key={unit} className="text-center bg-zinc-900/50 p-2 rounded-lg min-w-[50px] sm:min-w-[70px] border border-zinc-800">
+                <div className="text-2xl sm:text-3xl font-black font-mono text-white">{String(value).padStart(2, '0')}</div>
+                <div className="text-[10px] sm:text-xs text-zinc-500 uppercase">{unit}</div>
+            </div>
+        ))}
+      </div>
+    );
+};
 
 const FAQItem = ({ q, a }: { q: string, a: string }) => {
   const [isOpen, setIsOpen] = useState(false);
-
   return (
-    <div 
-      className={`group bg-zinc-900/50 rounded-lg border transition-all duration-300 overflow-hidden ${
-        isOpen ? 'border-red-900/50 bg-zinc-900' : 'border-zinc-800 hover:border-zinc-700'
-      }`}
-    >
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex justify-between items-center p-5 text-left cursor-pointer focus:outline-none"
-      >
-        <span className={`font-mono font-bold transition-colors ${isOpen ? 'text-white' : 'text-zinc-300'}`}>
-          {q}
-        </span>
-        <div className={`p-1 rounded-full transition-colors duration-300 ${isOpen ? 'bg-red-900/20 text-red-500' : 'text-zinc-500 group-hover:text-zinc-300'}`}>
-           <ChevronDownIcon className={`w-5 h-5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
-        </div>
+    <div className={`bg-zinc-900/50 rounded-lg border ${isOpen ? 'border-red-900/50' : 'border-zinc-800'}`}>
+      <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center p-5 text-left">
+        <span className="font-mono font-bold">{q}</span>
+        <ChevronRight className={`w-5 h-5 transition-transform flex-shrink-0 ${isOpen ? 'rotate-90' : ''}`} />
       </button>
-      
-      <div 
-        className={`transition-all duration-300 ease-in-out overflow-hidden ${
-          isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-        }`}
-      >
-        <div className="p-5 pt-0 text-zinc-400 leading-relaxed text-sm border-t border-zinc-800/50 mt-1 mx-5 border-dashed">
-          <div className="pt-4">{a}</div>
-        </div>
-      </div>
+      {isOpen && <div className="p-5 pt-0 text-zinc-400 animate-in fade-in duration-300">{a}</div>}
     </div>
   );
 };
 
-const LandingPage: React.FC<LandingPageProps> = ({ onBuy, onGoToLogin }) => {
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [copySuccess, setCopySuccess] = useState(false);
-  const [currentTestimonial, setCurrentTestimonial] = useState(0);
-  const [activeArsenalTab, setActiveArsenalTab] = useState<'map' | 'guild' | 'skills' | 'pantheon'>('map');
-
-
-  const testimonials = [
-    {
-      quote: "Isso não é um app de bem-estar. É uma ferramenta para forjar sua lenda pessoal. O Modo Hardcore me forçou a parar de dar desculpas. Mudei o jogo em 30 dias.",
-      name: "Alex 'O Titã'",
-      role: "Empreendedor, Nível 28",
-    },
-    {
-      quote: "Eu lia sobre filosofia, mas não aplicava nada. O Hero Mindset transformou a sabedoria em desafios diários. A clareza que ganhei é absurda. A ação virou meu único caminho.",
-      name: "Ricardo M.",
-      role: "Advogado, Nível 19",
-    },
-    {
-      quote: "Tentei de tudo: agenda, planners, apps de hábito. Só aqui a consequência da falha (perder XP) doeu de verdade. Finalmente construí uma rotina matinal inquebrável.",
-      name: "Bruno 'A Fênix'",
-      role: "Desenvolvedor, Nível 35",
-    },
-  ];
-
-  useEffect(() => {
-    if ((window as any).fbq) {
-      (window as any).fbq('track', 'ViewContent', { content_name: 'Hero Mindset Sales Page (Eduzz)', content_type: 'product' });
-    }
-  }, []);
+const LandingPage: React.FC = () => {
+  const { user, handleBuy } = useUser();
+  const navigate = useNavigate();
+  const [shareText, setShareText] = useState('Convoque Aliados');
 
   const handleBuyClick = (productId: string) => {
-    if ((window as any).fbq) {
-      (window as any).fbq('track', 'InitiateCheckout', { currency: 'BRL', value: 497.00, content_name: 'Acesso Vitalício', content_ids: [productId] });
+    if (user.isLoggedIn) {
+      handleBuy(productId);
+    } else {
+      // Redirect to signup, passing product info to handle after account creation
+      navigate('/login', { state: { fromPurchase: true, productId } });
     }
-    onBuy(productId);
   };
 
-  const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
-  const shareText = "Transforme sua vida em uma jornada lendária com o Hero Mindset.";
+  const onGoToLogin = () => {
+    navigate('/login');
+  };
 
-  const handleCopyLink = async () => {
+  const handleShare = async () => {
+    const shareData = {
+        title: 'Hero Mindset 3.0: O Fim do Homem Comum',
+        text: 'Eu declarei guerra contra minha versão fraca. Junte-se a mim na jornada para forjar sua lenda. Acesso Vitalício por tempo limitado (Black Friday).',
+        url: FRONTEND_URL,
+    };
     try {
-      await navigator.clipboard.writeText(currentUrl);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2500);
-    } catch (err) {
-      console.error('Failed to copy url', err);
+        if (navigator.share) {
+            await navigator.share(shareData);
+        } else {
+            await navigator.clipboard.writeText(shareData.url);
+            setShareText('Link Copiado!');
+            setTimeout(() => setShareText('Convoque Aliados'), 2000);
+        }
+    } catch (error) {
+        console.error('Erro ao compartilhar:', error);
+        setShareText('Falhou!');
+        setTimeout(() => setShareText('Convoque Aliados'), 2000);
     }
   };
-
-  const openShareLink = (url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
-  const TabButton: React.FC<{
-    label: string;
-    icon: React.ElementType;
-    isActive: boolean;
-    onClick: () => void;
-  }> = ({ label, icon: Icon, isActive, onClick }) => (
-    <button
-      onClick={onClick}
-      className={`flex items-center justify-center gap-2 py-3 px-2 text-xs sm:text-sm font-mono uppercase rounded-lg transition-all active:scale-95 ${
-        isActive ? 'bg-zinc-800 text-white border border-zinc-700' : 'text-zinc-500 hover:bg-zinc-800/30 hover:text-zinc-300 border border-transparent'
-      }`}
-    >
-      <Icon className={`w-4 h-4 ${isActive ? 'text-red-500' : ''}`} />
-      <span className="hidden sm:inline">{label}</span>
-    </button>
-  );
+  
+  const radarData = [
+      { subject: 'Saúde', A: 4, fullMark: 10 }, { subject: 'Intelecto', A: 5, fullMark: 10 },
+      { subject: 'Emocional', A: 8, fullMark: 10 }, { subject: 'Caráter', A: 9, fullMark: 10 },
+      { subject: 'Finanças', A: 3, fullMark: 10 }, { subject: 'Social', A: 6, fullMark: 10 }
+  ];
 
   return (
-    <div className="bg-zinc-950 min-h-screen text-white relative overflow-x-hidden font-sans">
-      {/* Navegação Simplificada */}
-      <nav className="absolute top-0 left-0 right-0 flex justify-between items-center p-4 sm:p-6 z-50 max-w-7xl mx-auto w-full">
-        <div className="font-mono font-bold text-lg uppercase tracking-tighter flex items-center gap-2">
-          <Shield className="w-5 h-5 text-red-600" /> Hero Mindset
+    <div className="bg-zinc-950 min-h-screen text-zinc-100 font-sans overflow-x-hidden">
+      <nav className="fixed top-0 left-0 right-0 flex justify-between items-center px-6 py-4 z-50 bg-zinc-950/80 backdrop-blur-md border-b border-white/5">
+        <div className="flex items-center gap-2 font-mono font-black uppercase tracking-widest text-sm">
+          <Shield className="w-5 h-5 text-red-600" aria-hidden="true" /> Hero Mindset <span className="text-zinc-500">3.0</span>
         </div>
-        <div className="flex items-center gap-2 sm:gap-4">
-          <button
-            onClick={onGoToLogin}
-            className="text-sm font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2 hover:text-white transition border border-zinc-800 px-4 py-2 rounded-md bg-zinc-900/80 backdrop-blur-sm"
-          >
-            <LogIn className="w-4 h-4" /> Santuário
-          </button>
+        <div className="flex items-center gap-4">
+          <button onClick={onGoToLogin} className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition flex items-center gap-2"><LogIn className="w-3 h-3" /> Login</button>
+          <button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="bg-white text-black text-[10px] font-bold uppercase tracking-widest px-4 py-2 hover:bg-zinc-200 transition rounded">Acesso Black Friday</button>
         </div>
       </nav>
 
-      {/* Header Otimizado */}
-      <header className="relative py-32 sm:py-40 px-6 text-center border-b border-zinc-900 bg-zinc-950 overflow-hidden">
-        {/* CSS Background Pattern (Removed heavy external image) */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-800/20 via-zinc-950 to-zinc-950"></div>
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#3f3f46_1px,transparent_1px)] [background-size:16px_16px]"></div>
-        
-        <div className="relative z-10 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-10 duration-700">
-          <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 border border-red-900/50 bg-red-950/10 rounded-full text-red-500 text-sm uppercase tracking-wider font-bold">
-            <span className="relative flex h-2 w-2">
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 animate-ping"></span>
-            </span>
-            Plataforma 2.0 Liberada
-          </div>
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold mb-6 tracking-tighter font-mono uppercase leading-none text-white">
-            FORJE SUA<br/><span className="text-transparent bg-clip-text bg-gradient-to-b from-zinc-400 to-zinc-700">LENDA PESSOAL.</span>
-          </h1>
-          <p className="text-lg sm:text-xl text-zinc-400 mb-10 leading-relaxed max-w-3xl mx-auto">
-             Um ecossistema completo que une <strong>Diagnóstico de Vida 360°</strong>, <strong>Comunidade Gamificada</strong> e <strong>Ferramentas Reais</strong>. Troque motivação por disciplina militar.
-          </p>
+      <header className="relative py-32 sm:py-40 px-6 text-center border-b border-zinc-900 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-950/20 via-zinc-950 to-zinc-950"></div>
+        <div className="relative z-10 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-10">
+          <h1 className="text-5xl sm:text-7xl font-extrabold mb-6 tracking-tighter font-mono uppercase">O Fim do Homem Comum.</h1>
+          <p className="text-lg text-zinc-400 mb-10 max-w-3xl mx-auto">O sistema operacional que transforma disciplina em poder e execução em legado. A Black Friday é sua única chance de entrar com acesso vitalício.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
-              onClick={() => handleBuyClick('hero_vitalicio')}
-              className="w-full sm:w-auto bg-red-600 text-white px-8 py-4 text-base sm:text-lg rounded-md font-bold uppercase tracking-widest hover:bg-red-700 transition-colors flex items-center justify-center gap-3 shadow-lg shadow-red-900/20 active:scale-95"
-            >
-              Iniciar Jornada
-              <ChevronRight className="w-5 h-5" />
+            <button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="bg-red-600 text-white px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-red-700 transition flex items-center gap-3 shadow-lg shadow-red-600/20">
+              Declarar Guerra <ChevronRight />
             </button>
-             <button
-              onClick={() => setIsShareModalOpen(true)}
-              className="w-full sm:w-auto bg-transparent border border-zinc-800 text-zinc-400 px-8 py-4 text-base sm:text-lg rounded-md font-bold uppercase tracking-widest hover:bg-zinc-900 hover:text-white transition-colors flex items-center justify-center gap-3 active:scale-95"
-            >
-              <Share2 className="w-5 h-5" />
-              Convidar Aliados
+            <button onClick={handleShare} className="bg-transparent border border-zinc-700 text-zinc-300 px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-zinc-800 hover:border-zinc-600 hover:text-white transition flex items-center gap-3">
+              {shareText} <Share2 className="w-4 h-4"/>
             </button>
           </div>
-          <p className="mt-8 text-zinc-600 text-xs font-mono uppercase tracking-widest">
-             Junte-se a +1.500 heróis ativos no ranking.
-          </p>
         </div>
       </header>
-
-      {/* VSL Section (Mantido Eager para conversão) */}
-      <section className="py-16 sm:py-24 px-4 bg-zinc-950 relative">
+      
+      <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-             <h2 className="text-sm font-bold uppercase font-mono tracking-widest text-red-600 flex items-center justify-center gap-2">
-                <Sword className="w-4 h-4" /> O Sistema Operacional da Vida
-             </h2>
-          </div>
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden relative shadow-2xl shadow-red-950/10 aspect-video w-full">
-            <LiteYouTubeEmbed videoId="7JQeToR6pQs" title="Hero Mindset VSL" />
+          <div className="p-1 bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-2xl shadow-2xl">
+            <div className="bg-zinc-950 rounded-xl p-1">
+              <div className="aspect-video w-full relative"><LiteYouTubeEmbed videoId="7JQeToR6pQs" title="Hero Mindset VSL" /></div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* New Features Grid - Lazy Loaded */}
       <LazySection className="py-20 px-6 bg-zinc-900/20 border-y border-zinc-900">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold uppercase font-mono mb-4 tracking-tighter text-white">Não é um App.<br/>É um Estilo de Vida.</h2>
-            <p className="text-zinc-400 max-w-xl mx-auto text-lg">O único sistema que integra diagnóstico, planejamento, execução e comunidade.</p>
+            <h2 className="text-4xl font-bold uppercase font-mono mb-4">Seu Arsenal Completo</h2>
+            <p className="text-zinc-400 max-w-2xl mx-auto">Um ecossistema integrado para a guerra contra a mediocridade, dividido em três frentes de batalha.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800 hover:border-zinc-600 transition-colors">
-              <div className="w-12 h-12 bg-blue-900/20 border border-blue-900/50 rounded-lg flex items-center justify-center mb-4">
-                <Map className="w-6 h-6 text-blue-500" />
-              </div>
-              <h3 className="text-lg font-bold mb-2 uppercase font-mono text-zinc-200">Clareza Total</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed">O Mapa 360° diagnostica 12 áreas da sua vida. Saiba exatamente onde você está fraco e onde precisa atacar.</p>
-            </div>
-            <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800 hover:border-zinc-600 transition-colors">
-              <div className="w-12 h-12 bg-red-900/20 border border-red-900/50 rounded-lg flex items-center justify-center mb-4">
-                <Users className="w-6 h-6 text-red-500" />
-              </div>
-              <h3 className="text-lg font-bold mb-2 uppercase font-mono text-zinc-200">Tribo de Elite</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed">A Guilda é onde os heróis se reúnem. Compartilhe vitórias, suba no ranking e enfrente Chefes Semanais em grupo.</p>
-            </div>
-            <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800 hover:border-zinc-600 transition-colors">
-              <div className="w-12 h-12 bg-yellow-900/20 border border-yellow-900/50 rounded-lg flex items-center justify-center mb-4">
-                <Crown className="w-6 h-6 text-yellow-500" />
-              </div>
-              <h3 className="text-lg font-bold mb-2 uppercase font-mono text-zinc-200">Legado Divino</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed">Sistema de Ascensão Panteão. Chegue ao nível 50, reinicie e ganhe poderes permanentes. O jogo nunca acaba.</p>
-            </div>
-          </div>
-        </div>
-      </LazySection>
-
-      {/* Interactive Feature Showcase - Lazy Loaded */}
-      <LazySection className="py-20 bg-zinc-950">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="flex flex-col lg:flex-row items-start gap-12">
-            <div className="flex-1 space-y-8 lg:sticky lg:top-24">
-              <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 mb-4 bg-zinc-800 rounded-full text-xs uppercase font-mono tracking-wider text-zinc-400">
-                   <LayoutDashboard className="w-4 h-4" /> O Arsenal 2.0
-                </div>
-                <h2 className="text-3xl sm:text-4xl font-bold uppercase font-mono mb-4 tracking-tighter">Tecnologia de Guerra Pessoal</h2>
-                <p className="text-zinc-400 text-lg">Nós não te damos apenas conteúdo. Te damos as ferramentas para aplicar.</p>
-              </div>
-              
-              <div className="space-y-6">
-                <div className="flex gap-4 group">
-                    <div className="mt-1 w-8 h-8 rounded bg-zinc-900 flex items-center justify-center group-hover:bg-zinc-800 transition-colors"><Map className="w-4 h-4 text-zinc-400 group-hover:text-white"/></div>
-                    <div><h3 className="text-lg font-bold text-white mb-1 font-mono">Mapa da Vida</h3><p className="text-zinc-400 text-sm">Visualize sua vida em 12 dimensões.</p></div>
-                </div>
-                <div className="flex gap-4 group">
-                    <div className="mt-1 w-8 h-8 rounded bg-zinc-900 flex items-center justify-center group-hover:bg-zinc-800 transition-colors"><Users className="w-4 h-4 text-zinc-400 group-hover:text-white"/></div>
-                    <div><h3 className="text-lg font-bold text-white mb-1 font-mono">Guilda Interativa</h3><p className="text-zinc-400 text-sm">Chat real, Feed e Batalhas contra Chefes.</p></div>
-                </div>
-                <div className="flex gap-4 group">
-                    <div className="mt-1 w-8 h-8 rounded bg-zinc-900 flex items-center justify-center group-hover:bg-zinc-800 transition-colors"><GitMerge className="w-4 h-4 text-zinc-400 group-hover:text-white"/></div>
-                    <div><h3 className="text-lg font-bold text-white mb-1 font-mono">Skill Tree</h3><p className="text-zinc-400 text-sm">Complete missões para liberar ferramentas (Pomodoro, Budget, etc).</p></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex-1 w-full mt-8 lg:mt-0">
-               <div className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden">
-                  {/* Mock Browser Header */}
-                  <div className="bg-zinc-950 border-b border-zinc-800 p-3 flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
-                    <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
-                    <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
-                    <div className="ml-4 bg-zinc-900 rounded px-2 py-1 text-[10px] text-zinc-500 font-mono flex-1 text-center border border-zinc-800">hero-mindset-os.v2.exe</div>
-                  </div>
-
-                  {/* Tabs */}
-                  <div className="grid grid-cols-4 border-b border-zinc-800 bg-zinc-900/50 p-1 gap-1">
-                    <TabButton label="Mapa" icon={Map} isActive={activeArsenalTab === 'map'} onClick={() => setActiveArsenalTab('map')} />
-                    <TabButton label="Guilda" icon={Users} isActive={activeArsenalTab === 'guild'} onClick={() => setActiveArsenalTab('guild')} />
-                    <TabButton label="Skills" icon={GitMerge} isActive={activeArsenalTab === 'skills'} onClick={() => setActiveArsenalTab('skills')} />
-                    <TabButton label="Panteão" icon={Crown} isActive={activeArsenalTab === 'pantheon'} onClick={() => setActiveArsenalTab('pantheon')} />
-                  </div>
-
-                  {/* Content Area */}
-                  <div className="p-6 min-h-[350px] bg-zinc-950 relative">
-                    
-                    {/* MAP TAB */}
-                    {activeArsenalTab === 'map' && (
-                      <div className="flex flex-col items-center justify-center h-full animate-in fade-in zoom-in-95 duration-300">
-                         <div className="relative w-64 h-64 mb-6">
-                            {/* CSS Radar Chart Simulation */}
-                            <div className="absolute inset-0 rounded-full border border-zinc-800"></div>
-                            <div className="absolute inset-8 rounded-full border border-zinc-800 opacity-50"></div>
-                            <div className="absolute inset-16 rounded-full border border-zinc-800 opacity-30"></div>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-full h-full opacity-20 bg-[conic-gradient(from_0deg_at_50%_50%,_transparent_0%,_white_15%,_transparent_20%,_white_40%,_transparent_60%,_white_85%,_transparent_100%)] rounded-full animate-[spin_10s_linear_infinite]"></div>
-                            </div>
-                            <div className="absolute inset-0 bg-zinc-950/80 m-4 rounded-full flex items-center justify-center backdrop-blur-sm border border-zinc-700">
-                                <div className="text-center">
-                                    <p className="text-xs text-zinc-500 font-mono uppercase">Foco Atual</p>
-                                    <p className="text-xl font-bold text-white">FINANCEIRO</p>
-                                    <p className="text-red-500 text-sm font-mono font-bold">Nível 3/10</p>
-                                </div>
-                            </div>
-                             {/* Axis Labels */}
-                            <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-5 text-[10px] text-zinc-500 uppercase font-mono bg-zinc-950 px-1">Saúde</span>
-                            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-5 text-[10px] text-zinc-500 uppercase font-mono bg-zinc-950 px-1">Social</span>
-                            <span className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] text-zinc-500 uppercase font-mono -rotate-90 bg-zinc-950 px-1">Mente</span>
-                            <span className="absolute right-0 top-1/2 translate-x-1/2 -translate-y-1/2 text-[10px] text-zinc-500 uppercase font-mono rotate-90 bg-zinc-950 px-1">Grana</span>
-                         </div>
-                         <p className="text-center text-zinc-400 text-sm max-w-xs">Diagnóstico visual em tempo real. Onde o gráfico recua, é onde você deve atacar.</p>
-                      </div>
-                    )}
-
-                    {/* GUILD TAB */}
-                    {activeArsenalTab === 'guild' && (
-                      <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                         <div className="bg-red-950/20 border border-red-900/50 rounded-lg p-3 mb-4">
-                             <div className="flex justify-between text-xs uppercase font-bold text-red-400 mb-2 font-mono">
-                                 <span>Chefe: Monstro da Procrastinação</span>
-                                 <span>HP: 450/2000</span>
-                             </div>
-                             <div className="w-full bg-zinc-900 h-2 rounded-full overflow-hidden">
-                                 <div className="bg-red-600 h-full w-[25%] animate-pulse"></div>
-                             </div>
-                         </div>
-                         
-                         <div className="space-y-3">
-                             <div className="flex gap-3 items-start">
-                                 <div className="w-8 h-8 bg-zinc-800 rounded flex items-center justify-center font-bold text-xs">AF</div>
-                                 <div className="bg-zinc-900 p-2 rounded-lg rounded-tl-none border border-zinc-800 text-xs text-zinc-300 flex-1">
-                                     <p className="font-bold text-zinc-400 mb-1 text-[10px] uppercase">André Ferraz (Lendário)</p>
-                                     Acabei de completar a missão de leitura. +50XP para a guilda! Vamos derrubar esse chefe hoje.
-                                 </div>
-                             </div>
-                             <div className="flex gap-3 items-start">
-                                 <div className="w-8 h-8 bg-blue-900/30 text-blue-500 rounded flex items-center justify-center font-bold text-xs">R</div>
-                                 <div className="bg-zinc-900 p-2 rounded-lg rounded-tl-none border border-zinc-800 text-xs text-zinc-300 flex-1">
-                                     <p className="font-bold text-zinc-400 mb-1 text-[10px] uppercase">Ricardo (Paladino)</p>
-                                     Treino feito. 5h da manhã. Sem desculpas.
-                                 </div>
-                             </div>
-                         </div>
-                         
-                         <div className="absolute bottom-4 left-4 right-4">
-                             <div className="bg-zinc-900 border border-zinc-800 rounded p-2 flex text-xs text-zinc-500 items-center justify-between">
-                                 <span>Escreva para a guilda...</span>
-                                 <div className="w-6 h-6 bg-zinc-800 rounded flex items-center justify-center"><ChevronRight className="w-3 h-3"/></div>
-                             </div>
-                         </div>
-                      </div>
-                    )}
-
-                    {/* SKILLS TAB */}
-                    {activeArsenalTab === 'skills' && (
-                        <div className="flex flex-col items-center justify-center h-full animate-in fade-in slide-in-from-bottom-4 duration-300">
-                             <div className="relative flex flex-col items-center gap-8">
-                                 {/* Node 1 */}
-                                 <div className="w-16 h-16 rounded-xl bg-zinc-900 border border-yellow-500 flex items-center justify-center shadow-[0_0_15px_rgba(234,179,8,0.2)] relative z-10">
-                                     <Brain className="w-8 h-8 text-yellow-500" />
-                                     <div className="absolute -right-2 -bottom-2 bg-green-500 text-black text-[10px] font-bold px-1 rounded font-mono">ATIVO</div>
-                                 </div>
-                                 
-                                 {/* Connecting Line */}
-                                 <div className="w-1 h-12 bg-zinc-800 absolute top-16 -z-0"></div>
-                                 
-                                 {/* Tools Unlocked */}
-                                 <div className="flex gap-4 mt-4">
-                                     <div className="bg-zinc-900 p-3 rounded border border-zinc-800 flex flex-col items-center gap-2 opacity-50">
-                                         <Lock className="w-4 h-4 text-zinc-600" />
-                                         <span className="text-[10px] text-zinc-500 uppercase font-mono">Leitura Dinâmica</span>
-                                     </div>
-                                     <div className="bg-zinc-800 p-3 rounded border border-zinc-700 flex flex-col items-center gap-2">
-                                          <CheckCircle className="w-4 h-4 text-green-500" />
-                                          <span className="text-[10px] text-white uppercase font-bold font-mono">Foco Pomodoro</span>
-                                     </div>
-                                 </div>
-                             </div>
-                             <p className="mt-6 text-center text-zinc-400 text-xs">Complete missões de Intelecto para desbloquear a ferramenta de Pomodoro integrada.</p>
-                        </div>
-                    )}
-
-                     {/* PANTHEON TAB */}
-                    {activeArsenalTab === 'pantheon' && (
-                        <div className="flex flex-col items-center justify-center h-full animate-in fade-in zoom-in-95 duration-300 text-center">
-                             <Sparkles className="w-12 h-12 text-yellow-400 mb-4 animate-pulse" />
-                             <h3 className="text-xl font-bold text-white font-mono uppercase mb-2">Sua alma é imortal</h3>
-                             <p className="text-sm text-zinc-400 mb-6 max-w-xs">Ao atingir o Nível 50, você pode ASCENDER. Resete seu nível, mas mantenha Perks Divinos permanentes.</p>
-                             
-                             <div className="grid grid-cols-2 gap-3 w-full">
-                                 <div className="bg-zinc-900 border border-yellow-900/30 p-3 rounded text-left">
-                                     <p className="text-[10px] text-yellow-600 uppercase font-bold">Perk Ativo</p>
-                                     <p className="text-xs font-bold text-zinc-200 font-mono">+10% XP Ganho</p>
-                                 </div>
-                                 <div className="bg-zinc-900 border border-yellow-900/30 p-3 rounded text-left">
-                                     <p className="text-[10px] text-yellow-600 uppercase font-bold">Perk Ativo</p>
-                                     <p className="text-xs font-bold text-zinc-200 font-mono">Troca de Missão</p>
-                                 </div>
-                             </div>
-                        </div>
-                    )}
-                  </div>
-               </div>
-            </div>
-          </div>
-        </div>
-      </LazySection>
-
-      {/* Testimonials - Lazy Loaded */}
-      <LazySection className="py-20 px-6 bg-zinc-950 border-t border-zinc-900">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold uppercase font-mono mb-12 tracking-tighter">Relatos da Front</h2>
-          <div className="relative bg-zinc-900 border border-zinc-800 rounded-2xl p-8 flex items-center justify-center">
-              <div className="absolute top-4 left-4 opacity-20"><MessageCircle className="w-12 h-12 text-zinc-500"/></div>
-              <div className="relative w-full">
-                  <div className="px-2 md:px-4 flex flex-col items-center justify-center min-h-[180px]">
-                      <p className="text-lg font-light text-zinc-200 leading-relaxed italic max-w-2xl">"{testimonials[currentTestimonial].quote}"</p>
-                      <div className="mt-6"><p className="font-bold text-white uppercase font-mono tracking-wider">{testimonials[currentTestimonial].name}</p><p className="text-zinc-500 font-mono text-sm">{testimonials[currentTestimonial].role}</p></div>
-                  </div>
-              </div>
-              <button onClick={() => setCurrentTestimonial(prev => (prev - 1 + testimonials.length) % testimonials.length)} aria-label="Anterior" className="absolute left-0 top-1/2 -translate-y-1/2 p-4 hover:text-zinc-300 text-zinc-600"><ChevronRight className="w-6 h-6 transform rotate-180" /></button>
-              <button onClick={() => setCurrentTestimonial(prev => (prev + 1) % testimonials.length)} aria-label="Próximo" className="absolute right-0 top-1/2 -translate-y-1/2 p-4 hover:text-zinc-300 text-zinc-600"><ChevronRight className="w-6 h-6" /></button>
-          </div>
-        </div>
-      </LazySection>
-
-      {/* Pricing Section - Lazy Loaded */}
-      <LazySection className="py-20 px-6 bg-zinc-900/20 border-y border-zinc-900" id="pricing">
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-10"><h2 className="text-3xl sm:text-4xl font-bold uppercase font-mono mb-4 tracking-tighter">Junte-se Agora</h2><p className="text-zinc-400">Acesso vitalício ao sistema. Um único pagamento.</p></div>
-          <div className="p-1 bg-gradient-to-br from-red-900 to-zinc-800 rounded-2xl shadow-2xl relative overflow-hidden">
-             <div className="absolute top-0 right-0 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg z-20 uppercase font-mono">Lançamento 2.0</div>
-            <div className="bg-zinc-950 rounded-[13px] p-6 sm:p-8 flex flex-col relative z-10">
-              
-              {/* Compact Header */}
-              <div className="mb-6 text-center border-b border-zinc-800 pb-6">
-                  <h3 className="text-xl font-bold uppercase font-mono mb-2 text-zinc-400 tracking-wider">Acesso Vitalício</h3>
-                  <div className="flex items-end justify-center gap-3 mb-3">
-                     <span className="text-zinc-600 line-through text-xl font-mono mb-1.5">R$ 997</span>
-                     <span className="text-6xl font-extrabold text-white tracking-tighter">R$ 497</span>
-                  </div>
-                  <p className="text-green-500 font-bold text-xs uppercase tracking-wider bg-green-900/10 py-1.5 px-4 rounded-full inline-flex items-center gap-2 border border-green-900/30">
-                     <span>Pagamento Único</span>
-                     <span className="w-1 h-1 rounded-full bg-green-500"></span>
-                     <span>Sem mensalidades</span>
-                  </p>
-              </div>
-
-              {/* Compact List */}
-              <ul className="space-y-4 mb-6">
-                <li className="flex items-start gap-3 text-zinc-300 text-sm"><CheckCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" /> <span><strong>Mapa de Vida 360°</strong> (Diagnóstico Completo)</span></li>
-                <li className="flex items-start gap-3 text-zinc-300 text-sm"><CheckCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" /> <span><strong>Guilda & Chefes</strong> (Comunidade Gamificada)</span></li>
-                <li className="flex items-start gap-3 text-zinc-300 text-sm"><CheckCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" /> <span><strong>Árvore de Habilidades</strong> (Ferramentas Reais)</span></li>
-                <li className="flex items-start gap-3 text-zinc-300 text-sm"><CheckCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" /> <span><strong>Codex Completo</strong> (50+ Aulas de Mindset)</span></li>
-                <li className="flex items-start gap-3 text-zinc-300 text-sm"><CheckCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" /> <span><strong>Panteão</strong> (Sistema de Ascensão Infinita)</span></li>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800">
+              <h3 className="text-lg font-bold font-mono uppercase text-red-500 mb-4">Arsenal Militar</h3>
+              <p className="text-sm text-zinc-400 mb-6">A infantaria da sua jornada. Ferramentas para a execução diária e o combate direto.</p>
+              <ul className="space-y-4 text-zinc-300 text-sm">
+                <li className="flex items-start gap-3"><Target className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Missões</span><p className="text-zinc-500">Diretrizes diárias e semanais para acumular XP e provar seu valor.</p></div></li>
+                <li className="flex items-start gap-3"><Book className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Codex</span><p className="text-zinc-500">Sua biblioteca de conhecimento tático sobre disciplina, foco e poder.</p></div></li>
+                <li className="flex items-start gap-3"><Shield className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Guilda</span><p className="text-zinc-500">Una-se a outros heróis, combata chefes e compartilhe vitórias.</p></div></li>
               </ul>
-
-              <button onClick={() => handleBuyClick('hero_vitalicio')} className="w-full py-4 text-lg bg-red-600 text-white rounded-md font-bold uppercase tracking-widest hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-red-900/20 active:scale-95">
-                  Garantir Acesso <ChevronRight className="w-5 h-5" />
-              </button>
+            </div>
+            <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800">
+              <h3 className="text-lg font-bold font-mono uppercase text-blue-500 mb-4">Arsenal Estratégico</h3>
+              <p className="text-sm text-zinc-400 mb-6">Sua inteligência de combate. Ferramentas para clareza, análise e estratégia.</p>
+              <ul className="space-y-4 text-zinc-300 text-sm">
+                <li className="flex items-start gap-3"><Bot className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Oráculo IA</span><p className="text-zinc-500">Seu mentor IA que analisa seus dados e fornece diretrizes de combate.</p></div></li>
+                <li className="flex items-start gap-3"><ScrollText className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Diário de Bordo</span><p className="text-zinc-500">Registre sua jornada para que o Oráculo identifique padrões e fraquezas.</p></div></li>
+              </ul>
+            </div>
+            <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800">
+              <h3 className="text-lg font-bold font-mono uppercase text-yellow-500 mb-4">Arsenal Pessoal</h3>
+              <p className="text-sm text-zinc-400 mb-6">Sua pesquisa e desenvolvimento. Ferramentas para a evolução do seu personagem e legado.</p>
+              <ul className="space-y-4 text-zinc-300 text-sm">
+                <li className="flex items-start gap-3"><GitMerge className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Habilidades</span><p className="text-zinc-500">Desbloqueie ferramentas (Pomodoro, etc.) e bônus passivos.</p></div></li>
+                <li className="flex items-start gap-3"><Sparkles className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Panteão</span><p className="text-zinc-500">Ascenda ao Nível 50 para desbloquear bônus divinos permanentes.</p></div></li>
+              </ul>
             </div>
           </div>
         </div>
       </LazySection>
+      
+      <LazySection id="pricing" className="py-20 px-4 text-center">
+        <div className="max-w-4xl mx-auto">
+           <div className="mb-12">
+            <h2 className="text-4xl font-bold uppercase font-mono mb-4 text-yellow-400">Black Friday: Acesso Vitalício</h2>
+            <p className="text-zinc-400 max-w-2xl mx-auto">Esta oferta não se repetirá. Garanta seu lugar no Panteão dos Heróis para sempre. Acesso por assinatura após o término.</p>
+            <div className="mt-8">
+                <CountdownTimer targetDate="2024-11-28T23:59:59" />
+            </div>
+          </div>
+          
+          <div className="max-w-lg mx-auto">
+            {PRODUCTS.filter(p => !p.isSubscription).map(product => (
+              <div key={product.id} className="bg-gradient-to-b from-zinc-900 to-zinc-950 rounded-xl border-2 border-yellow-500 p-8 flex flex-col shadow-2xl shadow-yellow-500/10 relative">
+                 <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-yellow-500 text-black text-xs font-bold uppercase px-4 py-1 rounded-full">Oferta Única</div>
+                <div className="flex-grow">
+                  <h3 className="text-2xl font-bold font-mono uppercase mb-2">{product.name}</h3>
+                  <p className="text-zinc-400 mb-6 text-sm min-h-[40px]">{product.description}</p>
+                  <div className="mb-6 flex justify-center items-end gap-3">
+                    <span className="text-3xl text-zinc-600 line-through">R${(product.originalPrice! / 100).toFixed(0)}</span>
+                    <span className="text-6xl font-black text-white">R${(product.price / 100).toFixed(0)}</span>
+                  </div>
+                  <ul className="space-y-3 mb-8 text-sm text-zinc-300 text-left max-w-xs mx-auto">
+                    <li className="flex items-center gap-3"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Acesso vitalício à plataforma base</li>
+                    <li className="flex items-center gap-3"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Diagnóstico de Vida 360°</li>
+                    <li className="flex items-center gap-3"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Acesso a todos Módulos do Codex</li>
+                    <li className="flex items-center gap-3"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Missões Estáticas e Arsenal</li>
+                    <li className="flex items-center gap-3"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Acesso à Guilda, Esquadrões e Panteão</li>
+                  </ul>
+                </div>
+                <button onClick={() => handleBuyClick(product.id)} className="w-full mt-auto bg-yellow-500 text-black py-3 rounded font-bold uppercase tracking-widest hover:bg-yellow-400 transition">Garantir Acesso Vitalício</button>
+                 <p className="text-xs text-zinc-500 mt-4">Upgrades para Mentor IA e Proteção 360 disponíveis opcionalmente dentro da plataforma.</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </LazySection>
 
-      {/* FAQ Section - Lazy Loaded */}
-      <LazySection className="py-20 px-6 bg-zinc-950">
+       <LazySection className="py-20 px-6 bg-zinc-950 border-y border-zinc-900">
+        <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-12">
+                <h2 className="text-4xl font-bold uppercase font-mono mb-4">Os Protocolos de Proteção</h2>
+                <p className="text-zinc-400 max-w-2xl mx-auto">Ferramentas de elite para dominar áreas específicas da sua vida. Disponível com a assinatura <span className="text-white font-bold">Proteção 360</span>.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                {Object.values(PROTECTION_MODULES).map(module => {
+                    const Icon = module.icon;
+                    return (
+                        <div key={module.id} className={`bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-center group transition-all hover:border-${module.color}-500/50 hover:bg-zinc-900/50`}>
+                            <div className={`w-16 h-16 rounded-lg flex items-center justify-center bg-zinc-800 mx-auto mb-4 border-2 border-transparent group-hover:border-${module.color}-500/50 transition-colors`}>
+                                <Icon className={`w-8 h-8 text-zinc-500 group-hover:text-${module.color}-500 transition-colors`} />
+                            </div>
+                            <h3 className="font-bold font-mono uppercase text-sm text-white">{module.name.split(' ')[0]}</h3>
+                            <p className="text-xs text-zinc-500 mt-1">{module.description}</p>
+                        </div>
+                    )
+                })}
+            </div>
+        </div>
+      </LazySection>
+
+      <LazySection className="py-20 px-6">
         <div className="max-w-3xl mx-auto">
-           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold uppercase font-mono mb-4 tracking-tighter">Dúvidas Frequentes</h2>
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold uppercase font-mono mb-4">Dúvidas Frequentes</h2>
           </div>
-          <div className="space-y-3">
-             <FAQItem q="O que é o Hero Mindset 2.0?" a="É a evolução da plataforma. Agora, além das missões e Codex, incluímos um ecossistema social completo (Guilda), diagnóstico visual (Mapa 360) e progressão infinita (Panteão)." />
-             <FAQItem q="Se eu já comprei, tenho acesso às novidades?" a="Sim! Quem tem acesso vitalício recebe todas as atualizações da plataforma base gratuitamente." />
-             <FAQItem q="Funciona no celular?" a="Sim, é um Web App responsivo que funciona perfeitamente em qualquer navegador de celular ou computador." />
-             <FAQItem q="Preciso pagar mensalidade?" a="Não. O acesso ao sistema base é vitalício com um pagamento único. Apenas a mentoria avançada via IA (Oráculo) é um upgrade opcional." />
+          <div className="space-y-4">
+            <FAQItem q="O que é o Acesso Vitalício da Black Friday?" a="É um pagamento único que garante seu acesso para sempre a toda a plataforma base Hero Mindset e a todas as suas futuras atualizações. Sem mensalidades ou taxas escondidas. As assinaturas de IA e Módulos de Proteção são upgrades opcionais que você pode adquirir depois, se desejar." />
+            <FAQItem q="Para quem é o Hero Mindset?" a="É para homens que estão cansados da mediocridade e buscam um sistema de auto-responsabilidade brutal. Se você valoriza disciplina, execução e quer transformar sua vida em uma jornada de maestria, este é seu lugar." />
+            <FAQItem q="E se eu não gostar? Qual a garantia?" a="A mentalidade do herói não busca rotas de escape. A única garantia que importa é o seu compromisso e a sua decisão de que a mediocridade não é mais uma opção. Nossa garantia é o impacto que esse sistema terá se você se comprometer. Essa é a única garantia que um verdadeiro herói precisa." />
+            <FAQItem q="Como funcionam os upgrades de IA e Proteção 360?" a="Após garantir seu Acesso Vitalício, você terá a opção de assinar o Mentor IA para ter um guia personalizado, e futuramente, os Módulos de Proteção 360 para áreas específicas como negócios e saúde. Eles são 100% opcionais e podem ser ativados ou cancelados a qualquer momento." />
           </div>
         </div>
       </LazySection>
-
-      <footer className="text-center p-8 border-t border-zinc-900 bg-zinc-950">
-        <p className="text-zinc-600 font-mono text-xs uppercase tracking-wider">© {new Date().getFullYear()} HERO MINDSET</p>
-      </footer>
-
-      {/* Share Modal */}
-      {isShareModalOpen && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[60] p-4 animate-in fade-in">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-sm p-6 relative shadow-2xl">
-            <button onClick={() => setIsShareModalOpen(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white"><X className="w-5 h-5" /></button>
-            <h3 className="text-xl font-bold font-mono uppercase mb-6 text-white text-center flex items-center justify-center gap-2"><Share2 className="w-5 h-5" /> Compartilhar</h3>
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <button onClick={() => openShareLink(`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + currentUrl)}`)} className="bg-zinc-800 hover:bg-zinc-700 p-3 rounded-lg flex flex-col items-center gap-2">
-                <MessageCircle className="w-6 h-6 text-green-500" />
-                <span className="text-xs font-mono text-zinc-300">Whats</span>
-              </button>
-               <button onClick={handleCopyLink} className="bg-zinc-800 hover:bg-zinc-700 p-3 rounded-lg flex flex-col items-center gap-2 col-span-2">
-                <Copy className="w-6 h-6 text-zinc-400" />
-                <span className="text-xs font-mono text-zinc-300">Copiar Link</span>
-              </button>
-            </div>
-             <div className="text-center text-xs text-zinc-500 h-5 font-mono">
-                {copySuccess ? <p className="text-green-400">Link copiado!</p> : <p>Convide outros para a guilda.</p>}
-            </div>
-          </div>
+      
+      <LazySection className="py-20 px-6 bg-zinc-900/30">
+        <div className="max-w-2xl mx-auto text-center">
+            <h3 className="text-3xl font-bold text-white mb-4">A Garantia do Herói</h3>
+            <p className="text-zinc-400 mb-6">Não há garantia de devolução do dinheiro, porque a mentalidade do herói não busca rotas de escape. A única garantia que importa é o seu compromisso. Nossa garantia é o impacto que este sistema terá na sua vida SE você se comprometer. Essa é a única garantia que um verdadeiro herói precisa.</p>
+            <div className="inline-block bg-zinc-800/50 border border-zinc-700 rounded-full p-4"><Shield className="w-10 h-10 text-red-500"/></div>
         </div>
-      )}
+      </LazySection>
+
+      <LazySection className="py-20 px-6">
+        <div className="max-w-3xl mx-auto text-center">
+            <h2 className="text-4xl font-bold font-mono uppercase mb-4 text-red-500">Ninguém Virá Te Salvar.</h2>
+            <p className="text-lg text-zinc-300 mb-8">A decisão é sua. A hora é agora. Chegou a hora de parar de se perguntar e começar a construir, de parar de desejar e começar a executar.</p>
+            <button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="bg-yellow-500 text-black px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-yellow-400 transition shadow-lg shadow-yellow-500/20">
+                Iniciar Ascensão
+            </button>
+        </div>
+      </LazySection>
+
+      <footer className="text-center p-8 border-t border-zinc-900"><p className="text-zinc-600 font-mono text-xs">© {new Date().getFullYear()} HERO MINDSET</p></footer>
     </div>
   );
 };

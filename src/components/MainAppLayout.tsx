@@ -1,24 +1,9 @@
-import React, { useState } from 'react';
-import { HashRouter, Routes, Route, Navigate, Outlet, useLocation, NavLink } from 'react-router-dom';
-import { Onboarding, LoginScreen } from './components/Login';
-import HeroicDashboard from './components/Dashboard';
-import Codex from './components/Codex';
-import Guild from './components/Guild';
-import IAMentor from './components/IAMentor';
-import Journal from './components/Journal';
-import Pantheon from './components/Pantheon';
-import SkillTree from './components/SkillTree';
-import Profile from './components/Profile';
-import Missions from './components/Missions';
-import LandingPage from './components/LandingPage';
-import PaymentSuccess from './components/PaymentSuccess';
-import LevelUpModal from './components/LevelUpModal';
-import { XP_PER_LEVEL_FORMULA, isToday } from './utils';
-import { Compass, Book, Shield, Bot, ScrollText, GitMerge, Sparkles, User as UserIcon, LogOut, Target, Menu, X } from 'lucide-react';
-import { ErrorProvider } from './contexts/ErrorContext';
-import { UserProvider, useUser } from './contexts/UserContext';
 
-// --- LAYOUT & ROUTING COMPONENTS ---
+import React, { useState } from 'react';
+import { NavLink, Outlet } from 'react-router-dom';
+import { useUser } from '../contexts/UserContext';
+import { XP_PER_LEVEL_FORMULA } from '../utils';
+import { Compass, Book, Shield, Bot, ScrollText, GitMerge, Sparkles, User as UserIcon, LogOut, Target, Menu, X } from 'lucide-react';
 
 const MainAppLayout: React.FC = () => {
   const { user, handleReset } = useUser();
@@ -98,59 +83,4 @@ const MainAppLayout: React.FC = () => {
   );
 };
 
-const AppContent: React.FC = () => {
-  const { user, levelUpData, closeLevelUpModal } = useUser();
-  const location = useLocation();
-
-  const isDailyLimitReached = !isToday(user.lastLessonCompletionDate) ? false : user.lessonsCompletedToday >= 3;
-
-  const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
-    if (!user.isLoggedIn) return <Navigate to="/login" state={{ from: location }} replace />;
-    if (!user.onboardingCompleted) return <Navigate to="/onboarding" replace />;
-    return children;
-  };
-  
-  const OnboardingRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
-    if (!user.isLoggedIn) return <Navigate to="/login" state={{ from: location }} replace />;
-    if (user.onboardingCompleted) return <Navigate to="/app/dashboard" replace />;
-    return children;
-  };
-
-  return (
-      <>
-        {levelUpData && <LevelUpModal level={levelUpData.level} rank={levelUpData.rank} onClose={closeLevelUpModal} />}
-        <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginScreen />} />
-            <Route path="/payment-success/:productId" element={<PaymentSuccess />} />
-            <Route path="/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />
-            <Route path="/app" element={<ProtectedRoute><MainAppLayout /></ProtectedRoute>}>
-                <Route index element={<Navigate to="dashboard" replace />} />
-                <Route path="dashboard" element={<HeroicDashboard />} />
-                <Route path="missions" element={<Missions />} />
-                <Route path="codex" element={<Codex isDailyLimitReached={isDailyLimitReached} />} />
-                <Route path="guild" element={<Guild />} />
-                <Route path="mentor" element={<IAMentor />} />
-                <Route path="journal" element={<Journal />} />
-                <Route path="skills" element={<SkillTree />} />
-                <Route path="pantheon" element={<Pantheon />} />
-                <Route path="profile" element={<Profile />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </>
-  );
-};
-
-// --- ROOT APP COMPONENT ---
-const App: React.FC = () => (
-  <HashRouter>
-    <ErrorProvider>
-      <UserProvider>
-        <AppContent />
-      </UserProvider>
-    </ErrorProvider>
-  </HashRouter>
-);
-
-export default App;
+export default MainAppLayout;
