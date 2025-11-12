@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { XP_PER_LEVEL_FORMULA } from '../utils';
-import { Compass, Book, Shield, Bot, ScrollText, GitMerge, Sparkles, User as UserIcon, LogOut, Target, Menu, X } from 'lucide-react';
+import { Compass, Book, Shield, Bot, ScrollText, GitMerge, Sparkles, User as UserIcon, LogOut, Target, Menu, X, Briefcase } from 'lucide-react';
 
 const MainAppLayout: React.FC = () => {
   const { user, handleReset } = useUser();
@@ -19,6 +18,7 @@ const MainAppLayout: React.FC = () => {
     { to: "/app/mentor", icon: Bot, label: "Oráculo" },
     { to: "/app/journal", icon: ScrollText, label: "Diário" },
     { to: "/app/skills", icon: GitMerge, label: "Habilidades" },
+    { to: "/app/arsenal", icon: Briefcase, label: "Arsenal" },
     { to: "/app/pantheon", icon: Sparkles, label: "Panteão" },
   ];
   
@@ -71,7 +71,7 @@ const MainAppLayout: React.FC = () => {
             <button onClick={() => setIsMobileSidebarOpen(true)} className="md:hidden text-zinc-400"><Menu/></button>
             <div className="flex-grow flex items-center gap-4">
               <div className="font-mono text-xs sm:text-sm"><span className="font-bold text-white">LVL {user.level}</span></div>
-              <div className="flex-grow bg-zinc-800 rounded-full h-2.5 relative overflow-hidden"><div className="bg-gradient-to-r from-zinc-500 to-white h-full" style={{ width: `${xpProgress}%` }}></div></div>
+              <div className="flex-grow bg-zinc-800 rounded-full h-2.5 relative overflow-hidden"><div className="bg-gradient-to-r from-red-600 to-red-400 h-full" style={{ width: `${xpProgress}%` }}></div></div>
               <div className="font-mono text-xs text-zinc-400 hidden sm:block">{user.currentXP.toLocaleString()} / {nextLevelXP.toLocaleString()} XP</div>
             </div>
         </header>

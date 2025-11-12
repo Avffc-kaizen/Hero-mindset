@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { ToolType, MissionCategory, LifeMapCategory, LifeMapCategoriesList, Skill } from '../types';
 import { SKILL_TREES } from '../constants';
-import { GitMerge, Award, Brain, Dumbbell, Shield, PiggyBank, Lock, CheckCircle, Play, Pause, RotateCcw, Plus, Trash2, Calculator, Briefcase, Smile, Home, Eye, Star, Anchor, HelpCircle, Wind, ListTodo, Zap, Check, ArrowUpDown } from 'lucide-react';
+import { GitMerge, Award, Brain, Dumbbell, Shield, PiggyBank, Lock, CheckCircle, Play, Pause, RotateCcw, Plus, Trash2, Calculator, Briefcase, Smile, Home, Eye, Star, Anchor, HelpCircle, Wind, ListTodo, Zap, Check } from 'lucide-react';
 
 // --- TOOL WIDGETS ---
 
@@ -118,31 +118,16 @@ const BreathingTool: React.FC = () => {
 };
 
 const EisenhowerTool: React.FC = () => {
-    type TaskPriority = 'High' | 'Medium' | 'Low';
-    
-    const [tasks, setTasks] = useState<{id: number, text: string, quadrant: 1|2|3|4, priority: TaskPriority}[]>([]);
+    const [tasks, setTasks] = useState<{id: number, text: string, quadrant: 1|2|3|4}[]>([]);
     const [input, setInput] = useState('');
     const [quad, setQuad] = useState<1|2|3|4>(1);
-    const [priority, setPriority] = useState<TaskPriority>('Medium');
-    const [sortConfig, setSortConfig] = useState<Record<number, 'asc' | 'desc' | 'none'>>({ 1: 'none', 2: 'none', 3: 'none', 4: 'none' });
 
     const addTask = () => {
         if(!input.trim()) return;
-        setTasks(prev => [...prev, { id: Date.now(), text: input, quadrant: quad, priority: priority }]);
+        setTasks(prev => [...prev, { id: Date.now(), text: input, quadrant: quad }]);
         setInput('');
     };
     const removeTask = (id: number) => setTasks(prev => prev.filter(t => t.id !== id));
-    
-    const handleSort = (quadrant: 1|2|3|4) => {
-        setSortConfig(prev => {
-            const current = prev[quadrant];
-            let next: 'asc' | 'desc' | 'none';
-            if (current === 'none') next = 'asc';
-            else if (current === 'asc') next = 'desc';
-            else next = 'none';
-            return { ...prev, [quadrant]: next };
-        });
-    };
 
     const quadrantInfo = {
         1: { label: 'FAZER AGORA', color: 'border-red-500/50' },
@@ -150,62 +135,32 @@ const EisenhowerTool: React.FC = () => {
         3: { label: 'DELEGAR', color: 'border-yellow-500/50' },
         4: { label: 'ELIMINAR', color: 'border-zinc-700' },
     };
-    
-    const priorityColors: Record<TaskPriority, string> = { High: 'bg-red-500', Medium: 'bg-yellow-500', Low: 'bg-blue-500' };
-    const priorityValues: Record<TaskPriority, number> = { High: 1, Medium: 2, Low: 3 };
 
     return (
         <div className="bg-zinc-950 p-4 rounded-lg border border-zinc-800 mt-4">
              <h5 className="text-center font-mono text-zinc-400 mb-4 uppercase text-xs tracking-widest">Matriz Tática</h5>
-             <div className="flex flex-col sm:flex-row gap-2 mb-4">
+             <div className="flex gap-2 mb-4">
                  <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTask()} className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-2 text-sm text-white" placeholder="Nova tarefa..." />
-                 <div className="flex gap-2">
-                    <select value={quad} onChange={e => setQuad(Number(e.target.value) as any)} className="bg-zinc-800 text-white text-xs rounded border border-zinc-700 px-2">
-                        <option value={1}>Q1: Urgente/Imp</option>
-                        <option value={2}>Q2: Não Urg/Imp</option>
-                        <option value={3}>Q3: Urgente/Não Imp</option>
-                        <option value={4}>Q4: Nem Urg/Nem Imp</option>
-                    </select>
-                    <select value={priority} onChange={e => setPriority(e.target.value as TaskPriority)} className="bg-zinc-800 text-white text-xs rounded border border-zinc-700 px-2">
-                        <option value="High">Alta</option>
-                        <option value="Medium">Média</option>
-                        <option value="Low">Baixa</option>
-                    </select>
-                    <button onClick={addTask} className="bg-green-700 p-2 rounded"><Plus className="w-4 h-4 text-white"/></button>
-                 </div>
+                 <select value={quad} onChange={e => setQuad(Number(e.target.value) as any)} className="bg-zinc-800 text-white text-xs rounded border border-zinc-700">
+                     <option value={1}>Q1: Urgente/Imp</option>
+                     <option value={2}>Q2: Não Urg/Imp</option>
+                     <option value={3}>Q3: Urgente/Não Imp</option>
+                     <option value={4}>Q4: Nem Urg/Nem Imp</option>
+                 </select>
+                 <button onClick={addTask} className="bg-green-700 p-2 rounded"><Plus className="w-4 h-4 text-white"/></button>
              </div>
              <div className="grid grid-cols-2 gap-2">
-                 {([1,2,3,4] as const).map(q => {
-                    const tasksForQuadrant = tasks.filter(t => t.quadrant === q);
-                    const currentSort = sortConfig[q];
-                    if (currentSort !== 'none') {
-                        tasksForQuadrant.sort((a, b) => {
-                            const order = priorityValues[a.priority] - priorityValues[b.priority];
-                            return currentSort === 'asc' ? order : -order;
-                        });
-                    }
-                     
-                    return (
-                     <div key={q} className={`bg-zinc-900 p-2 rounded min-h-[80px] border ${quadrantInfo[q].color}`}>
-                         <div className="flex justify-between items-center mb-1">
-                            <p className="text-[10px] text-zinc-400 uppercase font-bold">{quadrantInfo[q].label}</p>
-                            <button onClick={() => handleSort(q)} className="p-1 text-zinc-500 hover:text-white">
-                                <ArrowUpDown className="w-3 h-3" />
-                            </button>
-                         </div>
-                         <div className="space-y-1">
-                             {tasksForQuadrant.map(t => (
-                                 <div key={t.id} className="flex justify-between items-center text-xs text-zinc-300 bg-zinc-800/50 p-1.5 rounded group">
-                                     <div className="flex items-center gap-2 truncate">
-                                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${priorityColors[t.priority]}`}></span>
-                                        <span className="truncate">{t.text}</span>
-                                     </div>
-                                     <button onClick={() => removeTask(t.id)} className="opacity-0 group-hover:opacity-100 flex-shrink-0"><Trash2 className="w-3 h-3 text-zinc-600 hover:text-red-500"/></button>
-                                 </div>
-                             ))}
-                         </div>
+                 {([1,2,3,4] as const).map(q => (
+                     <div key={q} className={`bg-zinc-900 p-2 rounded min-h-[60px] border ${quadrantInfo[q].color}`}>
+                         <p className="text-[10px] text-zinc-400 uppercase font-bold mb-1">{quadrantInfo[q].label}</p>
+                         {tasks.filter(t => t.quadrant === q).map(t => (
+                             <div key={t.id} className="flex justify-between items-center text-xs text-zinc-300 mb-1 bg-zinc-800/50 px-1 rounded group">
+                                 <span className="truncate pr-1">{t.text}</span>
+                                 <button onClick={() => removeTask(t.id)} className="opacity-0 group-hover:opacity-100"><Trash2 className="w-3 h-3 text-zinc-600 hover:text-red-500"/></button>
+                             </div>
+                         ))}
                      </div>
-                 )})}
+                 ))}
              </div>
         </div>
     );

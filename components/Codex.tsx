@@ -1,15 +1,14 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Book, Lock, Play, ChevronLeft, CheckCircle, Zap, Quote as QuoteIcon, PenTool, MonitorPlay, Loader2, Search, Tag, AlertCircle, Maximize, Music } from 'lucide-react';
+import { Book, Lock, Play, ChevronLeft, CheckCircle, Zap, Quote as QuoteIcon, PenTool, MonitorPlay, Loader2, Search, Tag, AlertCircle, Maximize, Music, Headphones, Cloud } from 'lucide-react';
 import { Module, LessonDetails } from '../types';
 import { useUser } from '../contexts/UserContext';
-import HeroSoundtrack from './HeroSoundtrack';
 
 const Codex: React.FC<{isDailyLimitReached: boolean}> = ({ isDailyLimitReached }) => {
   const { user, handleCompleteLesson: onCompleteLesson, handleUpgrade: onUpgrade } = useUser();
   const { modules, hasSubscription } = user;
 
   const [selectedLesson, setSelectedLesson] = useState<LessonDetails | null>(null);
-  const [activeTab, setActiveTab] = useState<'knowledge' | 'trilha'>('knowledge');
+  const [activeTab, setActiveTab] = useState<'knowledge' | 'harmony'>('knowledge');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string>('all');
   const [isVideoLoading, setIsVideoLoading] = useState(true);
@@ -238,12 +237,12 @@ const Codex: React.FC<{isDailyLimitReached: boolean}> = ({ isDailyLimitReached }
                 <Book className="w-3 h-3" /> Módulos
               </button>
               <button
-                onClick={() => setActiveTab('trilha')}
+                onClick={() => setActiveTab('harmony')}
                 className={`px-4 py-2 text-xs font-bold uppercase rounded-md transition-all flex items-center gap-2 ${
-                  activeTab === 'trilha' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                  activeTab === 'harmony' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
                 }`}
               >
-                <Music className="w-3 h-3" /> Trilha Sonora
+                <Music className="w-3 h-3" /> Hero Harmony
               </button>
             </div>
           </header>
@@ -362,8 +361,41 @@ const Codex: React.FC<{isDailyLimitReached: boolean}> = ({ isDailyLimitReached }
               </div>
             </>
           ) : (
-            <div className="animate-in fade-in slide-in-from-right-4">
-              <HeroSoundtrack />
+            <div className="animate-in fade-in slide-in-from-right-4 space-y-6">
+              <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
+                <div className="aspect-video w-full bg-black relative group">
+                  <iframe width="100%" height="100%" src="https://www.youtube.com/embed/y9tuE8CeWyA?autoplay=1&loop=1&playlist=y9tuE8CeWyA&controls=0&modestbranding=1" title="Final Fantasy 7 Rebirth (Ambient Theme)" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen className="w-full h-full"></iframe>
+                </div>
+                
+                <div className="p-6">
+                  <div className="flex items-start justify-between gap-4 mb-6">
+                    <div>
+                      <div className="flex items-center gap-2 text-green-500 text-xs font-mono uppercase font-bold mb-2">
+                        <Headphones className="w-4 h-4" />
+                        <span>Modo de Foco: Ativo</span>
+                      </div>
+                      <h2 className="text-2xl font-bold text-white font-mono uppercase leading-tight">O Fluxo do Lifestream</h2>
+                      <p className="text-zinc-400 text-sm mt-1">Reconstrução, Cura e Identidade.</p>
+                    </div>
+                    <div className="bg-zinc-900 p-3 rounded-full border border-zinc-800">
+                      <Cloud className="w-6 h-6 text-cyan-400" />
+                    </div>
+                  </div>
+
+                  <div className="prose prose-invert prose-sm max-w-none border-t border-zinc-800 pt-6">
+                    <h3 className="text-cyan-400 font-mono uppercase text-sm tracking-widest mb-4">Arquivo: A Marionete que Cortou os Fios</h3>
+                    <p className="leading-relaxed text-zinc-300 mb-4">
+                      Cloud Strife não nasceu um herói. Ele era um menino de Nibelheim, fraco demais para salvar quem amava. Sua persona foi forjada em mentiras, um escudo construído com as memórias de seu amigo, Zack, para proteger uma psique estilhaçada.
+                    </p>
+                    <blockquote className="border-l-4 border-cyan-500 pl-4 italic text-zinc-400 my-6 bg-zinc-900/50 p-4 rounded-r-lg">
+                      "Eu não sou um herói porque nunca falho. Sou um herói porque me quebrei em mil pedaços e tive a coragem de remontar cada um deles."
+                    </blockquote>
+                    <p className="leading-relaxed text-zinc-300">
+                      Ao ouvir esta frequência, visualize o Lifestream fluindo através de você. Não como uma força mágica, mas como a capacidade humana de curar, de lembrar quem você realmente é. Entre no estado de fluxo. Restaure sua força. O peso da sua espada é suportável quando você abraça o guerreiro imperfeito que já é.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>

@@ -38,7 +38,7 @@ const MissionProgress: React.FC = () => {
   const milestoneProgress = totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0;
 
   return (
-    <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-6 shadow-lg space-y-4 backdrop-blur-md">
+    <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-6 space-y-4 backdrop-blur-md">
       <h3 className="text-sm font-bold text-zinc-300 font-mono uppercase flex items-center gap-2">
         <Target className="w-4 h-4 text-zinc-400" />
         Progresso das Missões
@@ -47,7 +47,7 @@ const MissionProgress: React.FC = () => {
         label="Diárias"
         progress={dailyProgress}
         count={`${completedDaily}/${totalDaily}`}
-        color="bg-red-600"
+        color="bg-gradient-to-r from-red-600 to-red-500"
         allCompleted={totalDaily > 0 && completedDaily === totalDaily}
         icon={Target}
       />
@@ -55,7 +55,7 @@ const MissionProgress: React.FC = () => {
         label="Desafios"
         progress={weeklyProgress}
         count={`${completedWeekly}/${totalWeekly}`}
-        color="bg-blue-600"
+        color="bg-gradient-to-r from-blue-600 to-blue-500"
         allCompleted={totalWeekly > 0 && completedWeekly === totalWeekly}
         icon={CalendarDays}
       />
@@ -63,7 +63,7 @@ const MissionProgress: React.FC = () => {
         label="Marcos"
         progress={milestoneProgress}
         count={`${completedMilestones}/${totalMilestones}`}
-        color="bg-yellow-600"
+        color="bg-gradient-to-r from-yellow-600 to-yellow-500"
         allCompleted={totalMilestones > 0 && completedMilestones === totalMilestones}
         icon={Flag}
       />

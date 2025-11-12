@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { PROTECTION_MODULES } from '../constants';
 import { ProtectionModuleId, ProtectionModuleInfo } from '../types';
-import { Lock, CheckCircle, Briefcase } from 'lucide-react';
+import { Lock, CheckCircle, Briefcase, Shield } from 'lucide-react';
 
 const ModuleCard: React.FC<{ module: ProtectionModuleInfo; isActive: boolean; onActivate: () => void }> = ({ module, isActive, onActivate }) => {
   const navigate = useNavigate();
@@ -13,7 +13,6 @@ const ModuleCard: React.FC<{ module: ProtectionModuleInfo; isActive: boolean; on
     base: `border-${module.color}-500/30 text-${module.color}-500`,
     hover: `hover:border-${module.color}-500`,
     bg: `bg-${module.color}-900/10`,
-    buttonActive: `bg-${module.color}-600 text-white`,
   };
   
   const handleAction = () => {
@@ -63,7 +62,7 @@ const TacticalArsenal: React.FC = () => {
     <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-8">
       <div>
         <h2 className="text-3xl font-black font-mono uppercase flex items-center gap-3">
-          <Briefcase className="w-8 h-8 text-zinc-400" />
+          <Shield className="w-8 h-8 text-zinc-400" />
           Arsenal Tático
         </h2>
         <p className="text-zinc-400 mt-2">Protocolos de elite para dominar áreas específicas da sua vida.</p>
@@ -73,7 +72,7 @@ const TacticalArsenal: React.FC = () => {
         {allModules.map(moduleInfo => (
           <ModuleCard
             key={moduleInfo.id}
-            module={moduleInfo}
+            module={moduleInfo as ProtectionModuleInfo}
             isActive={user.activeModules.includes(moduleInfo.id as ProtectionModuleId)}
             onActivate={handleActivate}
           />

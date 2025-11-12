@@ -1,5 +1,4 @@
-
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import LevelUpModal from './components/LevelUpModal';
 import { isToday } from './utils';
@@ -33,29 +32,35 @@ const LoadingFallback: React.FC = () => (
 );
 
 const AppContent: React.FC = () => {
-  const { user, levelUpData, closeLevelUpModal } = useUser();
+  const { user, levelUpData, closeLevelUpModal, loadingAuth } = useUser();
   const location = useLocation();
 
   const isDailyLimitReached = !isToday(user.lastLessonCompletionDate) ? false : user.lessonsCompletedToday >= 3;
 
   const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+    if (loadingAuth) return <LoadingFallback />;
     if (!user.isLoggedIn) return <Navigate to="/login" state={{ from: location }} replace />;
     if (!user.onboardingCompleted) return <Navigate to="/onboarding" replace />;
     return children;
   };
   
   const OnboardingRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+    if (loadingAuth) return <LoadingFallback />;
     if (!user.isLoggedIn) return <Navigate to="/login" state={{ from: location }} replace />;
     if (user.onboardingCompleted) return <Navigate to="/app/dashboard" replace />;
     return children;
   };
+
+  if (loadingAuth && location.pathname !== '/' && !location.pathname.startsWith('/payment-success')) {
+    return <LoadingFallback />;
+  }
 
   return (
       <>
         {levelUpData && <LevelUpModal level={levelUpData.level} rank={levelUpData.rank} onClose={closeLevelUpModal} />}
         <Suspense fallback={<LoadingFallback />}>
             <Routes>
-                <Route path="/" element={<LazyLandingPage />} />
+                <Route path="/" element={user.isLoggedIn && user.onboardingCompleted ? <Navigate to="/app/dashboard" replace /> : <LazyLandingPage />} />
                 <Route path="/login" element={<LazyLoginScreen />} />
                 <Route path="/payment-success/:productId" element={<LazyPaymentSuccess />} />
                 <Route path="/onboarding" element={<OnboardingRoute><LazyOnboarding /></OnboardingRoute>} />

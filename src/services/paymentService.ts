@@ -1,11 +1,26 @@
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { PRODUCTS } from '../constants';
 import { PaymentProvider } from '../types';
 import { functions, isFirebaseConfigured } from '../firebase';
 
+declare global {
+  interface Window {
+    fbq: (...args: any[]) => void;
+  }
+}
+
 export const buyProduct = async (productId: string, metadata?: Record<string, any>) => {
   const product = PRODUCTS.find(p => p.id === productId);
   if (!product) throw new Error('Produto não encontrado');
+
+  if (typeof window.fbq === 'function') {
+    window.fbq('track', 'InitiateCheckout', {
+      value: product.price / 100,
+      currency: 'BRL',
+      content_ids: [product.id],
+      content_name: product.name,
+      content_type: 'product',
+    });
+  }
 
   if (product.provider === PaymentProvider.EDUZZ && product.eduzzId) {
     // Fallback Eduzz
@@ -15,11 +30,11 @@ export const buyProduct = async (productId: string, metadata?: Record<string, an
 
   // Primary Flow: Stripe via Firebase Functions
   if (product.provider === PaymentProvider.STRIPE && product.priceId) {
-    if (!isFirebaseConfigured) {
+    if (!isFirebaseConfigured || !functions) {
       throw new Error('Firebase não está configurado. Pagamento indisponível.');
     }
     try {
-      const createCheckoutSession = httpsCallable(functions, 'createCheckoutSession');
+      const createCheckoutSession = functions.httpsCallable('createCheckoutSession');
       
       const response = await createCheckoutSession({ 
           priceId: product.priceId,

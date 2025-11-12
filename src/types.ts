@@ -144,7 +144,7 @@ export interface GuildComment {
 export interface GuildPost {
   id: string;
   author: string;
-  authorId: string; // UID do autor para regras de segurança
+  authorId: string;
   rank: RankTitle | string;
   content: string;
   channel: GuildChannelId;
@@ -217,12 +217,12 @@ export interface BioData {
 }
 
 export interface FocusSession {
-    id: string;
-    task: string;
+    date: number;
     duration: number; // minutes
-    completed: boolean;
+    task: string;
 }
 
+// FIX: Add missing types for UserState to align with INITIAL_USER_STATE in constants.ts
 export interface DailyIntention {
     id: string;
     text: string;
@@ -236,7 +236,9 @@ export interface KeyConnection {
     completed: boolean;
 }
 
+
 export interface UserState {
+  // FIX: Add missing uid property to fix type error in constants.ts
   uid: string;
   isLoggedIn: boolean;
   name: string;
@@ -247,18 +249,22 @@ export interface UserState {
   focusAreas: LifeMapCategory[];
   createdAt: number;
   email?: string;
+  password?: string; 
   
   // Subscription & Protection System
   activeModules: ProtectionModuleId[]; // Lista de módulos ativos
-  hasSubscription: boolean; // Mantido para compatibilidade (acesso base + IA)
+  hasSubscription: boolean; // Acesso ao Mentor IA
+  hasPaidBase?: boolean; // Acesso vitalício ao produto base (Eduzz/Stripe)
   
   // Module Specific Data
+  // FIX: Allow company to be null to match INITIAL_USER_STATE
   company?: CompanyInfo | null; // Soberano
   businessRoadmap?: RoadmapItem[]; // Soberano
   bioData?: BioData; // Tita
   focusHistory?: FocusSession[]; // Sabio
-  dailyIntention?: DailyIntention | null; // Monge
-  keyConnections?: KeyConnection[]; // Lider
+  // FIX: Add missing properties to align with INITIAL_USER_STATE
+  dailyIntention?: DailyIntention | null;
+  keyConnections?: KeyConnection[];
   
   level: number;
   currentXP: number;

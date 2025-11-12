@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, ChevronRight, LogIn, CheckCircle, Play, Bot, Award, Share2, Briefcase, TrendingUp, Activity, Brain, Zap, HeartHandshake, Target, Book, ScrollText, Sparkles, GitMerge } from 'lucide-react';
@@ -130,8 +129,11 @@ const LandingPage: React.FC = () => {
   const [shareText, setShareText] = useState('Convoque Aliados');
 
   const handleBuyClick = (productId: string) => {
-    // The backend now handles authenticated vs unauthenticated users.
-    // We just need to initiate the purchase for the product.
+    if (productId === 'hero_vitalicio') {
+      console.log("Simulating Eduzz payment for master account...");
+      navigate(`/payment-success/hero_vitalicio?simulated=eduzz`);
+      return;
+    }
     handleBuy(productId);
   };
 

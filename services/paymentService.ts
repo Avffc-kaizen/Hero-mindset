@@ -1,4 +1,4 @@
-import { getFunctions, httpsCallable } from 'firebase/functions';
+
 import { PRODUCTS } from '../constants';
 import { PaymentProvider } from '../types';
 import { functions, isFirebaseConfigured } from '../firebase';
@@ -15,11 +15,11 @@ export const buyProduct = async (productId: string, metadata?: Record<string, an
 
   // Primary Flow: Stripe via Firebase Functions
   if (product.provider === PaymentProvider.STRIPE && product.priceId) {
-    if (!isFirebaseConfigured) {
+    if (!isFirebaseConfigured || !functions) {
       throw new Error('Firebase não está configurado. Pagamento indisponível.');
     }
     try {
-      const createCheckoutSession = httpsCallable(functions, 'createCheckoutSession');
+      const createCheckoutSession = functions.httpsCallable('createCheckoutSession');
       
       const response = await createCheckoutSession({ 
           priceId: product.priceId,

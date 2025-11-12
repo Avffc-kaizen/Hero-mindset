@@ -1,53 +1,116 @@
-
-import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Loader2, CheckCircle, AlertCircle, KeyRound, User, Mail } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { Loader2, CheckCircle, Mail, KeyRound, User, AlertCircle } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
+import { PRODUCTS } from '../constants';
+
+declare global {
+  interface Window {
+    fbq: (...args: any[]) => void;
+  }
+}
 
 const PaymentSuccess: React.FC = () => {
-  const { handleVerifyNewPurchase, handleAccountSetup, user } = useUser();
+  const { user, handleVerifyNewPurchase, handleSignUp, handleAccountSetup, handleVerifyUpgrade } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
   const { productId } = useParams<{ productId: string }>();
 
-  const [status, setStatus] = useState<'verifying' | 'creating_account' | 'success' | 'error'>('verifying');
+  const [status, setStatus] = useState<'verifying' | 'input_required' | 'success' | 'error'>('verifying');
   const [errorMessage, setErrorMessage] = useState('');
   const [customerData, setCustomerData] = useState<{ name: string; email: string } | null>(null);
   const [password, setPassword] = useState('');
   
+  const firedPixel = useRef(false);
   const isBaseProduct = productId === 'hero_vitalicio';
 
   useEffect(() => {
-    if (!isBaseProduct || user.isLoggedIn) {
-      navigate('/app/dashboard', { replace: true });
-      return;
-    }
-    
     const verify = async () => {
-      const sessionId = new URLSearchParams(location.search).get('session_id');
-      if (!sessionId) {
-        setErrorMessage('ID da sessão de pagamento não encontrado.');
-        setStatus('error');
+      const searchParams = new URLSearchParams(location.search);
+      const sessionId = searchParams.get('session_id');
+      const simulatedProvider = searchParams.get('simulated');
+
+      // Handle simulated Eduzz payment for master account
+      if (simulatedProvider === 'eduzz' && productId === 'hero_vitalicio') {
+        const product = PRODUCTS.find(p => p.id === productId);
+        if (typeof window.fbq === 'function' && product && !firedPixel.current) {
+          window.fbq('track', 'Purchase', {
+            value: product.price / 100, currency: 'BRL', content_ids: [productId],
+            content_name: product.name, content_type: 'product'
+          });
+          firedPixel.current = true;
+        }
+        setCustomerData({ name: 'André Ferraz', email: 'andreferraz@consegvida.com' });
+        setStatus('input_required');
         return;
       }
       
-      const result = await handleVerifyNewPurchase(sessionId);
-      if (result.success && result.name && result.email) {
-        setCustomerData({ name: result.name, email: result.email });
-        setStatus('creating_account');
-      } else {
-        setStatus('error');
-        setErrorMessage(result.message || "Falha ao verificar sua compra. Contate o suporte.");
+      let finalSessionId = sessionId;
+      if (!finalSessionId) {
+        // Fallback for HashRouter if Stripe adds params to hash
+        const searchInHash = location.hash.split('?')[1];
+        const sessionIdFromHash = new URLSearchParams(searchInHash).get('session_id');
+        if (!sessionIdFromHash) {
+            setErrorMessage('ID da sessão de pagamento não encontrado.');
+            setStatus('error');
+            return;
+        }
+        finalSessionId = sessionIdFromHash;
       }
+      verifyWithSessionId(finalSessionId);
+    };
+
+    const verifyWithSessionId = async (sessionId: string) => {
+        const product = PRODUCTS.find(p => p.id === productId);
+
+        const firePurchaseEvent = () => {
+            if (typeof window.fbq === 'function' && product && !firedPixel.current) {
+            window.fbq('track', 'Purchase', {
+                value: product.price / 100,
+                currency: 'BRL',
+                content_ids: [productId],
+                content_name: product.name,
+                content_type: 'product'
+            });
+            firedPixel.current = true;
+            }
+        }
+
+        if (user.isLoggedIn) {
+            const result = await handleVerifyUpgrade(sessionId);
+            if (result.success) {
+                firePurchaseEvent();
+                navigate('/app/dashboard', { replace: true });
+            } else {
+                setErrorMessage(result.message || 'Falha ao verificar seu upgrade.');
+                setStatus('error');
+            }
+        } else {
+            if (!isBaseProduct) {
+                setErrorMessage('Apenas a compra do acesso vitalício é permitida para novos usuários.');
+                setStatus('error');
+                return;
+            }
+            const result = await handleVerifyNewPurchase(sessionId);
+            if (result.success && result.name && result.email) {
+                firePurchaseEvent();
+                setCustomerData({ name: result.name, email: result.email });
+                setStatus('input_required');
+            } else {
+                setStatus('error');
+                setErrorMessage(result.message || "Falha ao verificar sua compra. Contate o suporte.");
+            }
+        }
     };
     
     if (status === 'verifying') {
       verify();
     }
-  }, [isBaseProduct, user.isLoggedIn, navigate, location.search, handleVerifyNewPurchase, status]);
+  }, [status, user.isLoggedIn, isBaseProduct, navigate, location.search, location.hash, handleVerifyNewPurchase, handleVerifyUpgrade, productId]);
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
     if (!customerData || !password) {
       setErrorMessage("Dados insuficientes para criar a conta.");
       return;
@@ -57,13 +120,18 @@ const PaymentSuccess: React.FC = () => {
       return;
     }
 
-    const result = await handleAccountSetup(customerData.name, customerData.email, password);
+    const searchParams = new URLSearchParams(location.search);
+    const isSimulated = searchParams.get('simulated') === 'eduzz';
+    
+    // Use client-side account setup for simulation, secure server-side for real purchases
+    const result = isSimulated
+      ? await handleAccountSetup(customerData.name, customerData.email, password)
+      : await handleSignUp(customerData.name, customerData.email, password);
 
     if (!result.success) {
-      setErrorMessage(result.message || 'Não foi possível criar sua conta. O email já pode estar em uso.');
-      // Don't change status, so user can see the error and retry
+      setErrorMessage(result.message || 'Não foi possível criar sua conta.');
     }
-    // On success, the onAuthStateChanged listener in UserContext will trigger a redirect to /app/dashboard after onboarding
+    // On success, onAuthStateChanged listener in UserContext will trigger a redirect to /onboarding.
   };
 
   return (
@@ -77,7 +145,7 @@ const PaymentSuccess: React.FC = () => {
               <p className="text-zinc-400 mt-2 font-mono text-sm">Validando sua entrada no panteão...</p>
             </>
           )}
-          {status === 'creating_account' && customerData && (
+          {status === 'input_required' && customerData && (
             <>
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-white font-mono uppercase">Pagamento Confirmado!</h2>
@@ -85,26 +153,19 @@ const PaymentSuccess: React.FC = () => {
               <form onSubmit={handleCreateAccount} className="space-y-4 text-left">
                   {errorMessage && <div className="bg-red-950/50 border border-red-900 text-red-400 px-4 py-3 rounded text-sm flex items-center gap-2"><AlertCircle className="w-4 h-4" />{errorMessage}</div>}
                   <div>
-                    <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Seu Nome</label>
+                    <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Nome de Herói</label>
                     <div className="relative"><User className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" /><input type="text" value={customerData.name} readOnly className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 text-zinc-300 font-mono" /></div>
                   </div>
                    <div>
-                    <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Seu Email</label>
+                    <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Email de Registro</label>
                     <div className="relative"><Mail className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" /><input type="email" value={customerData.email} readOnly className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 text-zinc-300 font-mono" /></div>
                   </div>
                   <div>
-                    <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Crie sua Senha de Comando</label>
+                    <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Senha de Comando</label>
                     <div className="relative"><KeyRound className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" /><input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 text-white font-mono focus:border-zinc-500" placeholder="Mínimo 6 caracteres" /></div>
                   </div>
                   <button type="submit" className="w-full mt-2 bg-green-600 text-white py-3 rounded font-bold uppercase tracking-widest hover:bg-green-700 transition">Finalizar e Entrar</button>
               </form>
-            </>
-          )}
-          {status === 'success' && (
-            <>
-              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-white font-mono uppercase">Conta Criada</h2>
-              <p className="text-zinc-400 mt-2 text-sm">Redirecionando para sua jornada...</p>
             </>
           )}
           {status === 'error' && (

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Shield, ChevronRight, LogIn, CheckCircle, Play, Bot, Award, Share2, Briefcase, TrendingUp, Activity, Brain, Zap, HeartHandshake, Target, Book, ScrollText, Sparkles, GitMerge } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import { PRODUCTS, FRONTEND_URL, PROTECTION_MODULES } from '../constants';
-import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 
 const LazySection = ({ children, className = "", id = "", ...props }: React.HTMLAttributes<HTMLDivElement> & { children: React.ReactNode, id?: string }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -125,17 +124,12 @@ const FAQItem = ({ q, a }: { q: string, a: string }) => {
 };
 
 const LandingPage: React.FC = () => {
-  const { user, handleBuy } = useUser();
+  const { handleBuy } = useUser();
   const navigate = useNavigate();
   const [shareText, setShareText] = useState('Convoque Aliados');
 
   const handleBuyClick = (productId: string) => {
-    if (user.isLoggedIn) {
-      handleBuy(productId);
-    } else {
-      // Redirect to signup, passing product info to handle after account creation
-      navigate('/login', { state: { fromPurchase: true, productId } });
-    }
+    handleBuy(productId);
   };
 
   const onGoToLogin = () => {
@@ -163,12 +157,6 @@ const LandingPage: React.FC = () => {
     }
   };
   
-  const radarData = [
-      { subject: 'Saúde', A: 4, fullMark: 10 }, { subject: 'Intelecto', A: 5, fullMark: 10 },
-      { subject: 'Emocional', A: 8, fullMark: 10 }, { subject: 'Caráter', A: 9, fullMark: 10 },
-      { subject: 'Finanças', A: 3, fullMark: 10 }, { subject: 'Social', A: 6, fullMark: 10 }
-  ];
-
   return (
     <div className="bg-zinc-950 min-h-screen text-zinc-100 font-sans overflow-x-hidden">
       <nav className="fixed top-0 left-0 right-0 flex justify-between items-center px-6 py-4 z-50 bg-zinc-950/80 backdrop-blur-md border-b border-white/5">

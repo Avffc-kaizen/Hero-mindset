@@ -51,9 +51,9 @@ const RankInsignia: React.FC<{ rank: RankTitle | string; size?: 'sm' | 'md' | 'l
 };
 
 const initialPosts: GuildPost[] = [
-    { id: 'boss-sys-1', author: 'SISTEMA DE DEFESA', rank: RankTitle.Divino, content: '⚠️ INVASÃO DETECTADA: O Monstro da Procrastinação rompeu o perímetro.\nTodos os heróis devem engajar imediatamente.', channel: 'boss_strategy', likes: 0, reactions: { 'skull': 12, 'fire': 5 }, comments: [], timestamp: Date.now(), isSystem: true, action: 'attack_boss' },
-    { id: 'st1', author: 'Comando Central', rank: RankTitle.Lendario, content: 'Atenção, Guilda. O Monstro da Procrastinação foi avistado. Mobilização imediata.', channel: 'boss_strategy', likes: 120, reactions: {'fire': 20, 'muscle': 15}, comments: [], timestamp: Date.now() - 86400000, isSystem: true },
-    { id: 'st2', author: 'Alex O Bravo', rank: RankTitle.Paladino, content: 'O dia começou antes do sol. 5km na conta. Quem está comigo?', channel: 'wins', likes: 45, reactions: {'muscle': 12, 'fire': 8}, comments: [], timestamp: Date.now() - 3600000 },
+    { id: 'boss-sys-1', author: 'SISTEMA DE DEFESA', authorId: 'system', rank: RankTitle.Divino, content: '⚠️ INVASÃO DETECTADA: O Monstro da Procrastinação rompeu o perímetro.\nTodos os heróis devem engajar imediatamente.', channel: 'boss_strategy', likes: 0, reactions: { 'skull': 12, 'fire': 5 }, comments: [], timestamp: Date.now(), isSystem: true, action: 'attack_boss' },
+    { id: 'st1', author: 'Comando Central', authorId: 'system', rank: RankTitle.Lendario, content: 'Bem-vindos à Guilda, Heróis. Este é o canal para comunicados e discussões gerais. Mantenham a disciplina.', channel: 'general', likes: 120, reactions: {'fire': 20, 'muscle': 15}, comments: [], timestamp: Date.now() - 86400000, isSystem: true },
+    { id: 'st2', author: 'Alex O Bravo', authorId: 'user-alex', rank: RankTitle.Paladino, content: 'O dia começou antes do sol. 5km na conta. Quem está comigo?', channel: 'wins', likes: 45, reactions: {'muscle': 12, 'fire': 8}, comments: [], timestamp: Date.now() - 3600000 },
 ];
 
 const MOCK_LEADERBOARD = [
@@ -63,8 +63,7 @@ const MOCK_LEADERBOARD = [
 ];
 
 const Guild: React.FC = () => {
-  // FIX: showError is not provided by useUser context. It's from useError context.
-  const { user, squads, handleUpgrade: onUpgrade, handleAscend, handleBossAttack, handlePunish, handleCreateSquad, handleJoinSquad, handleLeaveSquad } = useUser();
+  const { user, squads, handleUpgrade, handleAscend, handleBossAttack, handlePunish, handleCreateSquad, handleJoinSquad, handleLeaveSquad } = useUser();
   const { showError } = useError();
 
   const [activeTab, setActiveTab] = useState<'channels' | 'squads'>('channels');
@@ -81,6 +80,7 @@ const Guild: React.FC = () => {
   const [showCreateSquadModal, setShowCreateSquadModal] = useState(false);
   const [isBossSpeechGenerating, setIsBossSpeechGenerating] = useState(false);
   const [isSimulatingMember, setIsSimulatingMember] = useState(false);
+  const [isSummoningInsight, setIsSummoningInsight] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
 
   useEffect(() => { if (activeTab === 'channels') { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); } }, [posts, activeChannel, activeTab]);
@@ -91,33 +91,35 @@ const Guild: React.FC = () => {
     if (!lastAttackTimestamp) return true;
     return !isToday(lastAttackTimestamp);
   }, [user.lastBossAttacks]);
-
-  const handleAttackBoss = async () => {
-    if (!attackAvailable || isBossSpeechGenerating) return;
-    const bossType = 'daily';
-    const currentBoss = bosses[bossType];
-    if (currentBoss.hp > 0) {
-      const damage = Math.max(1, Math.floor(user.level / 5) + 1);
-      const newHp = Math.max(0, currentBoss.hp - damage);
-      setBosses(prev => ({ ...prev, [bossType]: { ...prev[bossType], hp: newHp } }));
-      handleBossAttack(bossType);
-
-      if (newHp === 0) {
-        setIsBossSpeechGenerating(true);
-        try {
-            const victoryMessage = await generateBossVictorySpeech(posts.slice(0,5), currentBoss.name);
-            const victoryPost: GuildPost = { id: `sys-win-${Date.now()}`, author: 'CRÔNICAS DA GUILDA', rank: RankTitle.Lendario, content: victoryMessage, channel: 'boss_strategy', likes: 999, reactions: {'fire': 100}, comments: [], timestamp: Date.now(), isSystem: true };
-            setPosts(prev => [...prev, victoryPost]);
-            setTimeout(() => {
-              const newMaxHp = Math.floor(currentBoss.maxHp * 1.1);
-              setBosses(prev => ({ ...prev, [bossType]: { ...prev[bossType], hp: newMaxHp, maxHp: newMaxHp, name: `${prev[bossType].name.split(' (')[0]} (Lv. Up)` } }));
-            }, 5000);
-        } finally { setIsBossSpeechGenerating(false); }
-      }
-    }
-  };
   
   const filteredPosts = posts.filter(p => p.channel === activeChannel);
+
+  const handleSummonInsight = async () => {
+      if (isSummoningInsight || !user.hasSubscription) return;
+      setIsSummoningInsight(true);
+      try {
+          const insight = await generateChannelInsightAI(activeChannel, filteredPosts);
+          const insightPost: GuildPost = {
+              id: `insight-${Date.now()}`,
+              author: 'Oráculo',
+              authorId: 'system-oracle',
+              rank: 'Mentor IA',
+              content: insight,
+              channel: activeChannel,
+              likes: 0,
+              reactions: { 'zap': 1 },
+              comments: [],
+              timestamp: Date.now(),
+              isSystem: true,
+          };
+          setPosts(prev => [...prev, insightPost]);
+      } catch (e: any) {
+          showError(e.message || "Falha ao invocar o Oráculo.");
+      } finally {
+          setIsSummoningInsight(false);
+      }
+  };
+
 
   const handlePostSubmit = async () => {
       if (!newPostContent.trim()) return;
@@ -126,34 +128,30 @@ const Guild: React.FC = () => {
 
       if ((hasUrl || hasPhone || hasHandle) && !allowLinks) {
           setNewPostContent('');
-          const postContent = violationCount === 0 ? '⚠️ PROTOCOLO DE COMUNICAÇÃO:\nA Guilda é um santuário hermético. Links externos, redes sociais (@) e telefones são proibidos para manter o foco absoluto.' : `🚫 INFRAÇÃO DETECTADA: Insistência em quebra de protocolo.\n\nPUNIÇÃO APLICADA: -50 XP.`;
+          const postContent = violationCount === 0 ? '⚠️ PROTOCOLO DE COMUNicação:\nA Guilda é um santuário hermético. Links externos, redes sociais (@) e telefones são proibidos para manter o foco absoluto.' : `🚫 INFRAÇÃO DETECTADA: Insistência em quebra de protocolo.\n\nPUNIÇÃO APLICADA: -50 XP.`;
           if (violationCount > 0) handlePunish(50);
-          const sysPost: GuildPost = { id: `warn-${Date.now()}`, author: 'SISTEMA DE SEGURANÇA', rank: 'SENTINELA', content: postContent, channel: activeChannel, likes: 0, reactions: {}, comments: [], timestamp: Date.now(), isSystem: true };
+          const sysPost: GuildPost = { id: `warn-${Date.now()}`, author: 'SISTEMA DE SEGURANÇA', authorId: 'system', rank: 'SENTINELA', content: postContent, channel: activeChannel, likes: 0, reactions: {}, comments: [], timestamp: Date.now(), isSystem: true };
           setPosts(prev => [...prev, sysPost]);
           setViolationCount(prev => prev + 1);
           return;
       }
 
-      const post: GuildPost = { id: `post-${Date.now()}`, author: user.name, rank: user.rank, content: newPostContent, channel: activeChannel, likes: 0, reactions: {}, comments: [], timestamp: Date.now() };
+      const post: GuildPost = { id: `post-${Date.now()}`, author: user.name, authorId: user.uid, rank: user.rank, content: newPostContent, channel: activeChannel, likes: 0, reactions: {}, comments: [], timestamp: Date.now() };
       setPosts(prev => [...prev, post]);
       setNewPostContent('');
 
-      if (Math.random() > 0.3) {
+      if (user.hasSubscription && Math.random() > 0.3) {
           setIsSimulatingMember(true);
           setTimeout(async () => {
               try {
                   const simResponse = await generateGuildMemberReply(activeChannel, [...filteredPosts, post]);
                   if (simResponse) {
-                      const replyPost: GuildPost = { id: `sim-${Date.now()}`, author: simResponse.author, rank: simResponse.rank, content: simResponse.content, channel: activeChannel, likes: Math.floor(Math.random() * 5), reactions: {}, comments: [], timestamp: Date.now() };
+                      const replyPost: GuildPost = { id: `sim-${Date.now()}`, authorId: `sim-${Date.now()}`, author: simResponse.author, rank: simResponse.rank, content: simResponse.content, channel: activeChannel, likes: Math.floor(Math.random() * 5), reactions: {}, comments: [], timestamp: Date.now() };
                       setPosts(prev => [...prev, replyPost]);
                   }
               } finally { setIsSimulatingMember(false); }
           }, 3000 + Math.random() * 4000);
       }
-  };
-
-  const handleReaction = (postId: string, emoji: string) => {
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, reactions: { ...p.reactions, [emoji]: (p.reactions[emoji] || 0) + 1 } } : p));
   };
   
   const SidebarNav = () => (
@@ -164,7 +162,7 @@ const Guild: React.FC = () => {
               {GUILD_CHANNELS.map(channel => {
                   const Icon = channel.icon, isActive = activeTab === 'channels' && activeChannel === channel.id, isLocked = channel.exclusiveModule && !user.activeModules.includes(channel.exclusiveModule);
                   return (
-                      <button key={channel.id} onClick={() => { if (!isLocked) { setActiveTab('channels'); setActiveChannel(channel.id); setMobileMenuOpen(false); } }} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-zinc-800 text-white shadow-md border border-zinc-700' : isLocked ? 'opacity-50 cursor-not-allowed text-zinc-500' : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'}`}>
+                      <button key={channel.id} onClick={() => { if (isLocked) { handleUpgrade('protecao_360'); } else { setActiveTab('channels'); setActiveChannel(channel.id); setMobileMenuOpen(false); } }} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-zinc-800 text-white shadow-md border border-zinc-700' : isLocked ? 'opacity-50 cursor-pointer text-zinc-500 hover:bg-zinc-800/50' : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'}`}>
                           <div className="flex items-center gap-3"><Icon className={`w-4 h-4 ${isActive ? 'text-red-500' : ''}`} /><p className={`text-sm font-mono font-bold uppercase ${isActive ? 'text-white' : 'text-zinc-400'}`}>{channel.name}</p></div>
                           {isLocked && <Lock className="w-3 h-3 text-zinc-600" />}
                       </button>
@@ -187,7 +185,7 @@ const Guild: React.FC = () => {
             <div className={`bg-gradient-to-br from-red-900/50 to-zinc-900 border-2 rounded-xl p-4 text-center ${user.isAscended ? 'border-red-700/50' : 'border-yellow-500/50 animate-pulse'}`}>
                 <Crown className={`w-8 h-8 mx-auto mb-2 ${user.isAscended ? 'text-red-500' : 'text-yellow-500'}`} />
                 <h3 className="font-bold uppercase font-mono text-sm">{user.isAscended ? 'Herói Ascendido' : 'Ascensão Disponível'}</h3>
-                {!user.isAscended ? ( <button onClick={handleAscend} className="mt-3 w-full text-xs bg-yellow-500 text-black font-bold uppercase py-2 rounded">Ascender Agora</button>) : (<p className="text-xs text-zinc-400 mt-1">Multiplicador Panteão: {Math.floor(user.paragonPoints / 2) + 1}x</p>)}
+                {!user.isAscended ? ( <button onClick={() => handleAscend()} className="mt-3 w-full text-xs bg-yellow-500 text-black font-bold uppercase py-2 rounded">Ascender Agora</button>) : (<p className="text-xs text-zinc-400 mt-1">Multiplicador Panteão: {Math.floor(user.paragonPoints / 2) + 1}x</p>)}
             </div>
         )}
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 h-fit">
@@ -308,13 +306,20 @@ const Guild: React.FC = () => {
 
         {activeTab === 'channels' ? (
             <div className="flex-1 flex flex-col bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+                 <header className="p-3 border-b border-zinc-800 flex items-center justify-between gap-2">
+                    <h3 className="font-bold font-mono uppercase text-white"># {activeChannel}</h3>
+                    <button onClick={handleSummonInsight} disabled={isSummoningInsight || !user.hasSubscription} className="flex items-center gap-2 text-xs font-mono uppercase bg-zinc-800/70 text-zinc-300 px-3 py-1.5 rounded-md hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title={!user.hasSubscription ? "Requer Assinatura Mentor IA" : "Invocar Oráculo"}>
+                        {isSummoningInsight ? <Loader2 className="w-4 h-4 animate-spin"/> : <Terminal className="w-4 h-4"/>}
+                        <span className="hidden sm:inline">Invocar Insight</span>
+                    </button>
+                 </header>
                  <div className="flex-1 p-4 space-y-4 overflow-y-auto">
                     {filteredPosts.map(post => (
                         <div key={post.id} className={`flex gap-3 items-start ${post.author === user.name ? 'flex-row-reverse' : ''}`}>
                            {!post.isSystem && <RankInsignia rank={post.rank} />}
-                           <div className={`p-3 rounded-xl max-w-lg ${post.isSystem ? 'bg-red-950/50 border border-red-900/30 text-center w-full' : post.author === user.name ? 'bg-zinc-800 rounded-br-none' : 'bg-zinc-950 border border-zinc-800 rounded-bl-none'}`}>
+                           <div className={`p-3 rounded-xl max-w-lg ${post.isSystem ? 'bg-zinc-950 border border-zinc-700 text-left w-full' : post.author === user.name ? 'bg-zinc-800 rounded-br-none' : 'bg-zinc-950 border border-zinc-800 rounded-bl-none'}`}>
                                <div className="flex items-center gap-2 mb-1">
-                                 <p className="font-bold text-sm text-white">{post.author}</p>
+                                 <p className={`font-bold text-sm ${post.author === 'Oráculo' ? 'text-yellow-500' : 'text-white'}`}>{post.author}</p>
                                  <p className="text-xs text-zinc-500">{new Date(post.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
                                </div>
                                <p className="text-zinc-300 whitespace-pre-wrap">{post.content}</p>

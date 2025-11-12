@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { Mission, RankTitle, JournalEntry, UserStats, UserState, DailyGuidance, LifeMapCategory, GuildPost, ChatMessage } from "../types";
 import { MENTOR_SYSTEM_INSTRUCTION, PROTECTION_MODULES } from "../constants";
@@ -291,22 +290,24 @@ export const analyzeJournalAI = async (entries: JournalEntry[], userName: string
   }
 };
 
-export const getMentorChatReply = async (chatHistory: ChatMessage[], userName: string): Promise<string> => {
+export const getMentorChatReply = async (chatHistory: ChatMessage[], user: UserState): Promise<string> => {
   try {
     const client = initializeGenAI();
     if (!client) return "O Oráculo está meditando. Busque a resposta em suas ações.";
     
+    const hasProtecao360 = user.activeModules.length > 3; // Um proxy para a assinatura completa
+    const modelName = hasProtecao360 ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
+    
     const history = chatHistory.map(msg => ({ role: msg.role, parts: [{ text: msg.text }] }));
-    const systemInstruction = `${MENTOR_SYSTEM_INSTRUCTION}\nO nome do herói é ${userName}. Mantenha suas respostas concisas e focadas em ação.`;
+    const systemInstruction = `${MENTOR_SYSTEM_INSTRUCTION}\nO nome do herói é ${user.name}. Mantenha suas respostas concisas e focadas em ação.`;
     
     const response = await client.models.generateContent({
-      model: 'gemini-2.5-pro',
-      // FIX: The 'contents' property for chat history should be the history array directly.
+      model: modelName,
       contents: history,
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.8,
-        thinkingConfig: { thinkingBudget: 32768 }
+        thinkingConfig: hasProtecao360 ? { thinkingBudget: 32768 } : undefined
       },
     });
 

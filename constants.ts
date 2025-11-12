@@ -340,6 +340,7 @@ export const INITIAL_USER_STATE: UserState = {
   currentXP: 0,
   rank: RankTitle.Iniciante,
   hasSubscription: false,
+  hasPaidBase: false,
   lastBossAttacks: {},
   isAscended: false,
   paragonPoints: 0,

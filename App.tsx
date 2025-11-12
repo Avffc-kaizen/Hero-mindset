@@ -1,3 +1,4 @@
+// FIX: import useState to resolve 'Cannot find name 'useState'' error.
 import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Navigate, Outlet, useLocation, NavLink } from 'react-router-dom';
 import { Onboarding, LoginScreen } from './components/Login';
@@ -14,7 +15,7 @@ import LandingPage from './components/LandingPage';
 import PaymentSuccess from './components/PaymentSuccess';
 import LevelUpModal from './components/LevelUpModal';
 import { XP_PER_LEVEL_FORMULA, isToday } from './utils';
-import { Compass, Book, Shield, Bot, ScrollText, GitMerge, Sparkles, User as UserIcon, LogOut, Target, Menu, X } from 'lucide-react';
+import { Compass, Book, Shield, Bot, ScrollText, GitMerge, Sparkles, User as UserIcon, LogOut, Target, Menu, X, Loader2 } from 'lucide-react';
 import { ErrorProvider } from './contexts/ErrorContext';
 import { UserProvider, useUser } from './contexts/UserContext';
 
@@ -99,7 +100,7 @@ const MainAppLayout: React.FC = () => {
 };
 
 const AppContent: React.FC = () => {
-  const { user, levelUpData, closeLevelUpModal } = useUser();
+  const { user, levelUpData, closeLevelUpModal, loadingAuth } = useUser();
   const location = useLocation();
 
   const isDailyLimitReached = !isToday(user.lastLessonCompletionDate) ? false : user.lessonsCompletedToday >= 3;
@@ -115,6 +116,10 @@ const AppContent: React.FC = () => {
     if (user.onboardingCompleted) return <Navigate to="/app/dashboard" replace />;
     return children;
   };
+
+  if (loadingAuth) {
+    return <div className="bg-black min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-zinc-500" /></div>;
+  }
 
   return (
       <>

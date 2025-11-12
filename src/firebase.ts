@@ -1,13 +1,14 @@
+// FIX: Changed imports to use Firebase v8 compat library to resolve module export errors.
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+import 'firebase/compat/firestore';
+import 'firebase/compat/functions';
+import 'firebase/compat/analytics';
 
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getFunctions } from 'firebase/functions';
-import { getAnalytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDYAR2rsJ673seTMClTGfMhp4a6GjwLEio",
+  apiKey: process.env.FIREBASE_API_KEY,
   authDomain: "hero-mindset.firebaseapp.com",
   projectId: "hero-mindset",
   storageBucket: "hero-mindset.appspot.com",
@@ -18,25 +19,42 @@ const firebaseConfig = {
 
 // --- Conditional Initialization ---
 
-export const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY" && !firebaseConfig.apiKey.startsWith('{{');
+export const isFirebaseConfigured = firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("AIzaSy") && !firebaseConfig.apiKey.includes("placeholder");
 
-let app, auth, db, functions, analytics;
-
+// FIX: Changed app initialization to Firebase v8 compat syntax.
+let app: firebase.app.App | null = null;
 if (isFirebaseConfigured) {
-  // Initialize Firebase
-  app = initializeApp(firebaseConfig);
+  if (firebase.apps.length === 0) {
+    app = firebase.initializeApp(firebaseConfig);
+  } else {
+    app = firebase.app();
+  }
+}
 
-  // Initialize Firebase services
-  auth = getAuth(app);
-  db = getFirestore(app);
-  // É uma boa prática especificar a região se suas funções não estiverem em us-central1
-  functions = getFunctions(app, 'southamerica-east1');
-  analytics = getAnalytics(app);
+// FIX: Changed service initialization to Firebase v8 compat syntax.
+const auth = app ? firebase.auth() : null;
+const db = app ? firebase.firestore() : null;
+const functions = app ? app.functions('southamerica-east1') : null;
+const googleProvider = app ? new firebase.auth.GoogleAuthProvider() : null;
+let analytics: firebase.analytics.Analytics | null = null;
+
+if (app && isFirebaseConfigured) {
+  // FIX: Switched to v8 compat syntax for analytics.
+  if (typeof window !== 'undefined') {
+    firebase.analytics.isSupported().then(supported => {
+      if (supported) {
+          analytics = firebase.analytics();
+      }
+    }).catch(e => {
+      console.warn("Firebase Analytics check failed.", e);
+    });
+  }
 } else {
-  console.error("!!! FIREBASE NÃO ESTÁ CONFIGURADO !!!");
-  console.error("Por favor, adicione sua Web API Key no arquivo 'src/firebase.ts'");
+  console.warn("!!! FIREBASE NÃO ESTÁ CONFIGURADO CORRETAMENTE !!!");
+  console.warn("A API Key parece ser um placeholder. Funcionalidades online podem não funcionar.");
 }
 
 
-// Export the services (they will be undefined if not configured)
-export { app, auth, db, functions, analytics };
+// FIX: Export the `firebase` object itself for accessing compat library features like `FieldValue`.
+// Export the services (they will be uninitialized if not configured but this is guarded by isFirebaseConfigured)
+export { app, auth, db, functions, analytics, firebase, googleProvider };

@@ -144,6 +144,7 @@ export interface GuildComment {
 export interface GuildPost {
   id: string;
   author: string;
+  authorId: string;
   rank: RankTitle | string;
   content: string;
   channel: GuildChannelId;
@@ -252,7 +253,8 @@ export interface UserState {
   
   // Subscription & Protection System
   activeModules: ProtectionModuleId[]; // Lista de módulos ativos
-  hasSubscription: boolean; // Mantido para compatibilidade (acesso base + IA)
+  hasSubscription: boolean; // Acesso ao Mentor IA
+  hasPaidBase?: boolean; // Acesso vitalício ao produto base (Eduzz/Stripe)
   
   // Module Specific Data
   // FIX: Allow company to be null to match INITIAL_USER_STATE

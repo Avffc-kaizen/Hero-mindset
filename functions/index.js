@@ -1,6 +1,8 @@
 
 const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
+const crypto = require("crypto");
+const fetch = require("node-fetch");
 
 // Initialize Stripe with API version for consistency and stability.
 const stripe = process.env.STRIPE_SECRET_KEY
@@ -198,11 +200,17 @@ exports.stripeWebhook = functions
     .runWith({memory: "128MB"})
     .https.onRequest(async (req, res) => {
       if (req.method !== "POST" || !stripe) {
+        console.error("Webhook received non-POST request or Stripe is not initialized.");
         return res.status(400).send("Bad Request");
       }
 
       const sig = req.headers['stripe-signature'];
       const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+      if (!endpointSecret) {
+        console.error("CRITICAL: STRIPE_WEBHOOK_SECRET environment variable not set.");
+        return res.status(500).send("Webhook handler configuration error: Missing secret.");
+      }
 
       let event;
       try {
@@ -271,6 +279,23 @@ exports.stripeWebhook = functions
                 console.error(`Webhook: Missing customer details for new user purchase ${session.id}.`);
               }
           }
+          
+          if(session.payment_status === 'paid') {
+            await sendFbConversionApiEvent({
+                eventName: 'Purchase',
+                eventTime: session.created,
+                user: { email: session.customer_details?.email, name: session.customer_details?.name },
+                customData: {
+                    value: session.amount_total / 100,
+                    currency: session.currency.toUpperCase(),
+                    content_ids: [internalProductId],
+                    content_type: 'product',
+                },
+                eventSourceUrl: `https://aistudio.google.com/app/project/66a858e5f3c09f3c78f8/#/`,
+                ip: req.ip,
+                userAgent: req.headers['user-agent'],
+            });
+          }
         }
 
         res.json({received: true});
@@ -279,3 +304,200 @@ exports.stripeWebhook = functions
         res.status(500).send("Server Error");
       }
     });
+
+exports.eduzzWebhook = functions
+    .region("southamerica-east1")
+    .https.onRequest(async (req, res) => {
+        if (req.method !== "POST") {
+            return res.status(405).send("Method Not Allowed");
+        }
+
+        const eduzzApiKey = process.env.EDUZZ_API_KEY;
+        if (!eduzzApiKey) {
+            console.error("CRITICAL: EDUZZ_API_KEY environment variable not set.");
+            return res.status(500).send("Handler configuration error.");
+        }
+
+        try {
+            const data = req.body;
+            if (data.apikey !== eduzzApiKey) {
+                console.warn("Eduzz Webhook: Invalid API key received.");
+                return res.status(401).send("Unauthorized");
+            }
+
+            if (data.trans_status !== '3') {
+                return res.status(200).send("OK (Not an approved sale)");
+            }
+            
+            const email = data.cus_email;
+            const name = data.cus_name;
+            const transactionId = data.trans_cod;
+
+            if (!email || !transactionId) {
+                console.error("Eduzz Webhook: Missing email or transaction ID.");
+                return res.status(400).send("Bad Request: Missing data");
+            }
+
+            const purchaseRef = db.collection("purchases").doc(`eduzz-${transactionId}`);
+            const purchaseDoc = await purchaseRef.get();
+            if (purchaseDoc.exists) {
+                return res.status(200).send("OK (Already processed)");
+            }
+            
+            await sendFbConversionApiEvent({
+                eventName: 'Purchase',
+                eventTime: Math.floor(Date.now() / 1000),
+                user: { email: data.cus_email, name: data.cus_name },
+                customData: {
+                    value: parseFloat(data.trans_value),
+                    currency: 'BRL',
+                    content_ids: [data.content_cod],
+                    content_type: 'product',
+                },
+                eventSourceUrl: `https://chk.eduzz.com/${data.content_cod}`,
+                ip: req.ip,
+                userAgent: req.headers['user-agent'],
+            });
+            
+            let uid = null;
+            try {
+                const userRecord = await admin.auth().getUserByEmail(email);
+                uid = userRecord.uid;
+            } catch (error) {
+                if (error.code !== 'auth/user-not-found') throw error;
+            }
+            
+            if (uid) {
+                const userDocRef = db.collection("users").doc(uid);
+                await userDocRef.update({ hasPaidBase: true });
+                 await purchaseRef.set({
+                    provider: 'eduzz', transactionId, email, uid, status: 'account_updated',
+                    processedAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
+            } else {
+                await purchaseRef.set({
+                    provider: 'eduzz', transactionId, email, name, status: 'verified_for_signup',
+                    processedAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
+            }
+
+            return res.status(200).send("OK");
+        } catch (err) {
+            console.error("Error processing Eduzz webhook:", err);
+            return res.status(500).send("Internal Server Error");
+        }
+    });
+
+exports.processSignUp = functions
+    .region("southamerica-east1")
+    .https.onCall(async (data, context) => {
+        const { name, email, password } = data;
+        if (!name || !email || !password || password.length < 6) {
+            throw new functions.https.HttpsError("invalid-argument", "Nome, email e senha (mínimo 6 caracteres) são obrigatórios.");
+        }
+
+        const purchaseRef = db.collection("purchases");
+        const q = purchaseRef.where("email", "==", email).where("status", "==", "verified_for_signup").limit(1);
+        const snapshot = await q.get();
+
+        if (snapshot.empty) {
+            throw new functions.https.HttpsError("not-found", "Compra não encontrada. Verifique se usou o mesmo email da compra ou aguarde alguns minutos para a confirmação do pagamento.");
+        }
+
+        const purchaseDoc = snapshot.docs[0];
+
+        try {
+            const userRecord = await admin.auth().createUser({
+                email: email, password: password, displayName: name,
+            });
+            
+            const initialUserData = {
+                uid: userRecord.uid, name, email,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                hasPaidBase: true,
+                onboardingCompleted: false,
+                level: 1, currentXP: 0, rank: 'Iniciante', hasSubscription: false,
+                lastBossAttacks: {}, isAscended: false, paragonPoints: 0,
+                paragonPerks: {}, skillPoints: 0, unlockedSkills: [], journalEntries: [],
+                stats: { mind: 0, body: 0, spirit: 0, wealth: 0 }, missions: [],
+                lastDailyMissionRefresh: 0, lastWeeklyMissionRefresh: 0,
+                lastMilestoneMissionRefresh: 0, lessonsCompletedToday: 0,
+                lastLessonCompletionDate: 0, dailyGuidance: null, activeModules: [],
+                company: null, businessRoadmap: [], bioData: { sleepHours: 0, workoutsThisWeek: 0, waterIntake: 0 },
+                focusHistory: [], dailyIntention: null, keyConnections: [], joinedSquadIds: [],
+            };
+            
+            await db.collection("users").doc(userRecord.uid).set(initialUserData);
+            await purchaseDoc.ref.update({ status: 'account_created', uid: userRecord.uid });
+            
+            return { success: true, uid: userRecord.uid };
+        } catch (error) {
+            if (error.code === 'auth/email-already-exists') {
+                 throw new functions.https.HttpsError("already-exists", "Uma conta com este email já existe. Tente fazer login.");
+            }
+            console.error("Error creating user from purchase:", error);
+            throw new functions.https.HttpsError("internal", "Erro ao criar sua conta.");
+        }
+    });
+
+
+const sendFbConversionApiEvent = async (eventData) => {
+    // These should be set as environment variables in Firebase:
+    // FB_PIXEL_ID, FB_CONVERSIONS_API_ACCESS_TOKEN
+    const pixelId = process.env.FB_PIXEL_ID || "1170213417867380";
+    const accessToken = process.env.FB_CONVERSIONS_API_ACCESS_TOKEN;
+
+    if (!accessToken) {
+        functions.logger.warn("FB_CONVERSIONS_API_ACCESS_TOKEN not set. Skipping CAPI event.");
+        return;
+    }
+
+    const { eventName, eventTime, user, customData, eventSourceUrl, ip, userAgent } = eventData;
+    
+    const userData = {
+        client_ip_address: ip,
+        client_user_agent: userAgent,
+    };
+    if (user.email) {
+        userData.em = [crypto.createHash('sha256').update(user.email.trim().toLowerCase()).digest('hex')];
+    }
+     if (user.name) {
+        const nameParts = user.name.split(' ');
+        if (nameParts.length > 0) {
+            userData.fn = [crypto.createHash('sha256').update(nameParts[0].trim().toLowerCase()).digest('hex')];
+        }
+        if (nameParts.length > 1) {
+            userData.ln = [crypto.createHash('sha256').update(nameParts.slice(-1)[0].trim().toLowerCase()).digest('hex')];
+        }
+    }
+
+    const payload = {
+        data: [{
+            event_name: eventName,
+            event_time: eventTime,
+            action_source: "website",
+            event_source_url: eventSourceUrl,
+            user_data: userData,
+            custom_data: customData,
+        }],
+    };
+
+    const url = `https://graph.facebook.com/v19.0/${pixelId}/events?access_token=${accessToken}`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+
+        const responseData = await response.json();
+        if (!response.ok) {
+            functions.logger.error("Error sending FB CAPI event:", responseData);
+        } else {
+            functions.logger.info("Successfully sent FB CAPI event:", {eventName, fbtrace_id: responseData.fbtrace_id});
+        }
+    } catch (error) {
+        functions.logger.error("Failed to send FB CAPI event:", error);
+    }
+};

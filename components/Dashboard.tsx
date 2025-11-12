@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ProtectionModuleId, RoadmapItem, BioData } from '../types';
-import { PROTECTION_MODULES } from '../constants';
-import { Award, Zap, RefreshCw, Star, AlertCircle, Flame, Shield, Briefcase, Activity, TrendingUp, CheckCircle, Plus, Lock, Dumbbell, Moon, Droplets, Trash2, Bot, Target, Check } from 'lucide-react';
+import { PROTECTION_MODULES, ARCHETYPES } from '../constants';
+import { Award, Zap, RefreshCw, Star, AlertCircle, Flame, Shield, Briefcase, Activity, TrendingUp, CheckCircle, Plus, Lock, Dumbbell, Moon, Droplets, Trash2, Bot, Target, Check, AlertTriangle } from 'lucide-react';
 import { XP_PER_LEVEL_FORMULA } from '../utils';
 import { useUser } from '../contexts/UserContext';
 import MissionProgress from './MissionProgress';
@@ -121,7 +121,8 @@ const BioShieldWidget = () => {
 }
 
 const HeroicDashboard: React.FC = () => {
-  const { user, handleRedoDiagnosis: onReset, handleUpgrade } = useUser();
+  const { user, handleRedoDiagnosis, handleUpgrade } = useUser();
+  const [showRecalibrateModal, setShowRecalibrateModal] = useState(false);
   
   if (!user.archetype || !user.lifeMapScores) return null;
 
@@ -129,7 +130,12 @@ const HeroicDashboard: React.FC = () => {
   const nextLevelXP = XP_PER_LEVEL_FORMULA(user.level);
   const xpProgress = (user.currentXP / nextLevelXP) * 100;
 
-  const handleModuleUnlock = (moduleId: ProtectionModuleId) => handleUpgrade('sucesso_360');
+  const handleModuleUnlock = (moduleId: ProtectionModuleId) => handleUpgrade('protecao_360');
+
+  const onConfirmRecalibrate = () => {
+    handleRedoDiagnosis();
+    setShowRecalibrateModal(false);
+  };
 
   const renderOracleDecree = () => {
     if (!user.hasSubscription) {
@@ -162,9 +168,9 @@ const HeroicDashboard: React.FC = () => {
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black font-mono uppercase text-white tracking-tighter">Central <span className="text-zinc-600">360°</span></h1>
-          <p className="text-zinc-400 text-xs font-mono uppercase tracking-wide">Quartel General • {user.name}</p>
+          <p className="text-zinc-400 text-xs font-mono uppercase tracking-wide">Bem-vindo, {user.archetype ? ` ${user.archetype}` : user.name}. Lema: {user.archetype ? `"${ARCHETYPES[user.archetype]?.motto || 'Execute.'}"` : 'Execute.'}</p>
         </div>
-        <button onClick={onReset} className="flex items-center gap-2 text-[10px] font-bold font-mono uppercase text-zinc-500 hover:text-white bg-zinc-900/50 border border-white/10 px-4 py-2.5 rounded-lg backdrop-blur-sm"><RefreshCw className="w-3 h-3"/> Recalibrar</button>
+        <button onClick={() => setShowRecalibrateModal(true)} className="flex items-center gap-2 text-[10px] font-bold font-mono uppercase text-zinc-500 hover:text-white bg-zinc-900/50 border border-white/10 px-4 py-2.5 rounded-lg backdrop-blur-sm"><RefreshCw className="w-3 h-3"/> Recalibrar</button>
       </header>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -197,6 +203,19 @@ const HeroicDashboard: React.FC = () => {
             <LockedModuleWidget moduleId='lider' onUnlock={handleModuleUnlock} />
         </div>
       </div>
+
+      {showRecalibrateModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-zinc-950 border border-yellow-800 rounded-xl p-6 max-w-md w-full">
+            <h2 className="text-xl font-bold text-yellow-500 mb-2 font-mono flex items-center gap-2"><AlertTriangle className="w-5 h-5" /> Confirmação Necessária</h2>
+            <p className="text-zinc-400 mb-6 text-sm">Tem certeza de que deseja recalibrar seu Mapeamento 360? Você precisará refazer o diagnóstico para definir um novo arquétipo e áreas de foco.</p>
+            <div className="flex gap-4">
+                <button onClick={() => setShowRecalibrateModal(false)} className="flex-1 py-3 bg-zinc-800 rounded font-bold uppercase text-xs hover:bg-zinc-700">Cancelar</button>
+                <button onClick={onConfirmRecalibrate} className="flex-1 py-3 bg-yellow-600 text-black rounded font-bold uppercase text-xs hover:bg-yellow-500">Confirmar Recalibração</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,9 +1,6 @@
-
-
 import { GoogleGenAI } from "@google/genai";
-// FIX: Add GuildPost to imports.
-import { Mission, RankTitle, JournalEntry, UserStats, ChatMessage, UserState, DailyGuidance, LifeMapCategory, GuildPost } from "../types";
-import { MENTOR_SYSTEM_INSTRUCTION } from "../constants";
+import { Mission, RankTitle, JournalEntry, UserStats, UserState, DailyGuidance, LifeMapCategory, GuildPost, ChatMessage } from "../types";
+import { MENTOR_SYSTEM_INSTRUCTION, PROTECTION_MODULES } from "../constants";
 
 let genAI: GoogleGenAI | null = null;
 
@@ -108,11 +105,25 @@ export const generateProactiveOracleGuidance = async (user: UserState): Promise<
     if (!client) throw new Error("AI Client not initialized");
     
     const lifeMapSummary = user.lifeMapScores ? Object.entries(user.lifeMapScores).map(([k, v]) => `${k}: ${v}`).join(', ') : "N/A";
+    
+    const activePersonas = user.activeModules
+        .map(id => PROTECTION_MODULES[id])
+        .filter(Boolean)
+        .map(mod => `${mod.name.split(' ')[0]} (${mod.coveredAreas[0]})`);
+
+    const personaPrompt = activePersonas.length > 0 
+        ? `PERSONAS ADICIONAIS: ${activePersonas.join(', ')}.` 
+        : "";
+
     const prompt = `
-    ATUE COMO O ORÁCULO. Analise este Herói e gere UM DECRETO ESTRATÉGICO para hoje.
-    PERFIL: ${user.rank} (Nível ${user.level}), Mapa: ${lifeMapSummary}
-    Gere um JSON com: {"content": "Frase curta, imperativa e militar (máx 20 palavras).", "type": "alert" | "strategy" | "praise"}
-    Retorne APENAS o JSON.`;
+    PERSONA PRIMÁRIA: Oráculo (militar, estoico, direto ao ponto).
+    ${personaPrompt}
+
+    ANALISE O PERFIL DO HERÓI: ${user.rank} (Lvl ${user.level}). Mapa: ${lifeMapSummary}.
+    
+    Gere um JSON com UM DECRETO ESTRATÉGICO para hoje:
+    {"content": "Frase curta e imperativa (máx 20 palavras), baseada nos dados e personas.", "type": "alert" | "strategy" | "praise"}
+    `;
 
     const response = await client.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -279,21 +290,24 @@ export const analyzeJournalAI = async (entries: JournalEntry[], userName: string
   }
 };
 
-export const getMentorChatReply = async (chatHistory: ChatMessage[], userName: string): Promise<string> => {
+export const getMentorChatReply = async (chatHistory: ChatMessage[], user: UserState): Promise<string> => {
   try {
     const client = initializeGenAI();
     if (!client) return "O Oráculo está meditando. Busque a resposta em suas ações.";
     
+    const hasProtecao360 = user.activeModules.length > 3; // A proxy for the full subscription
+    const modelName = hasProtecao360 ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
+    
     const history = chatHistory.map(msg => ({ role: msg.role, parts: [{ text: msg.text }] }));
-    const systemInstruction = `${MENTOR_SYSTEM_INSTRUCTION}\nO nome do herói é ${userName}. Mantenha suas respostas concisas e focadas em ação.`;
+    const systemInstruction = `${MENTOR_SYSTEM_INSTRUCTION}\nO nome do herói é ${user.name}. Mantenha suas respostas concisas e focadas em ação.`;
     
     const response = await client.models.generateContent({
-      model: 'gemini-2.5-pro',
-      contents: history,
+      model: modelName,
+      contents: history as any, // Cast to any to align with SDK expectations
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.8,
-        thinkingConfig: { thinkingBudget: 32768 }
+        thinkingConfig: hasProtecao360 ? { thinkingBudget: 32768 } : undefined
       },
     });
 
@@ -304,7 +318,6 @@ export const getMentorChatReply = async (chatHistory: ChatMessage[], userName: s
   }
 };
 
-// FIX: Add missing function generateChannelInsightAI
 export const generateChannelInsightAI = async (
     channelName: string,
     lastPosts: GuildPost[]
@@ -331,7 +344,6 @@ export const generateChannelInsightAI = async (
     }
 }
 
-// FIX: Add missing function generateGuildMemberReply
 export const generateGuildMemberReply = async (
     channelName: string,
     lastPosts: GuildPost[]
