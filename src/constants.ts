@@ -10,10 +10,9 @@ export const MAX_SQUAD_SIZE = 5;
 export const MIN_LEVEL_TO_CREATE_SQUAD = 10;
 
 // --- CONFIGURATION ---
-// These should be set in your environment variables (.env file or hosting provider settings)
-export const FRONTEND_URL = "https://aistudio.google.com/app/project/66a858e5f3c09f3c78f8";
+export const FRONTEND_URL = "https://hero-mindset.web.app";
 export const BACKEND_URL = "/api";
-export const STRIPE_PUBLIC_KEY = process.env.STRIPE_PUBLIC_KEY || "pk_test_51PshpdELwcc78QutRKyf8k57Yj88Abp322a3TzL2Yqom5j3931V7XyF4wODx4qN1nOuef836f1eP0scl78HMCRe800P0LGAJmX"; // Replace with your actual public key
+export const STRIPE_PUBLIC_KEY = process.env.STRIPE_PUBLIC_KEY || "pk_live_51RoTtnELwcc78QutLToQM50aQtE7YEnjEMJwBBxhAMguKiBqNWOqXqi0tixmKxnO6WVNPNRCFvGSIoatViXE2jw500H45RN2Ro"; // LIVE KEY UPDATED
 
 // --- STRIPE PRICE IDS MAPPING ---
 export const STRIPE_HERO_PRICE_ID = "price_1PshrWELwcc78QutdK8hB29k";
@@ -30,7 +29,7 @@ export const PRODUCTS: ProductDef[] = [
     id: 'hero_vitalicio',
     name: 'Hero Mindset Vitalício',
     description: 'Acesso único à plataforma base e todas as ferramentas estáticas.',
-    provider: PaymentProvider.EDUZZ,
+    provider: PaymentProvider.STRIPE,
     priceId: STRIPE_HERO_PRICE_ID,
     eduzzId: EDUZZ_HERO_ID,
     price: 49700,

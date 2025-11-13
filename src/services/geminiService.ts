@@ -51,6 +51,36 @@ const cleanJsonString = (text: string): string => {
   return text.substring(start);
 };
 
+export const getChatbotLandingReply = async (question: string): Promise<string> => {
+    try {
+        const client = initializeGenAI();
+        if (!client) return "O Oráculo medita em silêncio. A clareza que você busca virá da ação, não das palavras.";
+
+        const systemInstruction = `
+        Você é o Oráculo da Clareza do Hero Mindset. Sua missão é dissipar as dúvidas de heróis em potencial, oferecendo sabedoria, não vendas.
+        Seu tom é sábio, enigmático, mas encorajador. Use metáforas e uma linguagem que inspire a autodescoberta.
+        1. Responda à pergunta com profundidade, mas de forma concisa (máximo 3-4 frases).
+        2. Foque na jornada interior, no desafio e na transformação, não no produto.
+        3. Termine com uma frase que provoque reflexão, guiando o usuário a encontrar a resposta dentro de si mesmo e na jornada que o aguarda. Não peça a compra diretamente.
+        `;
+
+        const response = await client.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: question,
+            config: {
+                systemInstruction: systemInstruction,
+                temperature: 0.7,
+            }
+        });
+
+        return response.text || "O silêncio também é uma resposta. O que sua intuição diz?";
+
+    } catch (error) {
+        console.error("Chatbot Landing Reply Error:", error);
+        throw new Error("O Oráculo está em comunhão com o cosmos. A resposta que você busca está na sua própria determinação.");
+    }
+};
+
 export const generateDetailedLifeMapAnalysis = async (
     scores: Record<LifeMapCategory, number>,
     focusAreas: LifeMapCategory[]
@@ -295,7 +325,7 @@ export const getMentorChatReply = async (chatHistory: ChatMessage[], user: UserS
     const client = initializeGenAI();
     if (!client) return "O Oráculo está meditando. Busque a resposta em suas ações.";
     
-    const hasProtecao360 = user.activeModules.length > 3; // Um proxy para a assinatura completa
+    const hasProtecao360 = user.activeModules.length > 3; // A proxy for the full subscription
     const modelName = hasProtecao360 ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
     
     const history = chatHistory.map(msg => ({ role: msg.role, parts: [{ text: msg.text }] }));
@@ -303,7 +333,8 @@ export const getMentorChatReply = async (chatHistory: ChatMessage[], user: UserS
     
     const response = await client.models.generateContent({
       model: modelName,
-      contents: history,
+      // FIX: Cast 'history' to 'any' to resolve type mismatch with SDK's expected 'Content[]'.
+      contents: history as any,
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.8,

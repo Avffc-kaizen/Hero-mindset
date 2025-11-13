@@ -103,10 +103,12 @@ const IAMentor: React.FC = () => {
         {isLoading && (
           <div className="flex flex-col items-center text-center py-8 animate-in fade-in duration-500">
              <div className="relative flex items-center justify-center w-20 h-20 mb-4">
-                <div className="absolute w-full h-full bg-zinc-800 rounded-full animate-ping opacity-50"></div>
-                <Bot className="w-10 h-10 text-zinc-300 relative" />
+                <div className="absolute w-full h-full rounded-full bg-yellow-500/30 animate-oracle-thinking" style={{ animationDelay: '0s' }}></div>
+                <div className="absolute w-full h-full rounded-full bg-yellow-500/30 animate-oracle-thinking" style={{ animationDelay: '0.6s' }}></div>
+                <div className="absolute w-full h-full rounded-full bg-yellow-500/30 animate-oracle-thinking" style={{ animationDelay: '1.2s' }}></div>
+                <Bot className="w-10 h-10 text-yellow-400 relative z-10" />
              </div>
-             <p className="text-zinc-400 font-mono uppercase tracking-widest animate-pulse">
+             <p className="text-yellow-400 font-mono uppercase tracking-widest animate-pulse">
                O Oráculo está meditando...
              </p>
           </div>

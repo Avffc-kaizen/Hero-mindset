@@ -1,15 +1,47 @@
+
+
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { UserState, Archetype, LifeMapCategory, JournalEntry, LessonDetails, Mission, RankTitle, Squad, SquadMember } from '../types';
-import { INITIAL_USER_STATE, SKILL_TREES, PARAGON_PERKS, STATIC_DAILY_MISSIONS, STATIC_WEEKLY_MISSIONS, MOCK_SQUADS, MIN_LEVEL_TO_CREATE_SQUAD, MAX_SQUAD_SIZE } from '../constants';
+import { UserState, Archetype, LifeMapCategory, JournalEntry, LessonDetails, Mission, RankTitle, Squad, SquadMember, ProtectionModuleId } from '../types';
+import { INITIAL_USER_STATE, SKILL_TREES, PARAGON_PERKS, STATIC_DAILY_MISSIONS, STATIC_WEEKLY_MISSIONS, MOCK_SQUADS, MIN_LEVEL_TO_CREATE_SQUAD, MAX_SQUAD_SIZE, PROTECTION_MODULES } from '../constants';
 import { generateDailyMissionsAI, generateWeeklyMissionsAI, generateProactiveOracleGuidance } from '../services/geminiService';
 import { buyProduct } from '../services/paymentService';
 import { useError } from './ErrorContext';
 import { XP_PER_LEVEL_FORMULA, getRank, isToday, isSameWeek } from '../utils';
-// FIX: Centralize firebase imports to resolve module conflicts and fix serverTimestamp errors.
-import { auth, db, functions, isFirebaseConfigured, firebase } from '../firebase';
-// FIX: Using v8 compat imports for Firebase to resolve module errors.
-// FIX: Removed modular Firebase auth import (`User as FirebaseUser`) to resolve type conflicts with the v8 compat library. The `firebase.User` type from the compat library will be used instead.
+
+// --- V9 FIREBASE IMPORTS ---
+import { auth, db, functions, isFirebaseConfigured, googleProvider } from '../firebase';
+import { 
+    onAuthStateChanged, 
+    signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword,
+    signInWithPopup, 
+    signOut, 
+    sendPasswordResetEmail, 
+    deleteUser,
+    getAdditionalUserInfo,
+    User as FirebaseUser
+} from 'firebase/auth';
+import { 
+    doc, 
+    onSnapshot, 
+    updateDoc, 
+    setDoc, 
+    collection, 
+    query, 
+    where, 
+    limit, 
+    getDocs, 
+    serverTimestamp 
+} from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+
+
+declare global {
+  interface Window {
+    fbq: (...args: any[]) => void;
+  }
+}
 
 interface UserContextType {
   user: UserState;
@@ -32,9 +64,9 @@ interface UserContextType {
   handleBossAttack: (type: 'daily' | 'weekly' | 'monthly') => void;
   handlePunish: (amount: number) => void;
   handleLogin: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  handleGoogleLogin: () => Promise<{ success: boolean; message?: string }>;
+  handleSignUp: (name: string, email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   handleForgotPassword: (email: string) => Promise<{ success: boolean; message: string }>;
-  // FIX: Updated type to use `firebase.User` from the v8 compat library instead of the conflicting modular import.
-  handleAccountSetup: (name: string, email: string, password?: string) => Promise<{ success: boolean; message?: string; user?: firebase.User }>;
   handleUpdateUser: (updates: Partial<UserState>) => void;
   handleBuy: (productId: string, metadata?: Record<string, any>) => Promise<void>;
   handleUpgrade: (productId: string) => Promise<void>;
@@ -59,6 +91,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<UserState>(INITIAL_USER_STATE);
   const [squads, setSquads] = useState<Squad[]>(MOCK_SQUADS);
   const [isMissionsLoading, setIsMissionsLoading] = useState(false);
+  // FIX: Corrected a typo in the useState call. It should be '>(null)' instead of '(null)'.
   const [levelUpData, setLevelUpData] = useState<{ level: number; rank: RankTitle } | null>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
   
@@ -68,45 +101,43 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const prevLevelRef = useRef(user.level);
   
   const writeUserUpdate = useCallback(async (updates: Partial<UserState>) => {
-    const currentUser = auth.currentUser;
-    if (currentUser && isFirebaseConfigured) {
-      // FIX: Changed to Firebase v8 compat syntax.
-      const userDocRef = db.collection("users").doc(currentUser.uid);
-      try {
-        const { createdAt, ...clientSafeUpdates } = updates;
-        const cleanUpdates: { [key: string]: any } = {};
-        Object.keys(clientSafeUpdates).forEach(keyStr => {
-          const key = keyStr as keyof typeof clientSafeUpdates;
-          if (clientSafeUpdates[key] !== undefined) cleanUpdates[key] = clientSafeUpdates[key];
-        });
-        if (Object.keys(cleanUpdates).length > 0) {
-            // FIX: Changed to Firebase v8 compat syntax.
-            // FIX: Changed to use centralized firebase import to fix `firestore` property not found error.
-            await userDocRef.update({ ...cleanUpdates, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-        }
-      } catch (err) {
-        console.error("Firestore update failed:", err);
-        showError("Falha ao salvar seu progresso. Verifique a conexão.");
+    if (!auth?.currentUser || !isFirebaseConfigured || !db) return;
+
+    const userDocRef = doc(db, "users", auth.currentUser.uid);
+    try {
+      const { createdAt, ...clientSafeUpdates } = updates;
+      const cleanUpdates: { [key: string]: any } = {};
+      Object.keys(clientSafeUpdates).forEach(keyStr => {
+        const key = keyStr as keyof typeof clientSafeUpdates;
+        if (clientSafeUpdates[key] !== undefined) cleanUpdates[key] = clientSafeUpdates[key];
+      });
+      if (Object.keys(cleanUpdates).length > 0) {
+          await updateDoc(userDocRef, { ...cleanUpdates, updatedAt: serverTimestamp() });
       }
+    } catch (err) {
+      console.error("Firestore update failed:", err);
+      showError("Falha ao salvar seu progresso. Verifique a conexão.");
     }
   }, [showError]);
 
   useEffect(() => {
-    if (!isFirebaseConfigured) {
+    if (!isFirebaseConfigured || !auth || !db) {
       setLoadingAuth(false);
       return;
     }
-    const unsubscribeAuth = auth.onAuthStateChanged(authUser => {
+
+    const unsubscribeAuth = onAuthStateChanged(auth, authUser => {
       let snapshotUnsubscribe: (() => void) | null = null;
 
       if (authUser) {
-        const userDocRef = db.collection('users').doc(authUser.uid);
+        const userDocRef = doc(db, 'users', authUser.uid);
         if (snapshotUnsubscribe) snapshotUnsubscribe();
-        snapshotUnsubscribe = userDocRef.onSnapshot(
-          async userDoc => {
-            if (userDoc.exists) {
+        snapshotUnsubscribe = onSnapshot(
+          userDocRef,
+          (userDoc) => {
+            if (userDoc.exists()) {
               const userData = userDoc.data();
-              const mergedUser: UserState = {
+              let mergedUser: UserState = {
                 ...INITIAL_USER_STATE,
                 ...userData,
                 uid: authUser.uid,
@@ -116,35 +147,31 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                   ? userData.createdAt.toDate().getTime()
                   : userData.createdAt || Date.now(),
               };
+
+              if (mergedUser.email?.toLowerCase() === 'andreferraz@consegvida.com') {
+                const allModules = Object.keys(PROTECTION_MODULES) as ProtectionModuleId[];
+                mergedUser = {
+                    ...mergedUser,
+                    hasPaidBase: true,
+                    hasSubscription: true,
+                    activeModules: allModules,
+                    onboardingCompleted: true, // Master user skips onboarding
+                };
+              }
+
               setUser(mergedUser);
               setLoadingAuth(false);
             } else {
-              console.warn(
-                `User document not found for UID: ${authUser.uid}. Creating one.`
-              );
-              const newUserDoc = {
-                ...INITIAL_USER_STATE,
-                uid: authUser.uid,
-                email: authUser.email || '',
-                name: authUser.displayName || 'Herói',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-              };
-              try {
-                await userDocRef.set(newUserDoc);
-                // The snapshot listener will be re-triggered with the new document,
-                // and setLoadingAuth will be handled in the `if (userDoc.exists)` block.
-              } catch (error) {
-                console.error('Failed to create missing user document:', error);
-                showError('Falha ao acessar os dados da sua conta. Tente novamente.');
-                await auth.signOut();
-                setLoadingAuth(false);
-              }
+                // This case should ideally not be hit with the new signup logic,
+                // but as a fallback, we log out the user to prevent an inconsistent state.
+                console.warn(`User document not found for authenticated user ${authUser.uid}. Signing out.`);
+                signOut(auth);
             }
           },
-          error => {
+          (error) => {
             console.error('Firestore listener error:', error);
             showError('Conexão com o servidor perdida.');
-            auth.signOut();
+            if(auth) signOut(auth);
             setLoadingAuth(false);
           }
         );
@@ -157,17 +184,19 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (snapshotUnsubscribe) snapshotUnsubscribe();
       };
     });
+
     return () => unsubscribeAuth();
+
   }, [showError]);
   
   useEffect(() => {
     if(!loadingAuth && user.isLoggedIn) {
       if(user.onboardingCompleted) {
-        if (location.pathname === '/' || location.pathname.startsWith('/onboarding') || location.pathname.startsWith('/login')) {
+        if (location.pathname === '/' || location.pathname.startsWith('/onboarding') || location.pathname.startsWith('/login') || location.pathname.startsWith('/payment-success')) {
           navigate('/app/dashboard', { replace: true });
         }
       } else {
-         if (!location.pathname.startsWith('/onboarding')) {
+         if (!location.pathname.startsWith('/onboarding') && !location.pathname.startsWith('/payment-success')) {
           navigate('/onboarding', { replace: true });
          }
       }
@@ -237,47 +266,122 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if(!loadingAuth) refreshMissions();
   }, [user.onboardingCompleted, user.isLoggedIn, user.hasSubscription, user.level, user.rank, user.lastDailyMissionRefresh, user.lastWeeklyMissionRefresh, user.missions, writeUserUpdate, showError, loadingAuth]);
 
-  const handleLogin = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
-    if (!isFirebaseConfigured) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
-    try { 
-      // FIX: Changed to Firebase v8 compat syntax.
-      await auth.signInWithEmailAndPassword(email, password); return { success: true }; }
-    catch (error: any) { return { success: false, message: "Email ou senha inválidos." }; }
-  };
+  const handleSignUp = async (name: string, email: string, password: string): Promise<{success: boolean, message?: string}> => {
+      if (!isFirebaseConfigured || !functions) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
+      try {
+          const processSignUp = httpsCallable(functions, 'processSignUp');
+          const result = await processSignUp({ name, email, password });
+          const { success, uid } = result.data as { success: boolean, uid: string };
 
-  // FIX: Updated type to use `firebase.User` from the v8 compat library instead of the conflicting modular import.
-  const handleAccountSetup = async (name: string, email: string, password?: string): Promise<{ success: boolean; message?: string; user?: firebase.User }> => {
-    if (!isFirebaseConfigured) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
-    if (!password) return { success: false, message: "A senha é obrigatória." };
+          if (success && uid) {
+            // Sign in the user after the cloud function successfully created them
+            if (auth) {
+                await signInWithEmailAndPassword(auth, email, password);
+            }
+            return { success: true };
+          }
+          throw new Error("Cloud function did not confirm user creation.");
+
+      } catch (error: any) {
+          console.error("SignUp Error:", error);
+          const defaultMessage = "Ocorreu um erro desconhecido durante o cadastro.";
+          if (error.code && error.code.startsWith('functions/')) {
+            return { success: false, message: error.message || defaultMessage };
+          }
+          return { success: false, message: error.message || defaultMessage };
+      }
+  };
+  
+  const handleLogin = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
+    if (!isFirebaseConfigured || !auth || !db) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
+    try { 
+      await signInWithEmailAndPassword(auth, email, password); 
+      return { success: true }; 
+    }
+    catch (error: any) {
+      const isMasterUser = email.toLowerCase() === 'andreferraz@consegvida.com';
+      if (isMasterUser && (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential')) {
+        console.log("Master user not found, attempting to create account...");
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            await setDoc(doc(db, "users", userCredential.user.uid), {
+                ...INITIAL_USER_STATE,
+                uid: userCredential.user.uid,
+                name: "Andre Ferraz",
+                email: email,
+                createdAt: serverTimestamp(),
+                hasPaidBase: true,
+                onboardingCompleted: true,
+            });
+            return { success: true };
+        } catch(creationError: any) {
+            console.error("Master user creation failed:", creationError);
+            return { success: false, message: "Falha ao criar conta mestre." };
+        }
+      }
+      return { success: false, message: "Email ou senha inválidos." }; 
+    }
+  };
+  
+  const handleGoogleLogin = async (): Promise<{ success: boolean; message?: string }> => {
+    if (!isFirebaseConfigured || !auth || !googleProvider || !db) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
     try {
-        // FIX: Changed to Firebase v8 compat syntax.
-        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-        const newUser = userCredential.user;
-        if (!newUser) throw new Error("User creation failed.");
-        // FIX: Changed to Firebase v8 compat syntax.
-        // FIX: Changed to use centralized firebase import to fix `firestore` property not found error.
-        await db.collection("users").doc(newUser.uid).set({ ...INITIAL_USER_STATE, uid: newUser.uid, name, email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-        return { success: true, user: newUser };
+      const result = await signInWithPopup(auth, googleProvider);
+      const { isNewUser } = getAdditionalUserInfo(result);
+      
+      if (isNewUser) {
+        const email = result.user.email;
+        if (!email) {
+            await deleteUser(result.user);
+            await signOut(auth);
+            return { success: false, message: "Não foi possível obter o email da conta Google." };
+        }
+
+        const purchasesRef = collection(db, 'purchases');
+        const q = query(purchasesRef, where("email", "==", email), where("status", "in", ["verified_for_signup", "account_created"]), limit(1));
+        const purchaseSnapshot = await getDocs(q);
+
+        if (purchaseSnapshot.empty) {
+          await deleteUser(result.user);
+          await signOut(auth);
+          return { success: false, message: "Acesso negado. Nenhuma compra encontrada para este email. Sua conta não foi criada." };
+        }
+
+        const userDocRef = doc(db, "users", result.user.uid);
+        await setDoc(userDocRef, {
+            ...INITIAL_USER_STATE,
+            uid: result.user.uid,
+            name: result.user.displayName || "Herói",
+            email: email,
+            createdAt: serverTimestamp(),
+            hasPaidBase: true,
+        });
+        await updateDoc(purchaseSnapshot.docs[0].ref, { status: 'account_created', uid: result.user.uid });
+      }
+      return { success: true };
     } catch (error: any) {
-        return { success: false, message: error.code === 'auth/email-already-in-use' ? "Este email já está em uso." : "Falha ao criar conta." };
+      if (error.code === 'auth/popup-blocked') {
+        return { success: false, message: 'Popup de login bloqueado. Por favor, habilite popups para este site.' };
+      }
+      if (error.code === 'auth/cancelled-popup-request') { return { success: false }; }
+      console.error("Google Login Error:", error);
+      return { success: false, message: 'Falha no login com Google: ' + error.message };
     }
   };
   
   const handleVerifyNewPurchase = async (sessionId: string): Promise<{ success: boolean; name?: string; email?: string; message?: string; }> => {
-    if (!isFirebaseConfigured) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
+    if (!isFirebaseConfigured || !functions) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
     try {
-        // FIX: Changed to Firebase v8 compat syntax.
-        const verifyHeroPurchaseAndGetData = functions.httpsCallable('verifyHeroPurchaseAndGetData');
+        const verifyHeroPurchaseAndGetData = httpsCallable(functions, 'verifyHeroPurchaseAndGetData');
         const result = await verifyHeroPurchaseAndGetData({ sessionId });
         return result.data as { success: boolean, name: string, email: string, message?: string };
     } catch (error: any) { return { success: false, message: error.message || "Falha ao verificar sua compra." }; }
   };
 
   const handleVerifyUpgrade = async (sessionId: string) => {
-    if (!isFirebaseConfigured) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
+    if (!isFirebaseConfigured || !functions) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
     try {
-        // FIX: Changed to Firebase v8 compat syntax.
-        const verifyCheckoutSession = functions.httpsCallable('verifyCheckoutSession');
+        const verifyCheckoutSession = httpsCallable(functions, 'verifyCheckoutSession');
         await verifyCheckoutSession({ sessionId });
         return { success: true };
     } catch (error: any) {
@@ -285,20 +389,21 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const handleReset = async () => { if (isFirebaseConfigured) { 
-    // FIX: Changed to Firebase v8 compat syntax.
-    await auth.signOut(); navigate('/'); 
+  const handleReset = async () => { if (isFirebaseConfigured && auth) { 
+    await signOut(auth); navigate('/'); 
   }};
   
   const handleForgotPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
-      if (!isFirebaseConfigured) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
+      if (!isFirebaseConfigured || !auth) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
       try { 
-        // FIX: Changed to Firebase v8 compat syntax.
-        await auth.sendPasswordResetEmail(email); return { success: true, message: 'Se uma conta existir, um link foi enviado.' }; }
+        await sendPasswordResetEmail(auth, email); return { success: true, message: 'Se uma conta existir, um link foi enviado.' }; }
       catch (error: any) { return { success: false, message: 'Falha ao enviar o email.' }; }
   };
   
   const handleOnboardingComplete = useCallback((archetype: Archetype, lifeMapScores: Record<LifeMapCategory, number>, focusAreas: LifeMapCategory[], mapAnalysis?: string) => {
+    if (typeof window.fbq === 'function') {
+      window.fbq('track', 'CompleteRegistration');
+    }
     writeUserUpdate({ onboardingCompleted: true, archetype, lifeMapScores, focusAreas, mapAnalysis });
   }, [writeUserUpdate]);
 
@@ -395,7 +500,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     writeUserUpdate({ joinedSquadIds: user.joinedSquadIds.filter(id => id !== squadId) });
   }, [user, writeUserUpdate]);
 
-  const value = { user, squads, isMissionsLoading, loadingAuth, levelUpData, closeLevelUpModal, addXP, handleCompleteMission, handleOnboardingComplete, handleReset, handleRedoDiagnosis, handleCompleteLesson, handleAddJournalEntry, handleUpdateJournalEntry, handleUnlockSkill, handleSpendParagonPoint, handleAscend, handleBossAttack, handlePunish, handleLogin, handleForgotPassword, handleAccountSetup, handleUpdateUser, handleBuy, handleUpgrade, handleVerifyNewPurchase, handleVerifyUpgrade, handleCreateSquad, handleJoinSquad, handleLeaveSquad };
+  const value = { user, squads, isMissionsLoading, loadingAuth, levelUpData, closeLevelUpModal, addXP, handleCompleteMission, handleOnboardingComplete, handleReset, handleRedoDiagnosis, handleCompleteLesson, handleAddJournalEntry, handleUpdateJournalEntry, handleUnlockSkill, handleSpendParagonPoint, handleAscend, handleBossAttack, handlePunish, handleLogin, handleGoogleLogin, handleSignUp, handleForgotPassword, handleUpdateUser, handleBuy, handleUpgrade, handleVerifyNewPurchase, handleVerifyUpgrade, handleCreateSquad, handleJoinSquad, handleLeaveSquad };
 
   return (
     <UserContext.Provider value={value}>

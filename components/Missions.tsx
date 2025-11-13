@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mission, MissionCategory, MissionType } from '../types';
-import { Target, CheckCircle, Dumbbell, BookOpen, PiggyBank, Brain, Zap, Award } from 'lucide-react';
+import { Target, CheckCircle, Dumbbell, BookOpen, PiggyBank, Brain, Zap, Award, Loader2 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 
 const categoryIcons: Record<MissionCategory, React.ElementType> = {
@@ -25,7 +25,7 @@ const MissionItem: React.FC<{ mission: Mission; onComplete: (id: string) => void
   };
 
   return (
-    <div className={`bg-zinc-900 border ${isChallenge ? 'border-amber-700/50' : 'border-zinc-800'} rounded-xl p-4 flex items-center justify-between gap-4 transition-opacity ${mission.completed ? 'opacity-50' : ''} ${isCompleting ? 'animate-mission-complete' : ''}`}>
+    <div className={`bg-zinc-900 border ${isChallenge ? 'border-amber-700/50' : 'border-zinc-800'} rounded-xl p-4 flex items-center justify-between gap-4 transition-all duration-500 ${mission.completed ? 'opacity-50' : ''} ${isCompleting ? 'animate-mission-complete border-green-500/50' : ''}`}>
       <div className="flex items-center gap-4">
         <div className={`w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center bg-zinc-800 ${color}`}><Icon className="w-6 h-6" /></div>
         <div>
@@ -38,9 +38,31 @@ const MissionItem: React.FC<{ mission: Mission; onComplete: (id: string) => void
           </p>
         </div>
       </div>
-      <button onClick={handleCompleteClick} disabled={mission.completed || isCompleting} className="px-4 py-3 bg-zinc-800 text-white font-bold uppercase tracking-wider text-xs rounded transition-colors active:scale-95 enabled:hover:bg-zinc-100 enabled:hover:text-zinc-900 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-        {mission.completed ? <CheckCircle className="w-4 h-4" /> : <span className="hidden sm:inline">Completar</span>}
-        {!mission.completed && <CheckCircle className="w-4 h-4 sm:hidden" />}
+       <button 
+        onClick={handleCompleteClick} 
+        disabled={mission.completed || isCompleting} 
+        className={`px-4 py-3 w-[120px] sm:w-[130px] text-xs rounded transition-colors active:scale-95 flex items-center justify-center gap-2 font-bold uppercase tracking-wider
+          ${mission.completed 
+            ? 'bg-zinc-800/50 text-green-500 cursor-default' 
+            : isCompleting
+            ? 'bg-zinc-800 text-zinc-400 cursor-wait'
+            : 'bg-zinc-800 text-white hover:bg-zinc-100 hover:text-zinc-900'
+          }
+        `}
+      >
+        {isCompleting ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+        ) : mission.completed ? (
+          <>
+            <CheckCircle className="w-4 h-4" />
+            <span className="hidden sm:inline">Concluído</span>
+          </>
+        ) : (
+          <>
+            <span className="hidden sm:inline">Completar</span>
+            <CheckCircle className="w-4 h-4 sm:hidden" />
+          </>
+        )}
       </button>
     </div>
   );

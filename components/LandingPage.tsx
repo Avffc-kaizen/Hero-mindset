@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Shield, ChevronRight, LogIn, CheckCircle, Play, Bot, Award, Share2, Briefcase, TrendingUp, Activity, Brain, Zap, HeartHandshake, Target, Book, ScrollText, Sparkles, GitMerge } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import { PRODUCTS, FRONTEND_URL, PROTECTION_MODULES } from '../constants';
+import ChatbotWidget from './ChatbotWidget';
 
 const LazySection = ({ children, className = "", id = "", ...props }: React.HTMLAttributes<HTMLDivElement> & { children: React.ReactNode, id?: string }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -163,9 +164,19 @@ const LandingPage: React.FC = () => {
         <div className="flex items-center gap-2 font-mono font-black uppercase tracking-widest text-sm">
           <Shield className="w-5 h-5 text-red-600" aria-hidden="true" /> Hero Mindset <span className="text-zinc-500">3.0</span>
         </div>
+
+        <div className="absolute left-1/2 -translate-x-1/2">
+            <button 
+                onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} 
+                className="bg-black text-yellow-400 border-2 border-yellow-500 text-[10px] font-bold uppercase tracking-widest px-4 py-2 hover:bg-yellow-900/50 transition rounded-lg animate-button-glow shadow-lg shadow-yellow-500/10">
+                Acesso Black Friday
+            </button>
+        </div>
+
         <div className="flex items-center gap-4">
-          <button onClick={onGoToLogin} className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition flex items-center gap-2"><LogIn className="w-3 h-3" /> Login</button>
-          <button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="bg-white text-black text-[10px] font-bold uppercase tracking-widest px-4 py-2 hover:bg-zinc-200 transition rounded">Acesso Black Friday</button>
+          <button onClick={onGoToLogin} className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition flex items-center gap-2">
+            <LogIn className="w-3 h-3" /> Login
+          </button>
         </div>
       </nav>
 
@@ -175,7 +186,7 @@ const LandingPage: React.FC = () => {
           <h1 className="text-5xl sm:text-7xl font-extrabold mb-6 tracking-tighter font-mono uppercase">O Fim do Homem Comum.</h1>
           <p className="text-lg text-zinc-400 mb-10 max-w-3xl mx-auto">O sistema operacional que transforma disciplina em poder e execução em legado. A Black Friday é sua única chance de entrar com acesso vitalício.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="bg-red-600 text-white px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-red-700 transition flex items-center gap-3 shadow-lg shadow-red-600/20">
+            <button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="bg-red-600 text-white px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-red-700 transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-3 shadow-lg shadow-red-600/20 hover:shadow-xl hover:shadow-red-500/40">
               Declarar Guerra <ChevronRight />
             </button>
             <button onClick={handleShare} className="bg-transparent border border-zinc-700 text-zinc-300 px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-zinc-800 hover:border-zinc-600 hover:text-white transition flex items-center gap-3">
@@ -260,7 +271,7 @@ const LandingPage: React.FC = () => {
                     <li className="flex items-center gap-3"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Acesso à Guilda, Esquadrões e Panteão</li>
                   </ul>
                 </div>
-                <button onClick={() => handleBuyClick(product.id)} className="w-full mt-auto bg-yellow-500 text-black py-3 rounded font-bold uppercase tracking-widest hover:bg-yellow-400 transition">Garantir Acesso Vitalício</button>
+                <button onClick={() => handleBuyClick(product.id)} className="w-full mt-auto bg-gradient-to-br from-yellow-400 to-yellow-500 text-black py-4 rounded-lg font-bold uppercase tracking-widest transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/40 active:scale-95 animate-button-glow">Garantir Acesso Vitalício</button>
                  <p className="text-xs text-zinc-500 mt-4">Upgrades para Mentor IA e Proteção 360 disponíveis opcionalmente dentro da plataforma.</p>
               </div>
             ))}
@@ -317,13 +328,15 @@ const LandingPage: React.FC = () => {
         <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-4xl font-bold font-mono uppercase mb-4 text-red-500">Ninguém Virá Te Salvar.</h2>
             <p className="text-lg text-zinc-300 mb-8">A decisão é sua. A hora é agora. Chegou a hora de parar de se perguntar e começar a construir, de parar de desejar e começar a executar.</p>
-            <button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="bg-yellow-500 text-black px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-yellow-400 transition shadow-lg shadow-yellow-500/20">
+            <button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="bg-gradient-to-br from-yellow-400 to-yellow-500 text-black px-8 py-4 rounded-lg font-bold uppercase tracking-widest transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/40 active:scale-95 animate-button-glow">
                 Iniciar Ascensão
             </button>
         </div>
       </LazySection>
 
       <footer className="text-center p-8 border-t border-zinc-900"><p className="text-zinc-600 font-mono text-xs">© {new Date().getFullYear()} HERO MINDSET</p></footer>
+      
+      <ChatbotWidget />
     </div>
   );
 };

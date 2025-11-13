@@ -303,7 +303,8 @@ export const getMentorChatReply = async (chatHistory: ChatMessage[], user: UserS
     
     const response = await client.models.generateContent({
       model: modelName,
-      contents: history as any, // Cast to any to align with SDK expectations
+      // FIX: Cast 'history' to 'any' to resolve type mismatch with SDK's expected 'Content[]'.
+      contents: history as any,
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.8,

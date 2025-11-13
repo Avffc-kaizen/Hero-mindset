@@ -1,11 +1,10 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Archetype, LifeMapCategory, ArchetypesList, LifeMapCategoriesList } from '../types';
 import { ARCHETYPE_QUESTIONS, INITIAL_LIFE_MAP_SCORES, LIFE_MAP_QUESTIONS } from '../constants';
-import { ArrowRight, Compass, Loader2, LogIn, User, KeyRound, AlertCircle, Shield, Mail, Target, CheckCircle, Sliders, Activity, MousePointerClick } from 'lucide-react';
-import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip } from 'recharts';
+import { ArrowRight, Compass, Loader2, LogIn, User, KeyRound, AlertCircle, Shield, Mail, Bot } from 'lucide-react';
+import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { useUser } from '../contexts/UserContext';
 
 export const Onboarding: React.FC = () => {
@@ -164,7 +163,18 @@ export const Onboarding: React.FC = () => {
           </div>
         );
       case 5: // Analyzing
-        return ( <div className="text-center animate-in fade-in"> <Loader2 className="w-16 h-16 mx-auto text-zinc-500 mb-6 animate-spin" /> <h1 className="text-3xl font-bold font-mono uppercase mb-4 tracking-tighter">O Oráculo está sendo ativado...</h1> <p className="text-zinc-400 text-lg">Aguarde um instante, sua jornada está para começar.</p> </div> );
+        return (
+          <div className="text-center animate-in fade-in">
+            <div className="relative flex items-center justify-center w-24 h-24 mx-auto mb-6">
+                <div className="absolute w-full h-full rounded-full bg-yellow-500/30 animate-oracle-thinking" style={{ animationDelay: '0s' }}></div>
+                <div className="absolute w-full h-full rounded-full bg-yellow-500/30 animate-oracle-thinking" style={{ animationDelay: '0.6s' }}></div>
+                <div className="absolute w-full h-full rounded-full bg-yellow-500/30 animate-oracle-thinking" style={{ animationDelay: '1.2s' }}></div>
+                <Bot className="w-12 h-12 text-yellow-400 relative z-10" />
+            </div>
+            <h1 className="text-3xl font-bold font-mono uppercase mb-4 tracking-tighter animate-pulse text-yellow-400">O Oráculo está sendo ativado...</h1>
+            <p className="text-zinc-400 text-lg">Aguarde um instante, sua jornada está para começar.</p>
+          </div>
+        );
       default: return null;
     }
   };
@@ -178,9 +188,10 @@ export const Onboarding: React.FC = () => {
 
 
 export const LoginScreen: React.FC = () => {
-  const { user, loadingAuth, handleLogin, handleGoogleLogin, handleForgotPassword } = useUser();
+  const { user, loadingAuth, handleLogin, handleSignUp, handleGoogleLogin, handleForgotPassword } = useUser();
   const navigate = useNavigate();
-  const [view, setView] = useState<'login' | 'forgotPassword'>('login');
+  const [view, setView] = useState<'login' | 'signup' | 'forgotPassword'>('login');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -209,6 +220,21 @@ export const LoginScreen: React.FC = () => {
       setLoading(false);
     }
   };
+  
+  const handleSignUpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !email || !password) { setError("Nome, email e senha são obrigatórios."); return; }
+    if (password.length < 6) { setError("A senha deve ter no mínimo 6 caracteres."); return; }
+    setLoading(true);
+    setError('');
+    setMessage('');
+    const result = await handleSignUp(name, email, password);
+    if (!result.success) {
+      setError(result.message || 'Falha no cadastro.');
+      setLoading(false);
+    }
+    // On success, the onAuthStateChanged listener in UserContext will handle navigation.
+  };
 
   const onGoogleLogin = async () => {
     setLoading(true);
@@ -232,23 +258,45 @@ export const LoginScreen: React.FC = () => {
       setLoading(false);
   };
 
+  const renderTitle = () => {
+    switch(view) {
+        case 'login': return 'Santuário do Herói';
+        case 'signup': return 'Alistamento';
+        case 'forgotPassword': return 'Recuperar Acesso';
+    }
+  };
+
+  const renderSubtitle = () => {
+    switch(view) {
+        case 'login': return 'Acesse seu Quartel-General.';
+        case 'signup': return 'Forje sua identidade de Herói.';
+        case 'forgotPassword': return 'Insira seu email para redefinir a senha.';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
        <div className="bg-zinc-900 p-8 rounded-xl border border-zinc-800 shadow-2xl w-full max-w-md animate-in fade-in">
         <div className="text-center mb-8">
           <Shield className="w-16 h-16 text-red-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white font-mono uppercase">{view === 'login' ? 'Santuário do Herói' : 'Recuperar Acesso'}</h2>
-          <p className="text-zinc-400 mt-2">{view === 'login' ? 'Acesse seu Quartel-General.' : 'Insira seu email para redefinir a senha.'}</p>
+          <h2 className="text-2xl font-bold text-white font-mono uppercase">{renderTitle()}</h2>
+          <p className="text-zinc-400 mt-2">{renderSubtitle()}</p>
         </div>
-
-        {view === 'login' ? (
-        <form onSubmit={handleLoginSubmit} className="space-y-4">
-           {error && (
-            <div className="bg-red-950/50 border border-red-900 text-red-400 px-4 py-3 rounded flex items-center gap-3 text-sm">
+        
+        {error && (
+            <div className="bg-red-950/50 border border-red-900 text-red-400 px-4 py-3 rounded flex items-center gap-3 text-sm mb-4">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
               {error}
             </div>
-          )}
+        )}
+        {message && (
+             <div className="bg-green-950/50 border border-green-900/50 text-green-400 px-4 py-3 rounded flex items-center gap-3 text-sm mb-4">
+                {message}
+             </div>
+        )}
+
+        {view === 'login' && (
+        <form onSubmit={handleLoginSubmit} className="space-y-4">
           <button
               type="button"
               onClick={onGoogleLogin}
@@ -267,91 +315,89 @@ export const LoginScreen: React.FC = () => {
             <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Email de Registro</label>
             <div className="relative">
               <Mail className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
-              <input
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:border-zinc-600 font-mono transition-colors"
-                placeholder="seu@email.com"
-              />
+              <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:border-zinc-600 font-mono transition-colors" placeholder="seu@email.com" />
             </div>
           </div>
            <div>
             <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Senha de Comando</label>
             <div className="relative">
               <KeyRound className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
-              <input
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:border-zinc-600 font-mono transition-colors"
-                placeholder="••••••••"
-              />
+              <input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:border-zinc-600 font-mono transition-colors" placeholder="••••••••" />
             </div>
              <button type="button" onClick={() => { setView('forgotPassword'); setError(''); setMessage('');}} className="text-xs text-zinc-500 hover:text-white mt-2 font-mono underline">Esqueceu a senha?</button>
           </div>
           <div className="pt-2">
-             <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-white text-zinc-950 py-4 rounded font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {loading ? <Loader2 className="animate-spin" /> : (
-                <>
-                  Entrar <LogIn className="w-5 h-5" />
-                </>
-              )}
-            </button>
+             <button type="submit" disabled={loading} className="w-full bg-white text-zinc-950 py-4 rounded font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
+              {loading ? <Loader2 className="animate-spin" /> : <>Entrar <LogIn className="w-5 h-5" /></>}
+             </button>
           </div>
         </form>
-        ) : (
-        <form onSubmit={handleForgotSubmit} className="space-y-4">
-           {error && (
-            <div className="bg-red-950/50 border border-red-900 text-red-400 px-4 py-3 rounded flex items-center gap-3 text-sm">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" /> {error}
+        )}
+        
+        {view === 'signup' && (
+        <form onSubmit={handleSignUpSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Nome de Herói</label>
+            <div className="relative">
+              <User className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
+              <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:border-zinc-600 font-mono transition-colors" placeholder="Seu nome" />
             </div>
-          )}
-          {message && (
-             <div className="bg-green-950/50 border border-green-900/50 text-green-400 px-4 py-3 rounded flex items-center gap-3 text-sm">
-                {message}
-             </div>
-          )}
+          </div>
           <div>
             <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Email de Registro</label>
             <div className="relative">
               <Mail className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
-              <input
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:border-zinc-600 font-mono transition-colors"
-                placeholder="seu@email.com"
-              />
+              <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:border-zinc-600 font-mono transition-colors" placeholder="seu@email.com" />
             </div>
-             <button type="button" onClick={() => { setView('login'); setError(''); setMessage(''); }} className="text-xs text-zinc-500 hover:text-white mt-2 font-mono underline">Voltar para o Login</button>
+          </div>
+           <div>
+            <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Senha de Comando</label>
+            <div className="relative">
+              <KeyRound className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
+              <input type="password" required autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:border-zinc-600 font-mono transition-colors" placeholder="Mínimo 6 caracteres" />
+            </div>
           </div>
           <div className="pt-2">
-             <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-white text-zinc-950 py-4 rounded font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
-            >
+             <button type="submit" disabled={loading} className="w-full bg-white text-zinc-950 py-4 rounded font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
+              {loading ? <Loader2 className="animate-spin" /> : "Criar Conta"}
+             </button>
+          </div>
+        </form>
+        )}
+
+        {view === 'forgotPassword' && (
+        <form onSubmit={handleForgotSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Email de Registro</label>
+            <div className="relative">
+              <Mail className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
+              <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:border-zinc-600 font-mono transition-colors" placeholder="seu@email.com"/>
+            </div>
+          </div>
+          <div className="pt-2">
+             <button type="submit" disabled={loading} className="w-full bg-white text-zinc-950 py-4 rounded font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
               {loading ? <Loader2 className="animate-spin" /> : 'Enviar Link de Recuperação' }
-            </button>
+             </button>
           </div>
         </form>
         )}
          <div className="text-center mt-6">
             <p className="text-sm text-zinc-500">
-                Ainda não iniciou sua jornada?{' '}
-                <button onClick={() => navigate('/')} className="font-bold text-zinc-300 hover:text-white underline">
-                    Aliste-se agora.
+                {view === 'login' && 'Ainda não iniciou sua jornada?'}
+                {view === 'signup' && 'Já possui uma conta?'}
+                {view === 'forgotPassword' && 'Lembrou sua senha?'}
+                {' '}
+                <button 
+                  onClick={() => { 
+                    setView(view === 'login' ? 'signup' : 'login'); 
+                    setError(''); 
+                    setMessage(''); 
+                  }} 
+                  className="font-bold text-zinc-300 hover:text-white underline"
+                >
+                    {view === 'login' && 'Aliste-se agora.'}
+                    {view === 'signup' && 'Faça o login.'}
+                    {view === 'forgotPassword' && 'Voltar para o Login.'}
                 </button>
             </p>
          </div>

@@ -1,4 +1,3 @@
-// FIX: import useState to resolve 'Cannot find name 'useState'' error.
 import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Navigate, Outlet, useLocation, NavLink } from 'react-router-dom';
 import { Onboarding, LoginScreen } from './components/Login';

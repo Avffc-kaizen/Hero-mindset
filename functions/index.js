@@ -1,19 +1,27 @@
-
-
 const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
 const crypto = require("crypto");
 const fetch = require("node-fetch");
 
-// Initialize Stripe with API version for consistency and stability.
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? require('stripe')(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' })
+// --- SECRET & CONFIG MANAGEMENT ---
+// Secrets MUST be set in the environment (e.g., in Firebase function settings).
+// Deprecated functions.config() has been removed for security and future-proofing.
+const STRIPE_SECRET_KEY_VALUE = process.env.STRIPE_SECRET_KEY;
+const STRIPE_WEBHOOK_SECRET_VALUE = process.env.STRIPE_WEBHOOK_SECRET;
+const FB_PIXEL_ID_VALUE = process.env.FB_PIXEL_ID || "1170213417867380";
+const FB_CAPI_TOKEN_VALUE = process.env.FB_CONVERSIONS_API_ACCESS_TOKEN;
+
+// --- CRITICAL ERROR MESSAGES ---
+const STRIPE_CONFIG_ERROR_MSG = "CONFIGURAÇÃO INCOMPLETA: A chave secreta do Stripe (STRIPE_SECRET_KEY) não foi encontrada no ambiente do servidor. Configure-a nas variáveis de ambiente da sua Firebase Function para ativar os pagamentos.";
+const STRIPE_WEBHOOK_SECRET_ERROR_MSG = "CONFIGURAÇÃO INCOMPLETA: O segredo do webhook do Stripe (STRIPE_WEBHOOK_SECRET) não foi encontrado no ambiente. O webhook é essencial para confirmar pagamentos de forma segura.";
+
+const stripe = STRIPE_SECRET_KEY_VALUE
+  ? require('stripe')(STRIPE_SECRET_KEY_VALUE, { apiVersion: '2024-04-10' })
   : null;
 
 admin.initializeApp();
 const db = admin.firestore();
 
-// UPDATED: Replaced placeholder Price IDs with the ones from the client-side constants.ts for consistency.
 const STRIPE_PRICES = {
   HERO_BASE: "price_1PshrWELwcc78QutdK8hB29k",
   IA_UPGRADE: "price_1PshtPELwcc78QutMvFlf3wR",
@@ -22,11 +30,13 @@ const STRIPE_PRICES = {
 
 const ONE_TIME_PAYMENT_PRICE_IDS = [STRIPE_PRICES.HERO_BASE];
 
+
 exports.createCheckoutSession = functions
     .region("southamerica-east1")
     .https.onCall(async (data, context) => {
       if (!stripe) {
-        throw new functions.https.HttpsError("internal", "Stripe não está configurado.");
+        functions.logger.error("CRITICAL: createCheckoutSession failed. STRIPE_SECRET_KEY is missing from Firebase environment variables.");
+        throw new functions.https.HttpsError("internal", STRIPE_CONFIG_ERROR_MSG);
       }
 
       const { priceId, internalProductId } = data;
@@ -36,7 +46,8 @@ exports.createCheckoutSession = functions
       
       const isBaseProductPurchase = internalProductId === 'hero_vitalicio';
       const mode = ONE_TIME_PAYMENT_PRICE_IDS.includes(priceId) ? 'payment' : 'subscription';
-      const frontendUrl = "https://aistudio.google.com/app/project/66a858e5f3c09f3c78f8";
+      
+      const frontendUrl = "https://hero-mindset.web.app";
 
       const sessionParams = {
           mode: mode,
@@ -57,10 +68,9 @@ exports.createCheckoutSession = functions
           sessionParams.customer_email = context.auth.token.email;
           sessionParams.metadata.uid = context.auth.uid;
       } else if (isBaseProductPurchase) {
-          // Let Stripe collect customer details for new signups
+          sessionParams.customer_email = data.email;
           sessionParams.billing_address_collection = 'required';
       } else {
-          // Any other purchase requires authentication.
           throw new functions.https.HttpsError("unauthenticated", "Ação requer autenticação.");
       }
 
@@ -68,7 +78,7 @@ exports.createCheckoutSession = functions
         const session = await stripe.checkout.sessions.create(sessionParams);
         return { id: session.id };
       } catch(e) {
-          console.error("Stripe Session Error:", e);
+          functions.logger.error("Stripe Session Error:", e);
           throw new functions.https.HttpsError("internal", "Falha ao criar sessão de checkout.");
       }
     });
@@ -77,7 +87,8 @@ exports.verifyHeroPurchaseAndGetData = functions
   .region("southamerica-east1")
   .https.onCall(async (data, context) => {
     if (!stripe) {
-      throw new functions.https.HttpsError("internal", "Stripe não está configurado.");
+      functions.logger.error("CRITICAL: verifyHeroPurchaseAndGetData failed. STRIPE_SECRET_KEY is missing.");
+      throw new functions.https.HttpsError("internal", STRIPE_CONFIG_ERROR_MSG);
     }
     const { sessionId } = data;
     if (!sessionId) {
@@ -121,7 +132,7 @@ exports.verifyHeroPurchaseAndGetData = functions
 
       return { success: true, name, email };
     } catch (e) {
-        console.error("Verify New Purchase Error:", e);
+        functions.logger.error("Verify New Purchase Error:", e);
         if (e instanceof functions.https.HttpsError) throw e;
         throw new functions.https.HttpsError("internal", "Falha ao verificar sua compra.");
     }
@@ -132,7 +143,8 @@ exports.verifyCheckoutSession = functions
   .region("southamerica-east1")
   .https.onCall(async (data, context) => {
     if (!stripe) {
-      throw new functions.https.HttpsError("internal", "Stripe não está configurado.");
+      functions.logger.error("CRITICAL: verifyCheckoutSession failed. STRIPE_SECRET_KEY is missing.");
+      throw new functions.https.HttpsError("internal", STRIPE_CONFIG_ERROR_MSG);
     }
     if (!context.auth) {
       throw new functions.https.HttpsError("unauthenticated", "Ação requer autenticação.");
@@ -148,7 +160,7 @@ exports.verifyCheckoutSession = functions
       const purchaseRef = db.collection("purchases").doc(sessionId);
       const purchaseDoc = await purchaseRef.get();
       if (purchaseDoc.exists) {
-        console.log(`Purchase ${sessionId} já processada.`);
+        functions.logger.info(`Purchase ${sessionId} already processed.`);
         return { success: true, message: "Pagamento já verificado." };
       }
 
@@ -161,18 +173,24 @@ exports.verifyCheckoutSession = functions
       const { priceId, internalProductId } = session.metadata;
 
       if (session.metadata.uid !== uid) {
-          console.error(`UID Mismatch: Auth UID ${uid} vs Metadata UID ${session.metadata.uid}`);
+          functions.logger.error(`UID Mismatch: Auth UID ${uid} vs Metadata UID ${session.metadata.uid}`);
           throw new functions.https.HttpsError("permission-denied", "UID do checkout não corresponde ao usuário autenticado.");
       }
 
       const userRef = db.collection("users").doc(uid);
+      const isSubscription = !ONE_TIME_PAYMENT_PRICE_IDS.includes(priceId);
       
       let updateData = {};
+      if (isSubscription && session.customer) {
+        updateData.stripeCustomerId = session.customer;
+      }
+
       if (priceId === STRIPE_PRICES.IA_UPGRADE || internalProductId === 'mentor_ia') {
-          updateData = { hasSubscription: true };
+          updateData.hasSubscription = true;
       } else if (priceId === STRIPE_PRICES.PROTECAO_360 || internalProductId === 'protecao_360') {
           const allModules = ["soberano", "tita", "sabio", "monge", "lider"];
-          updateData = { hasSubscription: true, activeModules: admin.firestore.FieldValue.arrayUnion(...allModules) };
+          updateData.hasSubscription = true;
+          updateData.activeModules = admin.firestore.FieldValue.arrayUnion(...allModules);
       }
       if (Object.keys(updateData).length > 0) {
           await userRef.update(updateData);
@@ -189,7 +207,7 @@ exports.verifyCheckoutSession = functions
       
       return { success: true };
     } catch (e) {
-      console.error("Verify Session Error:", e);
+      functions.logger.error("Verify Session Error:", e);
       if (e instanceof functions.https.HttpsError) throw e;
       throw new functions.https.HttpsError("internal", "Falha ao verificar sessão de pagamento.");
     }
@@ -200,16 +218,20 @@ exports.stripeWebhook = functions
     .region("southamerica-east1")
     .runWith({memory: "128MB"})
     .https.onRequest(async (req, res) => {
-      if (req.method !== "POST" || !stripe) {
-        console.error("Webhook received non-POST request or Stripe is not initialized.");
+      if (!stripe) {
+        functions.logger.error("CRITICAL: Stripe Webhook failed. STRIPE_SECRET_KEY is missing from environment variables.");
+        return res.status(500).send("Webhook handler configuration error: Missing Stripe secret key.");
+      }
+      if (req.method !== "POST") {
+        functions.logger.error("Webhook received non-POST request.");
         return res.status(400).send("Bad Request");
       }
 
       const sig = req.headers['stripe-signature'];
-      const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      const endpointSecret = STRIPE_WEBHOOK_SECRET_VALUE;
 
       if (!endpointSecret) {
-        console.error("CRITICAL: STRIPE_WEBHOOK_SECRET environment variable not set.");
+        functions.logger.error(STRIPE_WEBHOOK_SECRET_ERROR_MSG);
         return res.status(500).send("Webhook handler configuration error: Missing secret.");
       }
 
@@ -217,91 +239,159 @@ exports.stripeWebhook = functions
       try {
         event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);
       } catch (err) {
-        console.error(`Webhook Signature Error: ${err.message}`);
+        functions.logger.error(`Webhook Signature Error: ${err.message}`);
         return res.status(400).send(`Webhook Error: ${err.message}`);
       }
 
       try {
-        if (event.type === 'checkout.session.completed') {
-          const session = event.data.object;
-          const { uid, priceId, internalProductId } = session.metadata;
+        switch (event.type) {
+          case 'checkout.session.completed': {
+            const session = event.data.object;
+            const { uid, priceId, internalProductId } = session.metadata;
 
-          const purchaseRef = db.collection("purchases").doc(session.id);
-          const purchaseDoc = await purchaseRef.get();
-          if (purchaseDoc.exists) {
-              console.log(`Webhook: Purchase ${session.id} já processada.`);
-              return res.json({ received: true, message: "Already processed." });
-          }
+            const purchaseRef = db.collection("purchases").doc(session.id);
+            const purchaseDoc = await purchaseRef.get();
+            if (purchaseDoc.exists) {
+                functions.logger.info(`Webhook: Purchase ${session.id} already processed.`);
+                return res.json({ received: true, message: "Already processed." });
+            }
 
-          if (uid) {
-              const userRef = db.collection("users").doc(uid);
-              let logMsg = "";
-              let updateData = {};
-              if (priceId === STRIPE_PRICES.IA_UPGRADE || internalProductId === 'mentor_ia') {
-                 updateData = { hasSubscription: true };
-                 logMsg = "Activated IA Mentor";
-              } else if (priceId === STRIPE_PRICES.PROTECAO_360 || internalProductId === 'protecao_360') {
-                 const allModules = ["soberano", "tita", "sabio", "monge", "lider"];
-                 updateData = { hasSubscription: true, activeModules: admin.firestore.FieldValue.arrayUnion(...allModules) };
-                 logMsg = "Activated Proteção 360";
-              }
+            const isSubscription = !ONE_TIME_PAYMENT_PRICE_IDS.includes(priceId);
 
-              if (Object.keys(updateData).length > 0) {
-                  await userRef.update(updateData);
-                  logMsg += ` for user ${uid}`;
-              }
-              
-              await purchaseRef.set({
-                uid: uid,
-                email: session.customer_email,
-                sessionId: session.id,
-                priceId: priceId,
-                processedAt: admin.firestore.FieldValue.serverTimestamp(),
-                processedBy: 'webhook'
-              });
-              console.log(`Stripe Success (Upgrade): ${logMsg}`);
+            if (uid) {
+                const userRef = db.collection("users").doc(uid);
+                let logMsg = "";
+                let updateData = {};
 
-          } else if (internalProductId === 'hero_vitalicio') {
-              const name = session.customer_details?.name;
-              const email = session.customer_details?.email;
+                if (isSubscription && session.customer) {
+                  updateData.stripeCustomerId = session.customer;
+                }
 
-              if (name && email) {
+                if (priceId === STRIPE_PRICES.IA_UPGRADE || internalProductId === 'mentor_ia') {
+                   updateData.hasSubscription = true;
+                   logMsg = "Activated IA Mentor";
+                } else if (priceId === STRIPE_PRICES.PROTECAO_360 || internalProductId === 'protecao_360') {
+                   const allModules = ["soberano", "tita", "sabio", "monge", "lider"];
+                   updateData.hasSubscription = true;
+                   updateData.activeModules = admin.firestore.FieldValue.arrayUnion(...allModules);
+                   logMsg = "Activated Proteção 360";
+                }
+
+                if (Object.keys(updateData).length > 0) {
+                    await userRef.update(updateData);
+                    logMsg += ` for user ${uid}`;
+                }
+                
                 await purchaseRef.set({
-                  email: email,
-                  name: name,
+                  uid: uid,
+                  email: session.customer_email,
                   sessionId: session.id,
                   priceId: priceId,
                   processedAt: admin.firestore.FieldValue.serverTimestamp(),
-                  processedBy: 'webhook',
-                  status: 'verified_for_signup'
+                  processedBy: 'webhook'
                 });
-                console.log(`Stripe Success (New User): Purchase ${session.id} logged for ${email}.`);
-              } else {
-                console.error(`Webhook: Missing customer details for new user purchase ${session.id}.`);
-              }
+                functions.logger.info(`Stripe Success (Upgrade): ${logMsg}`);
+
+            } else if (internalProductId === 'hero_vitalicio') {
+                const name = session.customer_details?.name;
+                const email = session.customer_details?.email;
+
+                if (name && email) {
+                  await purchaseRef.set({
+                    email: email,
+                    name: name,
+                    sessionId: session.id,
+                    priceId: priceId,
+                    processedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    processedBy: 'webhook',
+                    status: 'verified_for_signup'
+                  });
+                  functions.logger.info(`Stripe Success (New User): Purchase ${session.id} logged for ${email}.`);
+                } else {
+                  functions.logger.error(`Webhook: Missing customer details for new user purchase ${session.id}.`);
+                }
+            }
+            
+            if(session.payment_status === 'paid') {
+              await sendFbConversionApiEvent({
+                  eventName: 'Purchase',
+                  eventTime: session.created,
+                  user: { email: session.customer_details?.email, name: session.customer_details?.name },
+                  customData: {
+                      value: session.amount_total / 100,
+                      currency: session.currency.toUpperCase(),
+                      content_ids: [internalProductId],
+                      content_type: 'product',
+                  },
+                  eventSourceUrl: `https://hero-mindset.web.app/`,
+                  ip: req.ip,
+                  userAgent: req.headers['user-agent'],
+              });
+            }
+            break;
           }
           
-          if(session.payment_status === 'paid') {
-            await sendFbConversionApiEvent({
-                eventName: 'Purchase',
-                eventTime: session.created,
-                user: { email: session.customer_details?.email, name: session.customer_details?.name },
-                customData: {
-                    value: session.amount_total / 100,
-                    currency: session.currency.toUpperCase(),
-                    content_ids: [internalProductId],
-                    content_type: 'product',
-                },
-                eventSourceUrl: `https://aistudio.google.com/app/project/66a858e5f3c09f3c78f8/#/`,
-                ip: req.ip,
-                userAgent: req.headers['user-agent'],
+          case 'invoice.payment_failed': {
+            const invoice = event.data.object;
+            const customerId = invoice.customer;
+            if (!customerId) {
+                functions.logger.error("Webhook 'invoice.payment_failed': event missing customer ID.", { invoiceId: invoice.id });
+                break;
+            }
+    
+            const usersRef = db.collection('users');
+            const q = usersRef.where('stripeCustomerId', '==', customerId).limit(1);
+            const snapshot = await q.get();
+    
+            if (snapshot.empty) {
+                functions.logger.warn(`Webhook 'invoice.payment_failed': No user found for Stripe customer ID: ${customerId}.`);
+                break;
+            }
+    
+            const userDoc = snapshot.docs[0];
+            functions.logger.warn(`Recurring payment failed for user ${userDoc.id}. Subscription is now 'past_due'.`, {
+                userId: userDoc.id,
+                stripeCustomerId: customerId,
+                invoiceId: invoice.id,
             });
+            break;
           }
+
+          case 'customer.subscription.deleted': {
+            const subscription = event.data.object;
+            const customerId = subscription.customer;
+
+            if (!customerId) {
+              functions.logger.error("Webhook `customer.subscription.deleted`: event missing customer ID.");
+              break;
+            }
+
+            const usersRef = db.collection('users');
+            const q = usersRef.where('stripeCustomerId', '==', customerId).limit(1);
+            const snapshot = await q.get();
+
+            if (snapshot.empty) {
+              functions.logger.warn(`Webhook: No user found for Stripe customer ID: ${customerId} on subscription cancellation.`);
+              break;
+            }
+
+            const userDoc = snapshot.docs[0];
+            await userDoc.ref.update({
+              hasSubscription: false,
+              activeModules: []
+            });
+
+            functions.logger.info(`Subscription access revoked for user ${userDoc.id} (Stripe Customer: ${customerId}).`);
+            break;
+          }
+
+          default:
+            functions.logger.log(`Webhook: Unhandled event type ${event.type}`);
         }
 
         res.json({received: true});
       } catch (err) {
-        console.error(`Stripe Processing Error: ${err.message}`);
+        functions.logger.error(`Stripe Processing Error: ${err.message}`);
         res.status(500).send("Server Error");
       }
     });
@@ -315,14 +405,14 @@ exports.eduzzWebhook = functions
 
         const eduzzApiKey = process.env.EDUZZ_API_KEY;
         if (!eduzzApiKey) {
-            console.error("CRITICAL: EDUZZ_API_KEY environment variable not set.");
+            functions.logger.error("CRITICAL: EDUZZ_API_KEY environment variable not set.");
             return res.status(500).send("Handler configuration error.");
         }
 
         try {
             const data = req.body;
             if (data.apikey !== eduzzApiKey) {
-                console.warn("Eduzz Webhook: Invalid API key received.");
+                functions.logger.warn("Eduzz Webhook: Invalid API key received.");
                 return res.status(401).send("Unauthorized");
             }
 
@@ -335,7 +425,7 @@ exports.eduzzWebhook = functions
             const transactionId = data.trans_cod;
 
             if (!email || !transactionId) {
-                console.error("Eduzz Webhook: Missing email or transaction ID.");
+                functions.logger.error("Eduzz Webhook: Missing email or transaction ID.");
                 return res.status(400).send("Bad Request: Missing data");
             }
 
@@ -384,7 +474,7 @@ exports.eduzzWebhook = functions
 
             return res.status(200).send("OK");
         } catch (err) {
-            console.error("Error processing Eduzz webhook:", err);
+            functions.logger.error("Error processing Eduzz webhook:", err);
             return res.status(500).send("Internal Server Error");
         }
     });
@@ -410,7 +500,6 @@ exports.processSignUp = functions
             purchaseDoc = snapshot.docs[0];
         }
 
-
         try {
             const userRecord = await admin.auth().createUser({
                 email: email, password: password, displayName: name,
@@ -430,9 +519,37 @@ exports.processSignUp = functions
                 lastLessonCompletionDate: 0, dailyGuidance: null, activeModules: [],
                 company: null, businessRoadmap: [], bioData: { sleepHours: 0, workoutsThisWeek: 0, waterIntake: 0 },
                 focusHistory: [], dailyIntention: null, keyConnections: [], joinedSquadIds: [],
+                purchases: [],
             };
+
+            const purchaseInfo = purchaseDoc ? {
+                id: purchaseDoc.id,
+                ...purchaseDoc.data()
+            } : null;
+
+            if (purchaseInfo) {
+                initialUserData.purchases.push({
+                    purchaseId: purchaseInfo.id,
+                    provider: purchaseInfo.provider || 'stripe',
+                    productId: purchaseInfo.priceId,
+                    createdAt: purchaseInfo.processedAt || admin.firestore.FieldValue.serverTimestamp()
+                });
+            }
+
+            const userDocRef = db.collection("users").doc(userRecord.uid);
             
-            await db.collection("users").doc(userRecord.uid).set(initialUserData);
+            await db.runTransaction(async (transaction) => {
+              const userDoc = await transaction.get(userDocRef);
+              if (!userDoc.exists) {
+                transaction.set(userDocRef, initialUserData);
+              } else {
+                functions.logger.warn(`processSignUp: User document for UID ${userRecord.uid} already exists. Merging purchase info.`);
+                transaction.update(userDocRef, {
+                    hasPaidBase: true,
+                    purchases: admin.firestore.FieldValue.arrayUnion(...initialUserData.purchases)
+                });
+              }
+            });
 
             if (purchaseDoc) {
                 await purchaseDoc.ref.update({ status: 'account_created', uid: userRecord.uid });
@@ -443,17 +560,15 @@ exports.processSignUp = functions
             if (error.code === 'auth/email-already-exists') {
                  throw new functions.https.HttpsError("already-exists", "Uma conta com este email já existe. Tente fazer login.");
             }
-            console.error("Error creating user from purchase:", error);
+            functions.logger.error("Error creating user from purchase:", error);
             throw new functions.https.HttpsError("internal", "Erro ao criar sua conta.");
         }
     });
 
 
 const sendFbConversionApiEvent = async (eventData) => {
-    // These should be set as environment variables in Firebase:
-    // FB_PIXEL_ID, FB_CONVERSIONS_API_ACCESS_TOKEN
-    const pixelId = process.env.FB_PIXEL_ID || "1170213417867380";
-    const accessToken = process.env.FB_CONVERSIONS_API_ACCESS_TOKEN;
+    const pixelId = FB_PIXEL_ID_VALUE;
+    const accessToken = FB_CAPI_TOKEN_VALUE;
 
     if (!accessToken) {
         functions.logger.warn("FB_CONVERSIONS_API_ACCESS_TOKEN not set. Skipping CAPI event.");

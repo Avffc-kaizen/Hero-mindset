@@ -160,16 +160,22 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               setUser(mergedUser);
               setLoadingAuth(false);
             } else {
-                // This case should ideally not be hit with the new signup logic,
-                // but as a fallback, we log out the user to prevent an inconsistent state.
-                console.warn(`User document not found for authenticated user ${authUser.uid}. Signing out.`);
-                signOut(auth);
+                // User is authenticated, but the Firestore doc hasn't been created yet.
+                // This is expected for a brief moment during signup.
+                // DO NOT SIGN OUT. Wait for the doc to be created, which will trigger this listener again.
+                console.warn(`User document not found for authenticated user ${authUser.uid}. Waiting for document creation...`);
+                // Keep UI in a logged-out state, but don't kill the auth session.
+                setUser(INITIAL_USER_STATE); 
+                setLoadingAuth(false);
             }
           },
           (error) => {
             console.error('Firestore listener error:', error);
-            showError('Conexão com o servidor perdida.');
-            if(auth) signOut(auth);
+            showError('Conexão com o servidor perdida. Tentando reconectar...');
+            // Do NOT sign out. The Firebase SDK will handle reconnection automatically.
+            // The user is still authenticated, we just can't get their data right now.
+            // Keep the UI in a logged-out state.
+            setUser(INITIAL_USER_STATE);
             setLoadingAuth(false);
           }
         );
@@ -298,10 +304,13 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     catch (error: any) {
       const isMasterUser = email.toLowerCase() === 'andreferraz@consegvida.com';
-      if (isMasterUser && (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential')) {
+      
+      // Only attempt to create the master user if the account does not exist.
+      if (isMasterUser && error.code === 'auth/user-not-found') {
         console.log("Master user not found, attempting to create account...");
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const allModules = Object.keys(PROTECTION_MODULES) as ProtectionModuleId[];
             await setDoc(doc(db, "users", userCredential.user.uid), {
                 ...INITIAL_USER_STATE,
                 uid: userCredential.user.uid,
@@ -309,15 +318,29 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 email: email,
                 createdAt: serverTimestamp(),
                 hasPaidBase: true,
+                hasSubscription: true,
+                activeModules: allModules,
                 onboardingCompleted: true,
             });
             return { success: true };
         } catch(creationError: any) {
             console.error("Master user creation failed:", creationError);
-            return { success: false, message: "Falha ao criar conta mestre." };
+            return { success: false, message: "Falha ao criar a conta mestre. Pode já existir." };
         }
       }
-      return { success: false, message: "Email ou senha inválidos." }; 
+
+      // Handle incorrect password for master user or any other user.
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+          return { success: false, message: "Email ou Senha de Comando inválidos." };
+      }
+
+      // Handle other specific errors
+      if (error.code === 'auth/user-not-found') {
+          return { success: false, message: "Nenhum Herói com este email foi encontrado." };
+      }
+
+      console.error("Firebase Login Error:", error.code, error.message);
+      return { success: false, message: "Ocorreu um erro inesperado durante o login." }; 
     }
   };
   
