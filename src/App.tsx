@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import LevelUpModal from './components/LevelUpModal';
 import { isToday } from './utils';
@@ -22,6 +22,8 @@ const LazySkillTree = lazy(() => import('./components/SkillTree'));
 const LazyPantheon = lazy(() => import('./components/Pantheon'));
 const LazyProfile = lazy(() => import('./components/Profile'));
 const LazyTacticalArsenal = lazy(() => import('./components/TacticalArsenal'));
+const LazyLifeMapPage = lazy(() => import('./components/LifeMapPage'));
+
 
 // --- LAYOUT & ROUTING COMPONENTS ---
 
@@ -67,6 +69,7 @@ const AppContent: React.FC = () => {
                 <Route path="/app" element={<ProtectedRoute><MainAppLayout /></ProtectedRoute>}>
                     <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<LazyHeroicDashboard />} />
+                    <Route path="mapa" element={<LazyLifeMapPage />} />
                     <Route path="missions" element={<LazyMissions />} />
                     <Route path="codex" element={<LazyCodex isDailyLimitReached={isDailyLimitReached} />} />
                     <Route path="guild" element={<LazyGuild />} />

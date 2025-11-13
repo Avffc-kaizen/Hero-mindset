@@ -2,16 +2,17 @@ import React, { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { XP_PER_LEVEL_FORMULA } from '../utils';
-import { Compass, Book, Shield, Bot, ScrollText, GitMerge, Sparkles, User as UserIcon, LogOut, Target, Menu, X, Briefcase } from 'lucide-react';
+import { Compass, Book, Shield, Bot, ScrollText, GitMerge, Sparkles, User as UserIcon, LogOut, Target, Menu, X, Briefcase, Map } from 'lucide-react';
 
 const MainAppLayout: React.FC = () => {
   const { user, handleReset } = useUser();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const nextLevelXP = XP_PER_LEVEL_FORMULA(user.level);
-  const xpProgress = (user.currentXP / nextLevelXP) * 100;
+  const xpProgress = user.currentXP > 0 && nextLevelXP > 0 ? (user.currentXP / nextLevelXP) * 100 : 0;
 
   const sidebarNavLinks = [
     { to: "/app/dashboard", icon: Compass, label: "Dashboard" },
+    { to: "/app/mapa", icon: Map, label: "Mapa" },
     { to: "/app/missions", icon: Target, label: "Missões" },
     { to: "/app/codex", icon: Book, label: "Codex" },
     { to: "/app/guild", icon: Shield, label: "Guilda" },

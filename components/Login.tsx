@@ -92,7 +92,7 @@ export const Onboarding: React.FC = () => {
 
 
   const archetypeProgress = (currentArchetypeQuestion / ARCHETYPE_QUESTIONS.length) * 100;
-  const lifeMapProgress = (currentCategoryIndex / LifeMapCategoriesList.length) * 100;
+  const lifeMapProgress = ((currentCategoryIndex * 2 + currentMapQuestion) / (LifeMapCategoriesList.length * 2)) * 100;
 
   const renderStep = () => {
     switch (step) {
@@ -113,9 +113,14 @@ export const Onboarding: React.FC = () => {
         const question = ARCHETYPE_QUESTIONS[currentArchetypeQuestion];
         return (
           <div className="w-full max-w-2xl mx-auto animate-in fade-in">
-            <p className="text-center font-mono text-sm uppercase text-zinc-500 mb-2">Diagnóstico Arquetípico ({currentArchetypeQuestion + 1}/{ARCHETYPE_QUESTIONS.length})</p>
-            <div className="w-full bg-zinc-800 rounded-full h-1 mb-8"><div className="bg-white h-1 rounded-full" style={{ width: `${archetypeProgress}%` }}></div></div>
-            <p className="text-center text-lg sm:text-xl md:text-2xl mb-8 leading-relaxed">"{question.text}"</p>
+            <div className="flex justify-between items-center font-mono text-sm uppercase text-zinc-500 mb-2">
+                <span>Diagnóstico Arquetípico</span>
+                <span>{currentArchetypeQuestion + 1}/{ARCHETYPE_QUESTIONS.length}</span>
+            </div>
+            <div className="w-full bg-zinc-800 rounded-full h-2 relative">
+                <div className="bg-white h-2 rounded-full transition-all duration-300" style={{ width: `${archetypeProgress}%` }}></div>
+            </div>
+            <p className="text-center text-lg sm:text-xl md:text-2xl my-8 leading-relaxed">"{question.text}"</p>
             <div className="flex justify-center items-center gap-2 md:gap-4">
               <span className="text-zinc-500 font-mono text-sm">Discordo</span>
               {[1, 2, 3, 4, 5].map(score => ( <button key={score} onClick={() => handleArchetypeAnswer(score)} className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-zinc-700 text-zinc-400 font-bold hover:bg-zinc-800 hover:border-white transition-all active:scale-90">{score}</button>))}
@@ -129,9 +134,14 @@ export const Onboarding: React.FC = () => {
         const mapQuestion = categoryQuestions[currentMapQuestion];
         return (
            <div className="w-full max-w-2xl mx-auto animate-in fade-in">
-            <p className="text-center font-mono text-sm uppercase text-zinc-500 mb-2">Mapa de Vida: {currentCategory} ({currentMapQuestion + 1}/{categoryQuestions.length})</p>
-            <div className="w-full bg-zinc-800 rounded-full h-1 mb-8"><div className="bg-white h-1 rounded-full" style={{ width: `${lifeMapProgress}%` }}></div></div>
-            <p className="text-center text-lg sm:text-xl md:text-2xl mb-8 leading-relaxed">"{mapQuestion.text}"</p>
+            <div className="flex justify-between items-center font-mono text-sm uppercase text-zinc-500 mb-2">
+                <span>Mapa de Vida: {currentCategory}</span>
+                <span>{Math.round(lifeMapProgress)}%</span>
+            </div>
+            <div className="w-full bg-zinc-800 rounded-full h-2 relative">
+                <div className="bg-white h-2 rounded-full transition-all duration-300" style={{ width: `${lifeMapProgress}%` }}></div>
+            </div>
+            <p className="text-center text-lg sm:text-xl md:text-2xl my-8 leading-relaxed">"{mapQuestion.text}"</p>
             <div className="flex justify-center items-center gap-1 md:gap-2">
               <span className="text-zinc-500 font-mono text-xs text-right">Pouco<br/>Satisfeito</span>
               {[1,2,3,4,5,6,7,8,9,10].map(score => ( <button key={score} onClick={() => handleLifeMapAnswer(mapQuestion.id, score)} className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-zinc-700 text-zinc-400 font-bold hover:bg-zinc-800 hover:border-white transition-all active:scale-90">{score}</button>))}
@@ -143,8 +153,8 @@ export const Onboarding: React.FC = () => {
         return (
           <div className="w-full max-w-4xl mx-auto animate-in fade-in grid md:grid-cols-2 gap-8 items-center">
             <div>
-              <h2 className="text-3xl font-bold font-mono uppercase mb-2 tracking-tighter">Seu Mapa 360°</h2>
-              <p className="text-zinc-400 mb-4">Esta é sua configuração atual. Selecione 3 áreas para foco nos próximos 90 dias.</p>
+              <h2 className="text-3xl font-bold font-mono uppercase mb-2 tracking-tighter">Prioridades de Combate</h2>
+              <p className="text-zinc-400 mb-4">Seu mapa está traçado. Agora, defina seus alvos. Selecione 3 áreas para foco nos próximos 90 dias.</p>
               <div className="grid grid-cols-2 gap-3">
                 {LifeMapCategoriesList.map(category => (<button key={category} onClick={() => handleToggleFocusArea(category)} className={`p-3 rounded-lg border-2 text-left font-mono font-bold transition-all text-sm ${focusAreas.includes(category) ? 'bg-zinc-800 border-white text-white' : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-600'} ${!focusAreas.includes(category) && focusAreas.length === 3 ? 'opacity-50' : ''}`} disabled={!focusAreas.includes(category) && focusAreas.length === 3}> {category} </button>))}
               </div>
@@ -256,7 +266,7 @@ export const LoginScreen: React.FC = () => {
           <div>
             <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Email de Registro</label>
             <div className="relative">
-              <User className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
+              <Mail className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
               <input
                 type="email"
                 required

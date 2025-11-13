@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Archetype, LifeMapCategory, ArchetypesList, LifeMapCategoriesList } from '../types';
@@ -256,7 +257,7 @@ export const LoginScreen: React.FC = () => {
           <div>
             <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Email de Registro</label>
             <div className="relative">
-              <User className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
+              <Mail className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
               <input
                 type="email"
                 required

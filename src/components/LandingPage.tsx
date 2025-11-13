@@ -129,11 +129,6 @@ const LandingPage: React.FC = () => {
   const [shareText, setShareText] = useState('Convoque Aliados');
 
   const handleBuyClick = (productId: string) => {
-    if (productId === 'hero_vitalicio') {
-      console.log("Simulating Eduzz payment for master account...");
-      navigate(`/payment-success/hero_vitalicio?simulated=eduzz`);
-      return;
-    }
     handleBuy(productId);
   };
 

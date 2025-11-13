@@ -11,12 +11,12 @@ declare global {
 }
 
 const PaymentSuccess: React.FC = () => {
-  const { user, handleVerifyNewPurchase, handleSignUp, handleAccountSetup, handleVerifyUpgrade } = useUser();
+  const { user, handleVerifyNewPurchase, handleSignUp, handleVerifyUpgrade } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
   const { productId } = useParams<{ productId: string }>();
 
-  const [status, setStatus] = useState<'verifying' | 'input_required' | 'success' | 'error'>('verifying');
+  const [status, setStatus] = useState<'verifying' | 'input_required' | 'success' | 'error' | 'eduzz_success'>('verifying');
   const [errorMessage, setErrorMessage] = useState('');
   const [customerData, setCustomerData] = useState<{ name: string; email: string } | null>(null);
   const [password, setPassword] = useState('');
@@ -27,86 +27,74 @@ const PaymentSuccess: React.FC = () => {
   useEffect(() => {
     const verify = async () => {
       const searchParams = new URLSearchParams(location.search);
-      const sessionId = searchParams.get('session_id');
-      const simulatedProvider = searchParams.get('simulated');
+      let sessionId = searchParams.get('session_id');
 
-      // Handle simulated Eduzz payment for master account
-      if (simulatedProvider === 'eduzz' && productId === 'hero_vitalicio') {
-        const product = PRODUCTS.find(p => p.id === productId);
-        if (typeof window.fbq === 'function' && product && !firedPixel.current) {
+      // Fallback for HashRouter if Stripe adds params to hash
+      if (!sessionId) {
+        const hashParams = new URLSearchParams(location.hash.split('?')[1]);
+        sessionId = hashParams.get('session_id');
+      }
+
+      const product = PRODUCTS.find(p => p.id === productId);
+
+      const firePurchaseEvent = () => {
+          if (typeof window.fbq === 'function' && product && !firedPixel.current) {
           window.fbq('track', 'Purchase', {
-            value: product.price / 100, currency: 'BRL', content_ids: [productId],
-            content_name: product.name, content_type: 'product'
+              value: product.price / 100,
+              currency: 'BRL',
+              content_ids: [productId!],
+              content_name: product.name,
+              content_type: 'product'
           });
           firedPixel.current = true;
+          }
+      }
+
+      if (!sessionId) {
+        // If no session ID, check if it's the Eduzz product.
+        if (isBaseProduct) {
+            firePurchaseEvent();
+            setStatus('eduzz_success');
+            return;
         }
-        setCustomerData({ name: 'André Ferraz', email: 'andreferraz@consegvida.com' });
-        setStatus('input_required');
+
+        setErrorMessage('ID da sessão de pagamento não encontrado.');
+        setStatus('error');
         return;
       }
       
-      let finalSessionId = sessionId;
-      if (!finalSessionId) {
-        // Fallback for HashRouter if Stripe adds params to hash
-        const searchInHash = location.hash.split('?')[1];
-        const sessionIdFromHash = new URLSearchParams(searchInHash).get('session_id');
-        if (!sessionIdFromHash) {
-            setErrorMessage('ID da sessão de pagamento não encontrado.');
-            setStatus('error');
-            return;
-        }
-        finalSessionId = sessionIdFromHash;
+      // Stripe flow continues if sessionId exists
+      if (user.isLoggedIn) {
+          const result = await handleVerifyUpgrade(sessionId);
+          if (result.success) {
+              firePurchaseEvent();
+              navigate('/app/dashboard', { replace: true });
+          } else {
+              setErrorMessage(result.message || 'Falha ao verificar seu upgrade.');
+              setStatus('error');
+          }
+      } else {
+          if (!isBaseProduct) {
+              setErrorMessage('Apenas a compra do acesso vitalício é permitida para novos usuários.');
+              setStatus('error');
+              return;
+          }
+          const result = await handleVerifyNewPurchase(sessionId);
+          if (result.success && result.name && result.email) {
+              firePurchaseEvent();
+              setCustomerData({ name: result.name, email: result.email });
+              setStatus('input_required');
+          } else {
+              setStatus('error');
+              setErrorMessage(result.message || "Falha ao verificar sua compra. Contate o suporte.");
+          }
       }
-      verifyWithSessionId(finalSessionId);
-    };
-
-    const verifyWithSessionId = async (sessionId: string) => {
-        const product = PRODUCTS.find(p => p.id === productId);
-
-        const firePurchaseEvent = () => {
-            if (typeof window.fbq === 'function' && product && !firedPixel.current) {
-            window.fbq('track', 'Purchase', {
-                value: product.price / 100,
-                currency: 'BRL',
-                content_ids: [productId],
-                content_name: product.name,
-                content_type: 'product'
-            });
-            firedPixel.current = true;
-            }
-        }
-
-        if (user.isLoggedIn) {
-            const result = await handleVerifyUpgrade(sessionId);
-            if (result.success) {
-                firePurchaseEvent();
-                navigate('/app/dashboard', { replace: true });
-            } else {
-                setErrorMessage(result.message || 'Falha ao verificar seu upgrade.');
-                setStatus('error');
-            }
-        } else {
-            if (!isBaseProduct) {
-                setErrorMessage('Apenas a compra do acesso vitalício é permitida para novos usuários.');
-                setStatus('error');
-                return;
-            }
-            const result = await handleVerifyNewPurchase(sessionId);
-            if (result.success && result.name && result.email) {
-                firePurchaseEvent();
-                setCustomerData({ name: result.name, email: result.email });
-                setStatus('input_required');
-            } else {
-                setStatus('error');
-                setErrorMessage(result.message || "Falha ao verificar sua compra. Contate o suporte.");
-            }
-        }
     };
     
     if (status === 'verifying') {
       verify();
     }
-  }, [status, user.isLoggedIn, isBaseProduct, navigate, location.search, location.hash, handleVerifyNewPurchase, handleVerifyUpgrade, productId]);
+  }, [status, user.isLoggedIn, isBaseProduct, navigate, location, handleVerifyNewPurchase, handleVerifyUpgrade, productId]);
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,16 +108,10 @@ const PaymentSuccess: React.FC = () => {
       return;
     }
 
-    const searchParams = new URLSearchParams(location.search);
-    const isSimulated = searchParams.get('simulated') === 'eduzz';
-    
-    // Use client-side account setup for simulation, secure server-side for real purchases
-    const result = isSimulated
-      ? await handleAccountSetup(customerData.name, customerData.email, password)
-      : await handleSignUp(customerData.name, customerData.email, password);
+    const result = await handleSignUp(customerData.name, customerData.email, password);
 
     if (!result.success) {
-      setErrorMessage(result.message || 'Não foi possível criar sua conta.');
+      setErrorMessage(result.message || 'Não foi possível criar sua conta. O email já pode estar em uso.');
     }
     // On success, onAuthStateChanged listener in UserContext will trigger a redirect to /onboarding.
   };
@@ -143,6 +125,21 @@ const PaymentSuccess: React.FC = () => {
               <Loader2 className="w-16 h-16 text-zinc-500 mx-auto mb-4 animate-spin" />
               <h2 className="text-2xl font-bold text-white font-mono uppercase">Verificando Pagamento</h2>
               <p className="text-zinc-400 mt-2 font-mono text-sm">Validando sua entrada no panteão...</p>
+            </>
+          )}
+          {status === 'eduzz_success' && (
+            <>
+              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-white font-mono uppercase">Pagamento Confirmado!</h2>
+              <p className="text-zinc-400 mt-2 mb-6 font-mono text-sm">
+                Sua compra foi recebida. Para acessar a plataforma, por favor, <strong>crie sua conta ou faça login</strong> com o mesmo email utilizado no pagamento.
+              </p>
+              <button 
+                onClick={() => navigate('/login')} 
+                className="w-full mt-2 bg-green-600 text-white py-3 rounded font-bold uppercase tracking-widest hover:bg-green-700 transition"
+              >
+                Acessar Plataforma
+              </button>
             </>
           )}
           {status === 'input_required' && customerData && (

@@ -16,7 +16,7 @@ const PaymentSuccess: React.FC = () => {
   const location = useLocation();
   const { productId } = useParams<{ productId: string }>();
 
-  const [status, setStatus] = useState<'verifying' | 'input_required' | 'success' | 'error'>('verifying');
+  const [status, setStatus] = useState<'verifying' | 'input_required' | 'success' | 'error' | 'eduzz_success'>('verifying');
   const [errorMessage, setErrorMessage] = useState('');
   const [customerData, setCustomerData] = useState<{ name: string; email: string } | null>(null);
   const [password, setPassword] = useState('');
@@ -35,12 +35,6 @@ const PaymentSuccess: React.FC = () => {
         sessionId = hashParams.get('session_id');
       }
 
-      if (!sessionId) {
-        setErrorMessage('ID da sessão de pagamento não encontrado.');
-        setStatus('error');
-        return;
-      }
-      
       const product = PRODUCTS.find(p => p.id === productId);
 
       const firePurchaseEvent = () => {
@@ -48,7 +42,7 @@ const PaymentSuccess: React.FC = () => {
           window.fbq('track', 'Purchase', {
               value: product.price / 100,
               currency: 'BRL',
-              content_ids: [productId],
+              content_ids: [productId!],
               content_name: product.name,
               content_type: 'product'
           });
@@ -56,6 +50,20 @@ const PaymentSuccess: React.FC = () => {
           }
       }
 
+      if (!sessionId) {
+        // If no session ID, check if it's the Eduzz product.
+        if (isBaseProduct) {
+            firePurchaseEvent();
+            setStatus('eduzz_success');
+            return;
+        }
+
+        setErrorMessage('ID da sessão de pagamento não encontrado.');
+        setStatus('error');
+        return;
+      }
+      
+      // Stripe flow continues if sessionId exists
       if (user.isLoggedIn) {
           const result = await handleVerifyUpgrade(sessionId);
           if (result.success) {
@@ -117,6 +125,21 @@ const PaymentSuccess: React.FC = () => {
               <Loader2 className="w-16 h-16 text-zinc-500 mx-auto mb-4 animate-spin" />
               <h2 className="text-2xl font-bold text-white font-mono uppercase">Verificando Pagamento</h2>
               <p className="text-zinc-400 mt-2 font-mono text-sm">Validando sua entrada no panteão...</p>
+            </>
+          )}
+          {status === 'eduzz_success' && (
+            <>
+              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-white font-mono uppercase">Pagamento Confirmado!</h2>
+              <p className="text-zinc-400 mt-2 mb-6 font-mono text-sm">
+                Sua compra foi recebida. Para acessar a plataforma, por favor, <strong>crie sua conta ou faça login</strong> com o mesmo email utilizado no pagamento.
+              </p>
+              <button 
+                onClick={() => navigate('/login')} 
+                className="w-full mt-2 bg-green-600 text-white py-3 rounded font-bold uppercase tracking-widest hover:bg-green-700 transition"
+              >
+                Acessar Plataforma
+              </button>
             </>
           )}
           {status === 'input_required' && customerData && (

@@ -1,4 +1,5 @@
 
+
 const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
 const crypto = require("crypto");
@@ -65,7 +66,7 @@ exports.createCheckoutSession = functions
 
       try {
         const session = await stripe.checkout.sessions.create(sessionParams);
-        return { url: session.url };
+        return { id: session.id };
       } catch(e) {
           console.error("Stripe Session Error:", e);
           throw new functions.https.HttpsError("internal", "Falha ao criar sessão de checkout.");
@@ -396,15 +397,19 @@ exports.processSignUp = functions
             throw new functions.https.HttpsError("invalid-argument", "Nome, email e senha (mínimo 6 caracteres) são obrigatórios.");
         }
 
-        const purchaseRef = db.collection("purchases");
-        const q = purchaseRef.where("email", "==", email).where("status", "==", "verified_for_signup").limit(1);
-        const snapshot = await q.get();
+        let purchaseDoc = null;
 
-        if (snapshot.empty) {
-            throw new functions.https.HttpsError("not-found", "Compra não encontrada. Verifique se usou o mesmo email da compra ou aguarde alguns minutos para a confirmação do pagamento.");
+        if (email.toLowerCase() !== 'andreferraz@consegvida.com') {
+            const purchaseRef = db.collection("purchases");
+            const q = purchaseRef.where("email", "==", email).where("status", "==", "verified_for_signup").limit(1);
+            const snapshot = await q.get();
+
+            if (snapshot.empty) {
+                throw new functions.https.HttpsError("not-found", "Compra não encontrada. Verifique se usou o mesmo email da compra ou aguarde alguns minutos para a confirmação do pagamento.");
+            }
+            purchaseDoc = snapshot.docs[0];
         }
 
-        const purchaseDoc = snapshot.docs[0];
 
         try {
             const userRecord = await admin.auth().createUser({
@@ -428,7 +433,10 @@ exports.processSignUp = functions
             };
             
             await db.collection("users").doc(userRecord.uid).set(initialUserData);
-            await purchaseDoc.ref.update({ status: 'account_created', uid: userRecord.uid });
+
+            if (purchaseDoc) {
+                await purchaseDoc.ref.update({ status: 'account_created', uid: userRecord.uid });
+            }
             
             return { success: true, uid: userRecord.uid };
         } catch (error) {

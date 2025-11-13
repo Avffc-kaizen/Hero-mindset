@@ -52,7 +52,7 @@ const RankInsignia: React.FC<{ rank: RankTitle | string; size?: 'sm' | 'md' | 'l
 
 const initialPosts: GuildPost[] = [
     { id: 'boss-sys-1', author: 'SISTEMA DE DEFESA', authorId: 'system', rank: RankTitle.Divino, content: '⚠️ INVASÃO DETECTADA: O Monstro da Procrastinação rompeu o perímetro.\nTodos os heróis devem engajar imediatamente.', channel: 'boss_strategy', likes: 0, reactions: { 'skull': 12, 'fire': 5 }, comments: [], timestamp: Date.now(), isSystem: true, action: 'attack_boss' },
-    { id: 'st1', author: 'Comando Central', authorId: 'system', rank: RankTitle.Lendario, content: 'Atenção, Guilda. O Monstro da Procrastinação foi avistado. Mobilização imediata.', channel: 'general', likes: 120, reactions: {'fire': 20, 'muscle': 15}, comments: [], timestamp: Date.now() - 86400000, isSystem: true },
+    { id: 'st1', author: 'Comando Central', authorId: 'system', rank: RankTitle.Lendario, content: 'Bem-vindos à Guilda, Heróis. Este é o canal para comunicados e discussões gerais. Mantenham a disciplina.', channel: 'general', likes: 120, reactions: {'fire': 20, 'muscle': 15}, comments: [], timestamp: Date.now() - 86400000, isSystem: true },
     { id: 'st2', author: 'Alex O Bravo', authorId: 'user-alex', rank: RankTitle.Paladino, content: 'O dia começou antes do sol. 5km na conta. Quem está comigo?', channel: 'wins', likes: 45, reactions: {'muscle': 12, 'fire': 8}, comments: [], timestamp: Date.now() - 3600000 },
 ];
 
@@ -63,7 +63,6 @@ const MOCK_LEADERBOARD = [
 ];
 
 const Guild: React.FC = () => {
-  // FIX: showError is not provided by useUser context. It's from useError context.
   const { user, squads, handleUpgrade, handleAscend, handleBossAttack, handlePunish, handleCreateSquad, handleJoinSquad, handleLeaveSquad } = useUser();
   const { showError } = useError();
 

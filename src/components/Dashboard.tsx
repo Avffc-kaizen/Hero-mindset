@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { ProtectionModuleId, RoadmapItem, BioData } from '../types';
-// FIX: Import ARCHETYPES to access archetype mottos.
 import { PROTECTION_MODULES, ARCHETYPES } from '../constants';
 import { Award, Zap, RefreshCw, Star, AlertCircle, Flame, Shield, Briefcase, Activity, TrendingUp, CheckCircle, Plus, Lock, Dumbbell, Moon, Droplets, Trash2, Bot, Target, Check, AlertTriangle } from 'lucide-react';
 import { XP_PER_LEVEL_FORMULA } from '../utils';
 import { useUser } from '../contexts/UserContext';
 import MissionProgress from './MissionProgress';
+import LifeMapWidget from './LifeMapWidget';
 
 // --- MODULAR WIDGETS ---
 
@@ -129,7 +129,9 @@ const HeroicDashboard: React.FC = () => {
 
   const themeColor = "text-red-500"; 
   const nextLevelXP = XP_PER_LEVEL_FORMULA(user.level);
-  const xpProgress = (user.currentXP / nextLevelXP) * 100;
+  const xpProgress = nextLevelXP > 0 ? (user.currentXP / nextLevelXP) * 100 : 0;
+  const xpRemaining = nextLevelXP > 0 ? Math.max(0, nextLevelXP - user.currentXP) : 0;
+
 
   const handleModuleUnlock = (moduleId: ProtectionModuleId) => handleUpgrade('protecao_360');
 
@@ -169,14 +171,16 @@ const HeroicDashboard: React.FC = () => {
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black font-mono uppercase text-white tracking-tighter">Central <span className="text-zinc-600">360°</span></h1>
-          {/* FIX: Use ARCHETYPES constant to get motto, not PROTECTION_MODULES. */}
           <p className="text-zinc-400 text-xs font-mono uppercase tracking-wide">Bem-vindo, {user.archetype ? ` ${user.archetype}` : user.name}. Lema: {user.archetype ? `"${ARCHETYPES[user.archetype]?.motto || 'Execute.'}"` : 'Execute.'}</p>
         </div>
         <button onClick={() => setShowRecalibrateModal(true)} className="flex items-center gap-2 text-[10px] font-bold font-mono uppercase text-zinc-500 hover:text-white bg-zinc-900/50 border border-white/10 px-4 py-2.5 rounded-lg backdrop-blur-sm"><RefreshCw className="w-3 h-3"/> Recalibrar</button>
       </header>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">{renderOracleDecree()}</div>
+          <div className="lg:col-span-2 space-y-6">
+            {renderOracleDecree()}
+            <LifeMapWidget />
+          </div>
           <div className="space-y-6">
             <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-6 flex flex-col justify-between backdrop-blur-md">
               <div className="flex justify-between items-start">
@@ -189,7 +193,7 @@ const HeroicDashboard: React.FC = () => {
               <div>
                   <div className="flex justify-between text-[10px] font-mono text-zinc-400 mb-1.5"><span>Progresso</span><span className="text-white">{Math.floor(xpProgress)}%</span></div>
                   <div className="w-full bg-black/50 rounded-full h-1.5 border border-white/5 overflow-hidden"><div className={`h-full rounded-full bg-red-600`} style={{ width: `${xpProgress}%` }}></div></div>
-                  <p className="text-[9px] text-zinc-600 mt-1.5 font-mono text-right">Faltam {nextLevelXP - user.currentXP} XP</p>
+                  <p className="text-[9px] text-zinc-600 mt-1.5 font-mono text-right">Faltam {xpRemaining} XP</p>
               </div>
             </div>
             <MissionProgress />

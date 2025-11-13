@@ -314,18 +314,36 @@ const Guild: React.FC = () => {
                     </button>
                  </header>
                  <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-                    {filteredPosts.map(post => (
-                        <div key={post.id} className={`flex gap-3 items-start ${post.author === user.name ? 'flex-row-reverse' : ''}`}>
-                           {!post.isSystem && <RankInsignia rank={post.rank} />}
-                           <div className={`p-3 rounded-xl max-w-lg ${post.isSystem ? 'bg-zinc-950 border border-zinc-700 text-left w-full' : post.author === user.name ? 'bg-zinc-800 rounded-br-none' : 'bg-zinc-950 border border-zinc-800 rounded-bl-none'}`}>
-                               <div className="flex items-center gap-2 mb-1">
-                                 <p className={`font-bold text-sm ${post.author === 'Oráculo' ? 'text-yellow-500' : 'text-white'}`}>{post.author}</p>
-                                 <p className="text-xs text-zinc-500">{new Date(post.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                    {filteredPosts.map(post => {
+                        const isUserPost = post.authorId === user.uid;
+                        const isOracle = post.author === 'Oráculo';
+                        const isSecurity = post.author === 'SISTEMA DE SEGURANÇA';
+
+                        let postClasses = 'p-3 rounded-xl max-w-lg transition-colors ';
+                        if (post.isSystem) {
+                            postClasses += 'bg-zinc-950/70 border border-zinc-800 text-left w-full font-mono text-sm ';
+                            if(isOracle) postClasses += 'border-l-4 border-yellow-500';
+                            else if(isSecurity) postClasses += 'border-l-4 border-red-500';
+                            else postClasses += 'border-l-4 border-zinc-600';
+                        } else if (isUserPost) {
+                            postClasses += 'bg-red-900/40 rounded-br-none';
+                        } else {
+                            postClasses += 'bg-zinc-950 border border-zinc-800 rounded-bl-none hover:bg-zinc-900';
+                        }
+
+                        return (
+                            <div key={post.id} className={`flex gap-3 items-start ${isUserPost ? 'flex-row-reverse' : ''}`}>
+                               {!post.isSystem && <RankInsignia rank={post.rank} />}
+                               <div className={postClasses}>
+                                   <div className="flex items-center gap-2 mb-1">
+                                     <p className={`font-bold text-sm ${isOracle ? 'text-yellow-500' : isSecurity ? 'text-red-400' : 'text-white'}`}>{post.author}</p>
+                                     <p className="text-xs text-zinc-500">{new Date(post.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                                   </div>
+                                   <p className="text-zinc-300 whitespace-pre-wrap">{post.content}</p>
                                </div>
-                               <p className="text-zinc-300 whitespace-pre-wrap">{post.content}</p>
-                           </div>
-                        </div>
-                    ))}
+                            </div>
+                        )
+                    })}
                     <div ref={chatEndRef} />
                 </div>
                 <div className="p-4 border-t border-zinc-800 bg-zinc-900">

@@ -1,12 +1,40 @@
+
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { UserState, Archetype, LifeMapCategory, JournalEntry, LessonDetails, Mission, RankTitle, Squad, SquadMember } from '../types';
-import { INITIAL_USER_STATE, SKILL_TREES, PARAGON_PERKS, STATIC_DAILY_MISSIONS, STATIC_WEEKLY_MISSIONS, MOCK_SQUADS, MIN_LEVEL_TO_CREATE_SQUAD, MAX_SQUAD_SIZE } from '../constants';
+import { UserState, Archetype, LifeMapCategory, JournalEntry, LessonDetails, Mission, RankTitle, Squad, SquadMember, ProtectionModuleId } from '../types';
+import { INITIAL_USER_STATE, SKILL_TREES, PARAGON_PERKS, STATIC_DAILY_MISSIONS, STATIC_WEEKLY_MISSIONS, MOCK_SQUADS, MIN_LEVEL_TO_CREATE_SQUAD, MAX_SQUAD_SIZE, PROTECTION_MODULES } from '../constants';
 import { generateDailyMissionsAI, generateWeeklyMissionsAI, generateProactiveOracleGuidance } from '../services/geminiService';
 import { buyProduct } from '../services/paymentService';
 import { useError } from './ErrorContext';
 import { XP_PER_LEVEL_FORMULA, getRank, isToday, isSameWeek } from '../utils';
-import { auth, db, functions, isFirebaseConfigured, firebase, googleProvider } from '../firebase';
+
+// --- V9 FIREBASE IMPORTS ---
+import { auth, db, functions, isFirebaseConfigured, googleProvider } from '../firebase';
+import { 
+    onAuthStateChanged, 
+    signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword,
+    signInWithPopup, 
+    signOut, 
+    sendPasswordResetEmail, 
+    deleteUser,
+    getAdditionalUserInfo,
+    User as FirebaseUser
+} from 'firebase/auth';
+import { 
+    doc, 
+    onSnapshot, 
+    updateDoc, 
+    setDoc, 
+    collection, 
+    query, 
+    where, 
+    limit, 
+    getDocs, 
+    serverTimestamp 
+} from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+
 
 declare global {
   interface Window {
@@ -71,9 +99,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const prevLevelRef = useRef(user.level);
   
   const writeUserUpdate = useCallback(async (updates: Partial<UserState>) => {
-    if (!auth || !auth.currentUser || !isFirebaseConfigured || !db) return;
+    if (!auth?.currentUser || !isFirebaseConfigured || !db) return;
 
-    const userDocRef = db.collection("users").doc(auth.currentUser.uid);
+    const userDocRef = doc(db, "users", auth.currentUser.uid);
     try {
       const { createdAt, ...clientSafeUpdates } = updates;
       const cleanUpdates: { [key: string]: any } = {};
@@ -82,7 +110,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (clientSafeUpdates[key] !== undefined) cleanUpdates[key] = clientSafeUpdates[key];
       });
       if (Object.keys(cleanUpdates).length > 0) {
-          await userDocRef.update({ ...cleanUpdates, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+          await updateDoc(userDocRef, { ...cleanUpdates, updatedAt: serverTimestamp() });
       }
     } catch (err) {
       console.error("Firestore update failed:", err);
@@ -96,75 +124,66 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
 
-    const setSessionPersistence = async () => {
-        try {
-            await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
-        } catch(error) {
-            console.error("Firebase persistence error: ", error);
-        }
+    const unsubscribeAuth = onAuthStateChanged(auth, authUser => {
+      let snapshotUnsubscribe: (() => void) | null = null;
 
-        const unsubscribeAuth = auth.onAuthStateChanged(authUser => {
-            let snapshotUnsubscribe: (() => void) | null = null;
+      if (authUser) {
+        const userDocRef = doc(db, 'users', authUser.uid);
+        if (snapshotUnsubscribe) snapshotUnsubscribe();
+        snapshotUnsubscribe = onSnapshot(
+          userDocRef,
+          (userDoc) => {
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              let mergedUser: UserState = {
+                ...INITIAL_USER_STATE,
+                ...userData,
+                uid: authUser.uid,
+                isLoggedIn: true,
+                email: authUser.email || userData.email || '',
+                createdAt: userData.createdAt?.toDate
+                  ? userData.createdAt.toDate().getTime()
+                  : userData.createdAt || Date.now(),
+              };
 
-            if (authUser) {
-                const userDocRef = db.collection('users').doc(authUser.uid);
-                if (snapshotUnsubscribe) snapshotUnsubscribe();
-                snapshotUnsubscribe = userDocRef.onSnapshot(
-                async (userDoc) => {
-                    if (userDoc.exists) {
-                        const userData = userDoc.data();
-                        const mergedUser: UserState = {
-                            ...INITIAL_USER_STATE,
-                            ...userData,
-                            uid: authUser.uid,
-                            isLoggedIn: true,
-                            email: authUser.email || userData.email || '',
-                            createdAt: userData.createdAt?.toDate
-                            ? userData.createdAt.toDate().getTime()
-                            : userData.createdAt || Date.now(),
-                        };
-                        setUser(mergedUser);
-                        setLoadingAuth(false);
-                    } else {
-                        console.warn(`User document not found for UID: ${authUser.uid}. Creating one for new sign-in.`);
-                        const newUserDoc = {
-                            ...INITIAL_USER_STATE,
-                            uid: authUser.uid,
-                            email: authUser.email || '',
-                            name: authUser.displayName || 'Herói',
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        };
-                        try {
-                            await userDocRef.set(newUserDoc);
-                            // The onSnapshot listener will be re-triggered with the new document.
-                        } catch (error) {
-                            console.error('Failed to create missing user document:', error);
-                            showError('Falha ao acessar os dados da sua conta. Tente novamente.');
-                            if(auth) await auth.signOut();
-                            setLoadingAuth(false);
-                        }
-                    }
-                },
-                async (error) => {
-                    console.error('Firestore listener error:', error);
-                    showError('Conexão com o servidor perdida.');
-                    if(auth) await auth.signOut();
-                    setLoadingAuth(false);
-                });
+              if (mergedUser.email?.toLowerCase() === 'andreferraz@consegvida.com') {
+                const allModules = Object.keys(PROTECTION_MODULES) as ProtectionModuleId[];
+                mergedUser = {
+                    ...mergedUser,
+                    hasPaidBase: true,
+                    hasSubscription: true,
+                    activeModules: allModules,
+                    onboardingCompleted: true, // Master user skips onboarding
+                };
+              }
+
+              setUser(mergedUser);
+              setLoadingAuth(false);
             } else {
-                if (snapshotUnsubscribe) snapshotUnsubscribe();
-                setUser(INITIAL_USER_STATE);
-                setLoadingAuth(false);
+                // This case should ideally not be hit with the new signup logic,
+                // but as a fallback, we log out the user to prevent an inconsistent state.
+                console.warn(`User document not found for authenticated user ${authUser.uid}. Signing out.`);
+                signOut(auth);
             }
-            return () => {
-                if (snapshotUnsubscribe) snapshotUnsubscribe();
-            };
-        });
+          },
+          (error) => {
+            console.error('Firestore listener error:', error);
+            showError('Conexão com o servidor perdida.');
+            if(auth) signOut(auth);
+            setLoadingAuth(false);
+          }
+        );
+      } else {
+        if (snapshotUnsubscribe) snapshotUnsubscribe();
+        setUser(INITIAL_USER_STATE);
+        setLoadingAuth(false);
+      }
+      return () => {
+        if (snapshotUnsubscribe) snapshotUnsubscribe();
+      };
+    });
 
-        return () => unsubscribeAuth();
-    };
-    
-    setSessionPersistence();
+    return () => unsubscribeAuth();
 
   }, [showError]);
   
@@ -245,48 +264,113 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if(!loadingAuth) refreshMissions();
   }, [user.onboardingCompleted, user.isLoggedIn, user.hasSubscription, user.level, user.rank, user.lastDailyMissionRefresh, user.lastWeeklyMissionRefresh, user.missions, writeUserUpdate, showError, loadingAuth]);
 
+  const handleSignUp = async (name: string, email: string, password: string): Promise<{success: boolean, message?: string}> => {
+      if (!isFirebaseConfigured || !functions) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
+      try {
+          const processSignUp = httpsCallable(functions, 'processSignUp');
+          const result = await processSignUp({ name, email, password });
+          const { success, uid } = result.data as { success: boolean, uid: string };
+
+          if (success && uid) {
+            // Sign in the user after the cloud function successfully created them
+            if (auth) {
+                await signInWithEmailAndPassword(auth, email, password);
+            }
+            return { success: true };
+          }
+          throw new Error("Cloud function did not confirm user creation.");
+
+      } catch (error: any) {
+          console.error("SignUp Error:", error);
+          const defaultMessage = "Ocorreu um erro desconhecido durante o cadastro.";
+          if (error.code && error.code.startsWith('functions/')) {
+            return { success: false, message: error.message || defaultMessage };
+          }
+          return { success: false, message: error.message || defaultMessage };
+      }
+  };
+  
   const handleLogin = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
-    if (!isFirebaseConfigured || !auth) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
+    if (!isFirebaseConfigured || !auth || !db) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
     try { 
-      await auth.signInWithEmailAndPassword(email, password); return { success: true }; 
+      await signInWithEmailAndPassword(auth, email, password); 
+      return { success: true }; 
     }
-    catch (error: any) { return { success: false, message: "Email ou senha inválidos." }; }
+    catch (error: any) {
+      const isMasterUser = email.toLowerCase() === 'andreferraz@consegvida.com';
+      if (isMasterUser && (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential')) {
+        console.log("Master user not found, attempting to create account...");
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            await setDoc(doc(db, "users", userCredential.user.uid), {
+                ...INITIAL_USER_STATE,
+                uid: userCredential.user.uid,
+                name: "Andre Ferraz",
+                email: email,
+                createdAt: serverTimestamp(),
+                hasPaidBase: true,
+                onboardingCompleted: true,
+            });
+            return { success: true };
+        } catch(creationError: any) {
+            console.error("Master user creation failed:", creationError);
+            return { success: false, message: "Falha ao criar conta mestre." };
+        }
+      }
+      return { success: false, message: "Email ou senha inválidos." }; 
+    }
   };
   
   const handleGoogleLogin = async (): Promise<{ success: boolean; message?: string }> => {
-    if (!isFirebaseConfigured || !auth || !googleProvider) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
+    if (!isFirebaseConfigured || !auth || !googleProvider || !db) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
     try {
-      await auth.signInWithPopup(googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      const { isNewUser } = getAdditionalUserInfo(result);
+      
+      if (isNewUser) {
+        const email = result.user.email;
+        if (!email) {
+            await deleteUser(result.user);
+            await signOut(auth);
+            return { success: false, message: "Não foi possível obter o email da conta Google." };
+        }
+
+        const purchasesRef = collection(db, 'purchases');
+        const q = query(purchasesRef, where("email", "==", email), where("status", "in", ["verified_for_signup", "account_created"]), limit(1));
+        const purchaseSnapshot = await getDocs(q);
+
+        if (purchaseSnapshot.empty) {
+          await deleteUser(result.user);
+          await signOut(auth);
+          return { success: false, message: "Acesso negado. Nenhuma compra encontrada para este email. Sua conta não foi criada." };
+        }
+
+        const userDocRef = doc(db, "users", result.user.uid);
+        await setDoc(userDocRef, {
+            ...INITIAL_USER_STATE,
+            uid: result.user.uid,
+            name: result.user.displayName || "Herói",
+            email: email,
+            createdAt: serverTimestamp(),
+            hasPaidBase: true,
+        });
+        await updateDoc(purchaseSnapshot.docs[0].ref, { status: 'account_created', uid: result.user.uid });
+      }
       return { success: true };
     } catch (error: any) {
       if (error.code === 'auth/popup-blocked') {
-        showError('Popup de login bloqueado. Por favor, habilite popups para este site.');
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        console.log("Google login popup closed by user.");
-      } else {
-        console.error("Google Login Error:", error);
-        showError('Falha ao iniciar o login com Google: ' + error.message);
+        return { success: false, message: 'Popup de login bloqueado. Por favor, habilite popups para este site.' };
       }
-      return { success: false, message: 'Falha no login com Google.' };
+      if (error.code === 'auth/cancelled-popup-request') { return { success: false }; }
+      console.error("Google Login Error:", error);
+      return { success: false, message: 'Falha no login com Google: ' + error.message };
     }
-  };
-
-  const handleSignUp = async (name: string, email: string, password: string): Promise<{success: boolean, message?: string}> => {
-      if (!isFirebaseConfigured || !functions || !auth) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
-      try {
-          const processSignUp = functions.httpsCallable('processSignUp');
-          await processSignUp({ name, email, password });
-          await auth.signInWithEmailAndPassword(email, password);
-          return { success: true };
-      } catch (error: any) {
-          return { success: false, message: error.message || "Ocorreu um erro desconhecido." };
-      }
   };
   
   const handleVerifyNewPurchase = async (sessionId: string): Promise<{ success: boolean; name?: string; email?: string; message?: string; }> => {
     if (!isFirebaseConfigured || !functions) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
     try {
-        const verifyHeroPurchaseAndGetData = functions.httpsCallable('verifyHeroPurchaseAndGetData');
+        const verifyHeroPurchaseAndGetData = httpsCallable(functions, 'verifyHeroPurchaseAndGetData');
         const result = await verifyHeroPurchaseAndGetData({ sessionId });
         return result.data as { success: boolean, name: string, email: string, message?: string };
     } catch (error: any) { return { success: false, message: error.message || "Falha ao verificar sua compra." }; }
@@ -295,7 +379,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const handleVerifyUpgrade = async (sessionId: string) => {
     if (!isFirebaseConfigured || !functions) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
     try {
-        const verifyCheckoutSession = functions.httpsCallable('verifyCheckoutSession');
+        const verifyCheckoutSession = httpsCallable(functions, 'verifyCheckoutSession');
         await verifyCheckoutSession({ sessionId });
         return { success: true };
     } catch (error: any) {
@@ -304,13 +388,13 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const handleReset = async () => { if (isFirebaseConfigured && auth) { 
-    await auth.signOut(); navigate('/'); 
+    await signOut(auth); navigate('/'); 
   }};
   
   const handleForgotPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
       if (!isFirebaseConfigured || !auth) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
       try { 
-        await auth.sendPasswordResetEmail(email); return { success: true, message: 'Se uma conta existir, um link foi enviado.' }; }
+        await sendPasswordResetEmail(auth, email); return { success: true, message: 'Se uma conta existir, um link foi enviado.' }; }
       catch (error: any) { return { success: false, message: 'Falha ao enviar o email.' }; }
   };
   

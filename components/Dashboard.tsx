@@ -1,12 +1,67 @@
 import React, { useState } from 'react';
-import { ProtectionModuleId, RoadmapItem, BioData } from '../types';
+import { ProtectionModuleId, RoadmapItem, BioData, DailyIntention } from '../types';
 import { PROTECTION_MODULES, ARCHETYPES } from '../constants';
 import { Award, Zap, RefreshCw, Star, AlertCircle, Flame, Shield, Briefcase, Activity, TrendingUp, CheckCircle, Plus, Lock, Dumbbell, Moon, Droplets, Trash2, Bot, Target, Check, AlertTriangle } from 'lucide-react';
-import { XP_PER_LEVEL_FORMULA } from '../utils';
+import { XP_PER_LEVEL_FORMULA, isToday } from '../utils';
 import { useUser } from '../contexts/UserContext';
 import MissionProgress from './MissionProgress';
+import LifeMapWidget from './LifeMapWidget';
 
 // --- MODULAR WIDGETS ---
+
+const DailyIntentionWidget = () => {
+    const { user, handleUpdateUser } = useUser();
+    const [text, setText] = useState('');
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const intentionForToday = user.dailyIntention && user.dailyIntention.id === todayStr;
+
+    const handleSet = () => {
+        if (text.trim()) {
+            handleUpdateUser({
+                dailyIntention: {
+                    id: todayStr,
+                    text: text.trim(),
+                    completed: false
+                }
+            });
+            setText('');
+        }
+    };
+
+    const handleToggle = () => {
+        if (user.dailyIntention && intentionForToday) {
+            handleUpdateUser({
+                dailyIntention: { ...user.dailyIntention, completed: !user.dailyIntention.completed }
+            });
+        }
+    };
+
+    return (
+        <div className="bg-zinc-900/40 border border-purple-500/20 rounded-2xl p-6 backdrop-blur-md h-full flex flex-col justify-center">
+            <h2 className="text-sm font-bold font-mono uppercase text-purple-500 flex items-center gap-2 mb-4"><Zap className="w-4 h-4" /> Intenção Única Diária</h2>
+            {!intentionForToday ? (
+                <div className="flex gap-2 animate-in fade-in">
+                    <input 
+                        value={text} 
+                        onChange={e => setText(e.target.value)} 
+                        placeholder="Qual é a sua missão mais importante hoje?" 
+                        className="flex-1 bg-black/50 border border-white/10 rounded px-3 py-2 text-sm font-mono placeholder:text-zinc-600" 
+                        onKeyDown={e => e.key === 'Enter' && handleSet()}
+                    />
+                    <button onClick={handleSet} className="bg-purple-600 text-white px-4 rounded font-bold uppercase text-xs tracking-wider hover:bg-purple-500 transition-colors">Definir</button>
+                </div>
+            ) : (
+                <div className="flex items-center gap-4 cursor-pointer group animate-in fade-in" onClick={handleToggle}>
+                    <div className={`w-8 h-8 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${user.dailyIntention?.completed ? 'bg-purple-600 border-purple-500' : 'border-zinc-600 group-hover:border-purple-400'}`}>
+                        {user.dailyIntention?.completed && <Check className="w-5 h-5 text-white" />}
+                    </div>
+                    <p className={`text-lg font-bold text-white transition-all ${user.dailyIntention?.completed ? 'line-through text-zinc-500' : ''}`}>{user.dailyIntention?.text}</p>
+                </div>
+            )}
+        </div>
+    );
+};
 
 const LockedModuleWidget = ({ moduleId, onUnlock }: { moduleId: ProtectionModuleId, onUnlock: (moduleId: ProtectionModuleId) => void }) => {
     const module = PROTECTION_MODULES[moduleId];
@@ -128,7 +183,9 @@ const HeroicDashboard: React.FC = () => {
 
   const themeColor = "text-red-500"; 
   const nextLevelXP = XP_PER_LEVEL_FORMULA(user.level);
-  const xpProgress = (user.currentXP / nextLevelXP) * 100;
+  const xpProgress = nextLevelXP > 0 ? (user.currentXP / nextLevelXP) * 100 : 0;
+  const xpRemaining = nextLevelXP > 0 ? Math.max(0, nextLevelXP - user.currentXP) : 0;
+
 
   const handleModuleUnlock = (moduleId: ProtectionModuleId) => handleUpgrade('protecao_360');
 
@@ -174,7 +231,11 @@ const HeroicDashboard: React.FC = () => {
       </header>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">{renderOracleDecree()}</div>
+          <div className="lg:col-span-2 space-y-6">
+            {renderOracleDecree()}
+            <DailyIntentionWidget />
+            <LifeMapWidget />
+          </div>
           <div className="space-y-6">
             <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-6 flex flex-col justify-between backdrop-blur-md">
               <div className="flex justify-between items-start">
@@ -187,7 +248,7 @@ const HeroicDashboard: React.FC = () => {
               <div>
                   <div className="flex justify-between text-[10px] font-mono text-zinc-400 mb-1.5"><span>Progresso</span><span className="text-white">{Math.floor(xpProgress)}%</span></div>
                   <div className="w-full bg-black/50 rounded-full h-1.5 border border-white/5 overflow-hidden"><div className={`h-full rounded-full bg-red-600`} style={{ width: `${xpProgress}%` }}></div></div>
-                  <p className="text-[9px] text-zinc-600 mt-1.5 font-mono text-right">Faltam {nextLevelXP - user.currentXP} XP</p>
+                  <p className="text-[9px] text-zinc-600 mt-1.5 font-mono text-right">Faltam {xpRemaining} XP</p>
               </div>
             </div>
             <MissionProgress />

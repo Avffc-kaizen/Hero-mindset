@@ -11,12 +11,21 @@ const categoryColors: Record<MissionCategory, string> = {
 };
 
 const MissionItem: React.FC<{ mission: Mission; onComplete: (id: string) => void }> = ({ mission, onComplete }) => {
+  const [isCompleting, setIsCompleting] = useState(false);
   const Icon = categoryIcons[mission.category] || Zap;
   const color = categoryColors[mission.category] || 'text-zinc-400';
   const isChallenge = mission.type === 'weekly';
 
+  const handleCompleteClick = () => {
+    if (mission.completed || isCompleting) return;
+    setIsCompleting(true);
+    setTimeout(() => {
+        onComplete(mission.id);
+    }, 500); // Animation duration
+  };
+
   return (
-    <div className={`bg-zinc-900 border ${isChallenge ? 'border-amber-700/50' : 'border-zinc-800'} rounded-xl p-4 flex items-center justify-between gap-4 transition-opacity ${mission.completed ? 'opacity-50' : ''}`}>
+    <div className={`bg-zinc-900 border ${isChallenge ? 'border-amber-700/50' : 'border-zinc-800'} rounded-xl p-4 flex items-center justify-between gap-4 transition-opacity ${mission.completed ? 'opacity-50' : ''} ${isCompleting ? 'animate-mission-complete' : ''}`}>
       <div className="flex items-center gap-4">
         <div className={`w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center bg-zinc-800 ${color}`}><Icon className="w-6 h-6" /></div>
         <div>
@@ -29,7 +38,7 @@ const MissionItem: React.FC<{ mission: Mission; onComplete: (id: string) => void
           </p>
         </div>
       </div>
-      <button onClick={() => onComplete(mission.id)} disabled={mission.completed} className="px-4 py-3 bg-zinc-800 text-white font-bold uppercase tracking-wider text-xs rounded transition-colors active:scale-95 enabled:hover:bg-zinc-100 enabled:hover:text-zinc-900 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+      <button onClick={handleCompleteClick} disabled={mission.completed || isCompleting} className="px-4 py-3 bg-zinc-800 text-white font-bold uppercase tracking-wider text-xs rounded transition-colors active:scale-95 enabled:hover:bg-zinc-100 enabled:hover:text-zinc-900 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed flex items-center justify-center gap-2">
         {mission.completed ? <CheckCircle className="w-4 h-4" /> : <span className="hidden sm:inline">Completar</span>}
         {!mission.completed && <CheckCircle className="w-4 h-4 sm:hidden" />}
       </button>
