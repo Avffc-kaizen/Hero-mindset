@@ -1,15 +1,21 @@
+
+
 import { GoogleGenAI } from "@google/genai";
 import { Mission, RankTitle, JournalEntry, UserStats, UserState, DailyGuidance, LifeMapCategory, GuildPost, ChatMessage } from "../types";
+// FIX: Removed GEMINI_API_KEY import to adhere to the guideline of using process.env.API_KEY directly.
 import { MENTOR_SYSTEM_INSTRUCTION, PROTECTION_MODULES } from "../constants";
 
 let genAI: GoogleGenAI | null = null;
 
 const initializeGenAI = () => {
+  // FIX: Switched to process.env.API_KEY as per Gemini API guidelines.
+  // The guidelines mandate that the API key must be obtained exclusively from this environment variable.
   if (!process.env.API_KEY) {
-    console.error("API Key missing");
+    console.error("API Key missing. Make sure API_KEY environment variable is set.");
     return null;
   }
   if (!genAI) {
+    // FIX: Initializing GoogleGenAI with apiKey from process.env.API_KEY.
     genAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
   return genAI;
@@ -333,6 +339,7 @@ export const getMentorChatReply = async (chatHistory: ChatMessage[], user: UserS
     
     const response = await client.models.generateContent({
       model: modelName,
+      // FIX: Cast 'history' to 'any' to resolve type mismatch with SDK's expected 'Content[]'.
       contents: history as any,
       config: {
         systemInstruction: systemInstruction,

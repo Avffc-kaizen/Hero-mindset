@@ -1,30 +1,34 @@
 
-import { UserState, ArchetypeInfo, Archetype, ArchetypeQuestion, LifeMapCategory, LifeMapCategoriesList, RankTitle, SkillTree, ParagonPerk, Module, Mission, Skill, ProtectionModuleInfo, GuildChannelId, ProtectionModuleId, PaymentProvider, ProductDef, LifeMapQuestion, Squad, SquadMember } from './types';
+import { UserState, ArchetypeInfo, Archetype, ArchetypeQuestion, LifeMapCategory, LifeMapCategoriesList, RankTitle, SkillTree, ParagonPerk, Module, Mission, Skill, ProtectionModuleInfo, GuildChannelId, ProtectionModuleId, PaymentProvider, ProductDef, LifeMapQuestion, Squad } from './types';
 import {
   Heart, Mountain, BookOpen, Shield, Clapperboard, Wand2, Users, Sun, Laugh, HandHelping, Gem, Crown,
   Zap, Brain, Dumbbell, PiggyBank, BarChart, Repeat, Award, Activity, Sunrise, Moon, DollarSign, Timer, Wind, ListTodo, Calculator,
   Briefcase, Smile, Home, Eye, Star, Anchor, Lock, Sparkles, Flag, Flame, TrendingUp, HeartHandshake, Globe, Hash, Trophy
 } from 'lucide-react';
 
+// --- CONFIGURATION ---
+export const FIREBASE_CONFIG = {
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID,
+};
+export const STRIPE_PUBLIC_KEY = process.env.STRIPE_PUBLIC_KEY;
+export const FRONTEND_URL = "https://hero-mindset.web.app";
+
 // --- GAMEPLAY CONFIGURATION ---
 export const MAX_SQUAD_SIZE = 5;
-export const MIN_LEVEL_TO_CREATE_SQUAD = 10;
+export const MIN_LEVEL_TO_CREATE_SQUAD = 3;
 
-// --- CONFIGURATION ---
-export const FRONTEND_URL = "https://hero-mindset.web.app";
-export const BACKEND_URL = "/api";
-// FIX: Replaced import.meta.env with process.env to resolve TypeScript type error, assuming process.env is available in the build environment.
-export const STRIPE_PUBLIC_KEY = process.env.VITE_STRIPE_PUBLIC_KEY;
-
-// --- STRIPE PRICE IDS MAPPING ---
-export const STRIPE_HERO_PRICE_ID = "price_1PshrWELwcc78QutdK8hB29k";
-export const STRIPE_IA_PRICE_ID = "price_1PshtPELwcc78QutMvFlf3wR";
-export const STRIPE_PROTECAO_360_PRICE_ID = "price_1Pshv8ELwcc78Qut2qfW5oUh";
-
-
-// --- EDUZZ CONFIGURATION (Legacy/Fallback) ---
-export const EDUZZ_HERO_ID = "E05XKGE7WX";
-export const EDUZZ_IA_UPGRADE_CHECKOUT_ID = "89AQD6Y8WD";
+// --- STRIPE PRICE MAPPING ---
+export const STRIPE_PRICES = {
+  HERO_BASE: "price_1PshrWELwcc78QutdK8hB29k",
+  IA_UPGRADE: "price_1PshtPELwcc78QutMvFlf3wR",
+  PROTECAO_360: "price_1Pshv8ELwcc78Qut2qfW5oUh",
+};
 
 export const PRODUCTS: ProductDef[] = [
   {
@@ -32,8 +36,7 @@ export const PRODUCTS: ProductDef[] = [
     name: 'Hero Mindset Vitalício',
     description: 'Acesso único à plataforma base e todas as ferramentas estáticas.',
     provider: PaymentProvider.STRIPE,
-    priceId: STRIPE_HERO_PRICE_ID,
-    eduzzId: EDUZZ_HERO_ID,
+    priceId: STRIPE_PRICES.HERO_BASE,
     price: 49700,
     originalPrice: 99700,
     isSubscription: false,
@@ -43,7 +46,7 @@ export const PRODUCTS: ProductDef[] = [
     name: 'Assinatura: Mentor IA',
     description: 'Desbloqueie o Oráculo. Missões, análises e guias gerados por IA.',
     provider: PaymentProvider.STRIPE,
-    priceId: STRIPE_IA_PRICE_ID,
+    priceId: STRIPE_PRICES.IA_UPGRADE,
     price: 4700, // Monthly
     isSubscription: true,
   },
@@ -52,7 +55,7 @@ export const PRODUCTS: ProductDef[] = [
     name: 'Assinatura: Proteção 360',
     description: 'Acesso total. Inclui Mentor IA + todos os Módulos de Proteção (Business, Saúde, etc).',
     provider: PaymentProvider.STRIPE,
-    priceId: STRIPE_PROTECAO_360_PRICE_ID,
+    priceId: STRIPE_PRICES.PROTECAO_360,
     price: 9700, // Monthly
     isSubscription: true,
   }
@@ -149,19 +152,17 @@ export const GUILD_CHANNELS: { id: GuildChannelId, name: string, description: st
     { id: 'protection_360', name: 'Conselho Elite', description: 'Networking de alto nível.', icon: Briefcase, exclusiveModule: 'soberano' },
 ];
 
+export const MENTOR_SYSTEM_INSTRUCTION = `
+Você é o Oráculo Mentor IA do Hero Mindset.
+Sua função é guiar o usuário com conselhos práticos, reflexões profundas e instruções claras.
+Responda sempre de forma inspiradora, mas objetiva, ajudando o herói a evoluir em mente, corpo, espírito e riqueza.
+Evite respostas vagas: ofereça passos concretos e motivacionais.
+`;
 
-export const MENTOR_SYSTEM_INSTRUCTION = `Você é o Oráculo, um mentor estratégico, observador e militar na Jornada do Herói.
-Você tem acesso total aos dados da vida do usuário (Mapa de Vida, Missões, Aulas, Diário).
-Sua função NÃO é bater papo. É analisar os dados e dar UMA diretriz diária precisa, curta e impactante.
-Se o usuário está falhando em Fitness, cobre isso. Se ele desbloqueou Pomodoro, mande ele usar.
-Use linguagem estoica, firme e inspiradora. Sem emojis excessivos.`;
-
-// Helper para criar skills "Placeholder" para encher a árvore
 const createPassiveSkill = (id: string, name: string, desc: string, cost: number, category: any): Skill => ({
   id, name, description: desc, icon: Star, cost, missionCategoryReq: category, missionCountReq: cost * 3, toolId: 'passive_buff', realBenefit: 'Bonus Passivo de XP/Status'
 });
 
-// O ARSENAL COMPLETO - 12 Áreas, 10 Itens cada.
 export const SKILL_TREES: SkillTree = {
   'Intelectual': [
     { id: 'int_1', name: 'Protocolo Foco de Elite', description: 'Ativa um estado neural de hiperfoco.', realBenefit: 'Timer Pomodoro', icon: Timer, cost: 1, missionCategoryReq: 'Learning', missionCountReq: 3, toolId: 'pomodoro' },
@@ -235,7 +236,6 @@ export const SKILL_TREES: SkillTree = {
     createPassiveSkill('emo_9', 'Amor Próprio Blindado', 'Autoestima inabalável.', 9, 'Mindset'),
     createPassiveSkill('emo_10', 'Mestria do Coração', 'Integração total razão-emoção.', 10, 'Mindset'),
   ],
-  // Preenchendo as outras categorias com gerador para manter o padrão de 10 itens
   'Caráter': Array.from({length: 10}, (_, i) => createPassiveSkill(`char_${i}`, `Virtude Nível ${i+1}`, 'Aprimoramento moral.', i+1, 'Mindset')),
   'Amoroso': Array.from({length: 10}, (_, i) => createPassiveSkill(`love_${i}`, `Magnetismo ${i+1}`, 'Atração e conexão.', i+1, 'Mindset')),
   'Social': Array.from({length: 10}, (_, i) => createPassiveSkill(`soc_${i}`, `Influência ${i+1}`, 'Poder social.', i+1, 'Mindset')),
@@ -324,7 +324,6 @@ export const STATIC_MILESTONE_MISSIONS: Mission[] = [
     { id: 'static-m-3', title: 'O Primeiro Tesouro: Crie um Orçamento de Guerra e siga-o por 7 dias', xp: 200, completed: false, type: 'milestone', category: 'Finance' },
     { id: 'static-m-4', title: 'A Forja da Mente: Medite por 10 minutos por 5 dias consecutivos', xp: 250, completed: false, type: 'milestone', category: 'Mindset' },
 ];
-
 
 export const INITIAL_USER_STATE: UserState = {
   uid: '',

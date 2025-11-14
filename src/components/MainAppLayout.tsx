@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { XP_PER_LEVEL_FORMULA } from '../utils';
-import { Compass, Book, Shield, Bot, ScrollText, GitMerge, Sparkles, User as UserIcon, LogOut, Target, Menu, X, Briefcase, Map } from 'lucide-react';
+import { Compass, Book, Shield, Bot, ScrollText, GitMerge, Sparkles, User as UserIcon, LogOut, Target, Menu, X, Briefcase, Map, FlaskConical } from 'lucide-react';
 
 const MainAppLayout: React.FC = () => {
   const { user, handleReset } = useUser();
@@ -21,6 +22,7 @@ const MainAppLayout: React.FC = () => {
     { to: "/app/skills", icon: GitMerge, label: "Habilidades" },
     { to: "/app/arsenal", icon: Briefcase, label: "Arsenal" },
     { to: "/app/pantheon", icon: Sparkles, label: "Panteão" },
+    { to: "/app/storage-test", icon: FlaskConical, label: "Teste Storage" },
   ];
   
   const SidebarContent = ({ onLinkClick }: { onLinkClick?: () => void }) => (

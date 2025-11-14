@@ -1,3 +1,4 @@
+
 import React, { lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import LevelUpModal from './components/LevelUpModal';
@@ -23,6 +24,7 @@ const LazyPantheon = lazy(() => import('./components/Pantheon'));
 const LazyProfile = lazy(() => import('./components/Profile'));
 const LazyTacticalArsenal = lazy(() => import('./components/TacticalArsenal'));
 const LazyLifeMapPage = lazy(() => import('./components/LifeMapPage'));
+const LazyStorageTest = lazy(() => import('./components/StorageTest'));
 
 
 // --- LAYOUT & ROUTING COMPONENTS ---
@@ -79,6 +81,7 @@ const AppContent: React.FC = () => {
                     <Route path="pantheon" element={<LazyPantheon />} />
                     <Route path="profile" element={<LazyProfile />} />
                     <Route path="arsenal" element={<LazyTacticalArsenal />} />
+                    <Route path="storage-test" element={<LazyStorageTest />} />
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

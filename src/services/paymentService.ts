@@ -1,3 +1,4 @@
+
 import { PRODUCTS, STRIPE_PUBLIC_KEY } from '../constants';
 import { PaymentProvider } from '../types';
 import { functions, isFirebaseConfigured } from '../firebase';
@@ -22,12 +23,6 @@ export const buyProduct = async (productId: string, metadata?: Record<string, an
       content_name: product.name,
       content_type: 'product',
     });
-  }
-
-  if (product.provider === PaymentProvider.EDUZZ && product.eduzzId) {
-    // Fallback Eduzz
-    window.location.href = `https://chk.eduzz.com/${product.eduzzId}`;
-    return;
   }
 
   // Primary Flow: Stripe via Firebase Functions
