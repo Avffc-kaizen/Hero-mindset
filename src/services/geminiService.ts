@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Mission, RankTitle, JournalEntry, UserStats, UserState, DailyGuidance, LifeMapCategory, GuildPost, ChatMessage } from "../types";
 import { MENTOR_SYSTEM_INSTRUCTION, PROTECTION_MODULES } from "../constants";
@@ -6,14 +7,15 @@ import { MENTOR_SYSTEM_INSTRUCTION, PROTECTION_MODULES } from "../constants";
 let genAI: GoogleGenAI | null = null;
 
 const initializeGenAI = () => {
-  // FIX: Use process.env.API_KEY as per @google/genai guidelines and fix environment variable access.
-  if (!process.env.API_KEY) {
+  // FIX: Use process.env.API_KEY as per @google/genai guidelines.
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
     console.error("API_KEY environment variable is missing. AI features will be disabled.");
     return null;
   }
   if (!genAI) {
-    // FIX: Use process.env.API_KEY for initialization as per @google/genai guidelines.
-    genAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // FIX: Use process.env.API_KEY for initialization.
+    genAI = new GoogleGenAI({ apiKey });
   }
   return genAI;
 };

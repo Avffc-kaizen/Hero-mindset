@@ -8,7 +8,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 
 // --- CONFIGURAÇÕES DE AMBIENTE ---
-// FIX: Switched from import.meta.env to process.env to resolve TypeScript errors.
+// FIX: Switched from import.meta.env to process.env to resolve property 'env' does not exist error.
 export const STRIPE_PUBLIC_KEY = process.env.VITE_STRIPE_PUBLIC_KEY;
 export const FRONTEND_URL = "https://hero-mindset.web.app";
 

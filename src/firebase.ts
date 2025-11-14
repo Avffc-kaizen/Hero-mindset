@@ -1,4 +1,5 @@
 
+
 import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, type Auth } from "firebase/auth";
 import { getFirestore, serverTimestamp, type Firestore } from "firebase/firestore";
@@ -13,7 +14,7 @@ let storage: FirebaseStorage | null = null;
 let googleProvider: GoogleAuthProvider | null = null;
 let isFirebaseConfigured = false;
 
-// FIX: Switched from import.meta.env to process.env to resolve TypeScript errors.
+// FIX: Switched from import.meta.env to process.env to resolve property 'env' does not exist error.
 const FIREBASE_CONFIG = {
     apiKey: process.env.VITE_FIREBASE_API_KEY,
     authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
