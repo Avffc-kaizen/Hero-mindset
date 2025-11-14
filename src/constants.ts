@@ -1,3 +1,4 @@
+
 import { UserState, ArchetypeInfo, Archetype, ArchetypeQuestion, LifeMapCategory, LifeMapCategoriesList, RankTitle, SkillTree, ParagonPerk, Module, Mission, Skill, ProtectionModuleInfo, GuildChannelId, ProtectionModuleId, PaymentProvider, ProductDef, LifeMapQuestion, Squad, SquadMember } from './types';
 import {
   Heart, Mountain, BookOpen, Shield, Clapperboard, Wand2, Users, Sun, Laugh, HandHelping, Gem, Crown,
@@ -12,7 +13,8 @@ export const MIN_LEVEL_TO_CREATE_SQUAD = 10;
 // --- CONFIGURATION ---
 export const FRONTEND_URL = "https://hero-mindset.web.app";
 export const BACKEND_URL = "/api";
-export const STRIPE_PUBLIC_KEY = (import.meta as any).env.VITE_STRIPE_PUBLIC_KEY;
+// FIX: Replaced import.meta.env with process.env to resolve TypeScript type error, assuming process.env is available in the build environment.
+export const STRIPE_PUBLIC_KEY = process.env.VITE_STRIPE_PUBLIC_KEY;
 
 // --- STRIPE PRICE IDS MAPPING ---
 export const STRIPE_HERO_PRICE_ID = "price_1PshrWELwcc78QutdK8hB29k";
