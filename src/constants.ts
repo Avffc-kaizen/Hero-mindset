@@ -12,7 +12,7 @@ export const MIN_LEVEL_TO_CREATE_SQUAD = 10;
 // --- CONFIGURATION ---
 export const FRONTEND_URL = "https://hero-mindset.web.app";
 export const BACKEND_URL = "/api";
-export const STRIPE_PUBLIC_KEY = process.env.STRIPE_PUBLIC_KEY || "pk_live_51RoTtnELwcc78QutLToQM50aQtE7YEnjEMJwBBxhAMguKiBqNWOqXqi0tixmKxnO6WVNPNRCFvGSIoatViXE2jw500H45RN2Ro"; // LIVE KEY UPDATED
+export const STRIPE_PUBLIC_KEY = (import.meta as any).env.VITE_STRIPE_PUBLIC_KEY;
 
 // --- STRIPE PRICE IDS MAPPING ---
 export const STRIPE_HERO_PRICE_ID = "price_1PshrWELwcc78QutdK8hB29k";
@@ -56,7 +56,6 @@ export const PRODUCTS: ProductDef[] = [
   }
 ];
 
-// FIX: Export MOCK_SQUADS from a central location.
 export const MOCK_SQUADS: Squad[] = [
   { 
     id: 'sq-1', 

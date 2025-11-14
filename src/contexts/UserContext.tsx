@@ -160,20 +160,17 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               setUser(mergedUser);
               setLoadingAuth(false);
             } else {
-                // User is authenticated, but the Firestore doc hasn't been created yet.
-                // This is expected for a brief moment during signup.
-                // DO NOT SIGN OUT. Wait for the doc to be created, which will trigger this listener again.
+                // User is authenticated but has no Firestore document.
+                // This can happen during signup race condition.
+                // Do NOT sign out. The signup flow is responsible for creating the document.
+                // We keep the UI in a "loading" or "logged out" state until the doc appears.
                 console.warn(`User document not found for authenticated user ${authUser.uid}. Waiting for document creation...`);
-                // Keep UI in a logged-out state, but don't kill the auth session.
-                setUser(INITIAL_USER_STATE); 
-                setLoadingAuth(false);
             }
           },
           (error) => {
             console.error('Firestore listener error:', error);
             showError('Conexão com o servidor perdida. Tentando reconectar...');
             // Do NOT sign out. The Firebase SDK will handle reconnection automatically.
-            // The user is still authenticated, we just can't get their data right now.
             // Keep the UI in a logged-out state.
             setUser(INITIAL_USER_STATE);
             setLoadingAuth(false);
@@ -384,7 +381,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (error.code === 'auth/popup-blocked') {
         return { success: false, message: 'Popup de login bloqueado. Por favor, habilite popups para este site.' };
       }
-      if (error.code === 'auth/cancelled-popup-request') { return { success: false }; }
+      if (error.code === 'auth/cancelled-popup-request') { return { success: false, message: undefined }; }
       console.error("Google Login Error:", error);
       return { success: false, message: 'Falha no login com Google: ' + error.message };
     }
@@ -490,7 +487,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const handleUpdateUser = useCallback((updates: Partial<UserState>) => { writeUserUpdate(updates); }, [writeUserUpdate]);
 
   const handleBuy = async (productId: string, metadata?: Record<string, any>) => {
-    try { await buyProduct(productId, metadata); }
+    try { await buyProduct(productId, { ...metadata, email: user.email }); }
     catch (err: any) { showError(err.message || 'Erro ao iniciar compra.'); throw err; }
   };
   

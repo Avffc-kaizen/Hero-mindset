@@ -315,7 +315,6 @@ const Guild: React.FC = () => {
                  </header>
                  <div className="flex-1 p-4 space-y-4 overflow-y-auto">
                     {filteredPosts.map(post => {
-                        // FIX: Changed condition to check authorId against user.uid for reliable identification of user's posts.
                         const isUserPost = post.authorId === user.uid;
                         const isOracle = post.author === 'Oráculo';
                         const isSecurity = post.author === 'SISTEMA DE SEGURANÇA';

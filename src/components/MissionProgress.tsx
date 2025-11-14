@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Target, CheckCircle, Flag, CalendarDays } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';

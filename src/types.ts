@@ -40,7 +40,6 @@ export enum IAMode {
   Deep = 'deep',
 }
 
-// FIX: Added missing '|' operator to correctly define the union type.
 export type MissionCategory = 'Fitness' | 'Learning' | 'Finance' | 'Mindset';
 export type MissionType = 'daily' | 'weekly' | 'milestone';
 
@@ -222,7 +221,6 @@ export interface FocusSession {
     task: string;
 }
 
-// FIX: Add missing types for UserState to align with INITIAL_USER_STATE in constants.ts
 export interface DailyIntention {
     id: string;
     text: string;
@@ -238,7 +236,6 @@ export interface KeyConnection {
 
 
 export interface UserState {
-  // FIX: Add missing uid property to fix type error in constants.ts
   uid: string;
   isLoggedIn: boolean;
   name: string;
@@ -257,12 +254,10 @@ export interface UserState {
   hasPaidBase?: boolean; // Acesso vitalício ao produto base (Eduzz/Stripe)
   
   // Module Specific Data
-  // FIX: Allow company to be null to match INITIAL_USER_STATE
   company?: CompanyInfo | null; // Soberano
   businessRoadmap?: RoadmapItem[]; // Soberano
   bioData?: BioData; // Tita
   focusHistory?: FocusSession[]; // Sabio
-  // FIX: Add missing properties to align with INITIAL_USER_STATE
   dailyIntention?: DailyIntention | null;
   keyConnections?: KeyConnection[];
   
@@ -306,7 +301,6 @@ export interface ProductDef {
   priceId?: string; // Stripe Price ID
   eduzzId?: string; // Eduzz Content ID
   price: number; // In cents
-  // FIX: Added missing 'originalPrice' property to support showing a discounted price.
   originalPrice?: number; // In cents, for sales
   isSubscription: boolean;
 }

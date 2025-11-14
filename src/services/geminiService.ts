@@ -333,7 +333,6 @@ export const getMentorChatReply = async (chatHistory: ChatMessage[], user: UserS
     
     const response = await client.models.generateContent({
       model: modelName,
-      // FIX: Cast 'history' to 'any' to resolve type mismatch with SDK's expected 'Content[]'.
       contents: history as any,
       config: {
         systemInstruction: systemInstruction,

@@ -1,4 +1,3 @@
-
 import { PRODUCTS, STRIPE_PUBLIC_KEY } from '../constants';
 import { PaymentProvider } from '../types';
 import { functions, isFirebaseConfigured } from '../firebase';
@@ -42,7 +41,7 @@ export const buyProduct = async (productId: string, metadata?: Record<string, an
       const response = await createCheckoutSession({ 
           priceId: product.priceId,
           internalProductId: product.id,
-          metadata: metadata,
+          ...metadata,
       });
 
       const { id: sessionId } = response.data as { id?: string };

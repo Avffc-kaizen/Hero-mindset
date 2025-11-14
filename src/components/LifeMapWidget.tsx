@@ -1,5 +1,3 @@
-
-
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
@@ -31,7 +29,6 @@ const LifeMapWidget: React.FC = () => {
         
         const sortedScores = Object.entries(user.lifeMapScores)
             .map(([category, score]) => ({ category: category as LifeMapCategory, score }))
-            // FIX: Explicitly cast scores to Number to prevent potential type inference issues during subtraction. This resolves the arithmetic operation error.
             .sort((a, b) => Number(b.score) - Number(a.score));
 
         return {
