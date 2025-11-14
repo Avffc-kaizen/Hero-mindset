@@ -1,33 +1,29 @@
-
 import React, { lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import LevelUpModal from './components/LevelUpModal';
-import { isToday } from './utils';
 import { Loader2 } from 'lucide-react';
 import { ErrorProvider } from './contexts/ErrorContext';
 import { UserProvider, useUser } from './contexts/UserContext';
-import MainAppLayout from './components/MainAppLayout';
+import { isToday } from './utils';
 
-// --- LAZY-LOADED COMPONENTS ---
-const LazyLandingPage = lazy(() => import('./components/LandingPage'));
-const LazyLoginScreen = lazy(() => import('./components/Login').then(module => ({ default: module.LoginScreen })));
-const LazyOnboarding = lazy(() => import('./components/Login').then(module => ({ default: module.Onboarding })));
-const LazyPaymentSuccess = lazy(() => import('./components/PaymentSuccess'));
-const LazyHeroicDashboard = lazy(() => import('./components/Dashboard'));
-const LazyMissions = lazy(() => import('./components/Missions'));
-const LazyCodex = lazy(() => import('./components/Codex'));
-const LazyGuild = lazy(() => import('./components/Guild'));
-const LazyIAMentor = lazy(() => import('./components/IAMentor'));
-const LazyJournal = lazy(() => import('./components/Journal'));
-const LazySkillTree = lazy(() => import('./components/SkillTree'));
-const LazyPantheon = lazy(() => import('./components/Pantheon'));
-const LazyProfile = lazy(() => import('./components/Profile'));
-const LazyTacticalArsenal = lazy(() => import('./components/TacticalArsenal'));
-const LazyLifeMapPage = lazy(() => import('./components/LifeMapPage'));
-const LazyStorageTest = lazy(() => import('./components/StorageTest'));
-
-
-// --- LAYOUT & ROUTING COMPONENTS ---
+// Lazy load components for better performance
+const MainAppLayout = lazy(() => import('./components/MainAppLayout'));
+const LevelUpModal = lazy(() => import('./components/LevelUpModal'));
+const LandingPage = lazy(() => import('./components/LandingPage'));
+const LoginScreen = lazy(() => import('./components/Login').then(module => ({ default: module.LoginScreen })));
+const Onboarding = lazy(() => import('./components/Login').then(module => ({ default: module.Onboarding })));
+const PaymentSuccess = lazy(() => import('./components/PaymentSuccess'));
+const HeroicDashboard = lazy(() => import('./components/Dashboard'));
+const Missions = lazy(() => import('./components/Missions'));
+const Codex = lazy(() => import('./components/Codex'));
+const Guild = lazy(() => import('./components/Guild'));
+const IAMentor = lazy(() => import('./components/IAMentor'));
+const Journal = lazy(() => import('./components/Journal'));
+const SkillTree = lazy(() => import('./components/SkillTree'));
+const Pantheon = lazy(() => import('./components/Pantheon'));
+const Profile = lazy(() => import('./components/Profile'));
+const LifeMapPage = lazy(() => import('./components/LifeMapPage'));
+const TacticalArsenal = lazy(() => import('./components/TacticalArsenal'));
+const StorageTest = lazy(() => import('./components/StorageTest'));
 
 const LoadingFallback: React.FC = () => (
     <div className="bg-black min-h-screen flex items-center justify-center">
@@ -55,34 +51,37 @@ const AppContent: React.FC = () => {
     return children;
   };
 
-  if (loadingAuth && location.pathname !== '/' && !location.pathname.startsWith('/payment-success')) {
+  if (loadingAuth && !user.isLoggedIn) {
+    // Show a loading screen only on the initial auth check
     return <LoadingFallback />;
   }
 
   return (
       <>
-        {levelUpData && <LevelUpModal level={levelUpData.level} rank={levelUpData.rank} onClose={closeLevelUpModal} />}
+        {levelUpData && <Suspense fallback={null}><LevelUpModal level={levelUpData.level} rank={levelUpData.rank} onClose={closeLevelUpModal} /></Suspense>}
         <Suspense fallback={<LoadingFallback />}>
             <Routes>
-                <Route path="/" element={user.isLoggedIn && user.onboardingCompleted ? <Navigate to="/app/dashboard" replace /> : <LazyLandingPage />} />
-                <Route path="/login" element={<LazyLoginScreen />} />
-                <Route path="/payment-success/:productId" element={<LazyPaymentSuccess />} />
-                <Route path="/onboarding" element={<OnboardingRoute><LazyOnboarding /></OnboardingRoute>} />
+                <Route path="/" element={user.isLoggedIn && user.onboardingCompleted ? <Navigate to="/app/dashboard" replace /> : <LandingPage />} />
+                <Route path="/login" element={<LoginScreen />} />
+                <Route path="/payment-success/:productId" element={<PaymentSuccess />} />
+                <Route path="/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />
+                
                 <Route path="/app" element={<ProtectedRoute><MainAppLayout /></ProtectedRoute>}>
                     <Route index element={<Navigate to="dashboard" replace />} />
-                    <Route path="dashboard" element={<LazyHeroicDashboard />} />
-                    <Route path="mapa" element={<LazyLifeMapPage />} />
-                    <Route path="missions" element={<LazyMissions />} />
-                    <Route path="codex" element={<LazyCodex isDailyLimitReached={isDailyLimitReached} />} />
-                    <Route path="guild" element={<LazyGuild />} />
-                    <Route path="mentor" element={<LazyIAMentor />} />
-                    <Route path="journal" element={<LazyJournal />} />
-                    <Route path="skills" element={<LazySkillTree />} />
-                    <Route path="pantheon" element={<LazyPantheon />} />
-                    <Route path="profile" element={<LazyProfile />} />
-                    <Route path="arsenal" element={<LazyTacticalArsenal />} />
-                    <Route path="storage-test" element={<LazyStorageTest />} />
+                    <Route path="dashboard" element={<HeroicDashboard />} />
+                    <Route path="mapa" element={<LifeMapPage />} />
+                    <Route path="missions" element={<Missions />} />
+                    <Route path="codex" element={<Codex isDailyLimitReached={isDailyLimitReached} />} />
+                    <Route path="guild" element={<Guild />} />
+                    <Route path="mentor" element={<IAMentor />} />
+                    <Route path="journal" element={<Journal />} />
+                    <Route path="skills" element={<SkillTree />} />
+                    <Route path="arsenal" element={<TacticalArsenal />} />
+                    <Route path="pantheon" element={<Pantheon />} />
+                    <Route path="profile" element={<Profile />} />
+                    <Route path="storage-test" element={<StorageTest />} />
                 </Route>
+                
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </Suspense>
@@ -90,7 +89,6 @@ const AppContent: React.FC = () => {
   );
 };
 
-// --- ROOT APP COMPONENT ---
 const App: React.FC = () => (
   <HashRouter>
     <ErrorProvider>

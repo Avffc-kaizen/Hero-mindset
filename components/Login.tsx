@@ -1,11 +1,12 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Archetype, LifeMapCategory, ArchetypesList, LifeMapCategoriesList } from '../types';
-import { ARCHETYPE_QUESTIONS, INITIAL_LIFE_MAP_SCORES, LIFE_MAP_QUESTIONS } from '../constants';
+import { Archetype, LifeMapCategory, ArchetypesList, LifeMapCategoriesList } from './src/types';
+import { ARCHETYPE_QUESTIONS, INITIAL_LIFE_MAP_SCORES, LIFE_MAP_QUESTIONS } from './src/constants';
 import { ArrowRight, Compass, Loader2, LogIn, User, KeyRound, AlertCircle, Shield, Mail, Bot } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { useUser } from '../contexts/UserContext';
+import { useUser } from './src/contexts/UserContext';
 
 export const Onboarding: React.FC = () => {
   const { handleOnboardingComplete } = useUser();

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Target, CheckCircle, Flag, CalendarDays } from 'lucide-react';
-import { useUser } from '../contexts/UserContext';
+import { useUser } from './src/contexts/UserContext';
 
 const ProgressBar: React.FC<{ progress: number; label: string; count: string; color: string; allCompleted: boolean; icon: React.ElementType }> = ({ progress, label, count, color, allCompleted, icon: Icon }) => (
   <div>

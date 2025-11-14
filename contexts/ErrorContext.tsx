@@ -20,7 +20,6 @@ export const ErrorProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [isShowing, setIsShowing] = useState(false);
 
   useEffect(() => {
-    // FIX: Use ReturnType<typeof setTimeout> for browser compatibility instead of NodeJS.Timeout
     let hideTimer: ReturnType<typeof setTimeout>;
     let clearTimer: ReturnType<typeof setTimeout>;
 

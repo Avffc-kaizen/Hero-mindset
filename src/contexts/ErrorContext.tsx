@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 
 type ErrorContextType = {
@@ -19,31 +19,26 @@ export const ErrorProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [error, setError] = useState<string | null>(null);
   const [isShowing, setIsShowing] = useState(false);
 
+  const closeError = useCallback(() => {
+    setIsShowing(false);
+    setTimeout(() => setError(null), 300); // Wait for animation
+  }, []);
+  
   useEffect(() => {
     let hideTimer: ReturnType<typeof setTimeout>;
-    let clearTimer: ReturnType<typeof setTimeout>;
 
     if (error) {
       setIsShowing(true);
-      hideTimer = setTimeout(() => {
-        setIsShowing(false);
-        clearTimer = setTimeout(() => setError(null), 300); // Wait for animation
-      }, 6000);
+      hideTimer = setTimeout(closeError, 6000);
     }
     return () => {
       clearTimeout(hideTimer);
-      clearTimeout(clearTimer);
     };
-  }, [error]);
+  }, [error, closeError]);
 
-  const showError = (message: string) => {
+  const showError = useCallback((message: string) => {
     setError(message);
-  };
-
-  const closeError = () => {
-    setIsShowing(false);
-    setTimeout(() => setError(null), 300);
-  };
+  }, []);
 
   return (
     <ErrorContext.Provider value={{ showError }}>

@@ -1,54 +1,60 @@
-import { GoogleGenAI } from "@google/genai";
-import { Mission, RankTitle, JournalEntry, UserStats, UserState, DailyGuidance, LifeMapCategory, GuildPost, ChatMessage } from "../types";
-import { MENTOR_SYSTEM_INSTRUCTION, PROTECTION_MODULES } from "../constants";
+import { GoogleGenAI, Type } from "@google/genai";
+import { Mission, RankTitle, JournalEntry, UserStats, UserState, DailyGuidance, LifeMapCategory, GuildPost, ChatMessage } from "./src/types";
+import { MENTOR_SYSTEM_INSTRUCTION, PROTECTION_MODULES, GEMINI_API_KEY } from "./src/constants";
 
 let genAI: GoogleGenAI | null = null;
 
 const initializeGenAI = () => {
-  if (!process.env.API_KEY) {
-    console.error("API Key missing");
+  if (!GEMINI_API_KEY) {
+    console.error("VITE_GEMINI_API_KEY is missing. AI features will be disabled.");
     return null;
   }
   if (!genAI) {
-    genAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
   }
   return genAI;
 };
 
-// Helper avançado para extrair e limpar JSON de respostas com texto extra
-const cleanJsonString = (text: string): string => {
-  const markdownMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
-  if (markdownMatch && markdownMatch[1]) {
-    text = markdownMatch[1].trim();
-  }
+// Helper to clean and parse JSON from AI responses
+const cleanAndParseJson = (text: string): any => {
+    try {
+        const markdownMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+        let cleanText = markdownMatch ? markdownMatch[1].trim() : text.trim();
 
-  const firstBracket = text.indexOf('[');
-  const firstBrace = text.indexOf('{');
+        const firstBracket = cleanText.indexOf('[');
+        const firstBrace = cleanText.indexOf('{');
+        
+        let start = -1;
+        if (firstBracket !== -1 && (firstBrace === -1 || firstBracket < firstBrace)) {
+            start = firstBracket;
+        } else {
+            start = firstBrace;
+        }
 
-  if (firstBracket === -1 && firstBrace === -1) return text;
+        if (start === -1) throw new Error("No JSON object or array found in the string.");
 
-  let start = -1;
-  if (firstBracket !== -1 && (firstBrace === -1 || firstBracket < firstBrace)) {
-      start = firstBracket;
-  } else if (firstBrace !== -1) {
-      start = firstBrace;
-  } else {
-      return text;
-  }
-  
-  const openChar = start === firstBracket ? '[' : '{';
-  const closeChar = start === firstBracket ? ']' : '}';
-  let openCount = 0;
-  
-  for (let i = start; i < text.length; i++) {
-    if (text[i] === openChar) openCount++;
-    else if (text[i] === closeChar) openCount--;
-    if (openCount === 0) return text.substring(start, i + 1);
-  }
-  
-  const end = text.lastIndexOf(closeChar);
-  if (end > start) return text.substring(start, end + 1);
-  return text.substring(start);
+        const openChar = cleanText[start];
+        const closeChar = openChar === '{' ? '}' : ']';
+        let openCount = 0;
+        let end = -1;
+
+        for (let i = start; i < cleanText.length; i++) {
+            if (cleanText[i] === openChar) openCount++;
+            else if (cleanText[i] === closeChar) openCount--;
+            if (openCount === 0) {
+                end = i;
+                break;
+            }
+        }
+        
+        if (end === -1) throw new Error("Invalid JSON structure: No closing bracket/brace found.");
+
+        const jsonString = cleanText.substring(start, end + 1);
+        return JSON.parse(jsonString);
+    } catch (e: any) {
+        console.error("Failed to parse JSON from AI response:", e, "Raw text:", text);
+        throw new Error("A resposta do Oráculo está em um formato inválido.");
+    }
 };
 
 export const generateDetailedLifeMapAnalysis = async (
@@ -63,22 +69,15 @@ export const generateDetailedLifeMapAnalysis = async (
         const focusList = focusAreas.join(', ');
 
         const prompt = `
-        ATUE COMO O ORÁCULO DO HERO MINDSET.
-        
+        ATUE COMO O ORÁULO DO HERO MINDSET.
         Analise o Mapa de Vida 360 deste Herói.
-        
-        DADOS:
-        ${scoresList}
-        
-        FOCO (90 dias):
-        ${focusList}
-        
+        DADOS: ${scoresList}
+        FOCO (90 dias): ${focusList}
         Gere um DOSSIÊ ESTRATÉGICO (Markdown) contendo:
-        1. **Diagnóstico de Sombra:** Analise a área com menor pontuação. Seja direto sobre as consequências.
-        2. **Protocolo de Intervenção:** Dê uma ferramenta ou hábito específico para a área de Foco nº 1.
-        3. **Ponto de Alavancagem:** Identifique a área mais forte e como usá-la para puxar as outras.
-        4. **Tríade de Ação:** 3 passos práticos e imediatos para hoje.
-        
+        1. **Diagnóstico de Sombra:** Analise a área com menor pontuação.
+        2. **Protocolo de Intervenção:** Dê uma ferramenta ou hábito para a área de Foco nº 1.
+        3. **Ponto de Alavancagem:** Identifique a área mais forte e como usá-la.
+        4. **Tríade de Ação:** 3 passos práticos para hoje.
         Tom: Militar, Estoico, Lendário.
         `;
 
@@ -87,15 +86,14 @@ export const generateDetailedLifeMapAnalysis = async (
             contents: prompt,
             config: {
                 systemInstruction: MENTOR_SYSTEM_INSTRUCTION,
-                thinkingConfig: { thinkingBudget: 32768 }
             }
         });
         
-        return response.text || "Análise indisponível.";
+        return response.text;
 
     } catch (error) {
         console.error("Analysis Error", error);
-        return "O Oráculo está em silêncio. A jornada começa com a ação, não com o mapa. Avance.";
+        return "O Oráculo está em silêncio. Avance.";
     }
 }
 
@@ -105,37 +103,17 @@ export const generateProactiveOracleGuidance = async (user: UserState): Promise<
     if (!client) throw new Error("AI Client not initialized");
     
     const lifeMapSummary = user.lifeMapScores ? Object.entries(user.lifeMapScores).map(([k, v]) => `${k}: ${v}`).join(', ') : "N/A";
-    
-    const activePersonas = user.activeModules
-        .map(id => PROTECTION_MODULES[id])
-        .filter(Boolean)
-        .map(mod => `${mod.name.split(' ')[0]} (${mod.coveredAreas[0]})`);
-
-    const personaPrompt = activePersonas.length > 0 
-        ? `PERSONAS ADICIONAIS: ${activePersonas.join(', ')}.` 
-        : "";
-
-    const prompt = `
-    PERSONA PRIMÁRIA: Oráculo (militar, estoico, direto ao ponto).
-    ${personaPrompt}
-
-    ANALISE O PERFIL DO HERÓI: ${user.rank} (Lvl ${user.level}). Mapa: ${lifeMapSummary}.
-    
-    Gere um JSON com UM DECRETO ESTRATÉGICO para hoje:
-    {"content": "Frase curta e imperativa (máx 20 palavras), baseada nos dados e personas.", "type": "alert" | "strategy" | "praise"}
-    `;
+    const prompt = `Analisar perfil do herói: ${user.rank} (Lvl ${user.level}). Mapa: ${lifeMapSummary}. Gere um JSON com UM DECRETO ESTRATÉGICO para hoje: {"content": "Frase curta e imperativa.", "type": "alert" | "strategy" | "praise"}`;
 
     const response = await client.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
-      config: { responseMimeType: 'application/json' }
+      config: { 
+        responseMimeType: 'application/json',
+      }
     });
-
-    if (response.text) {
-        const data = JSON.parse(cleanJsonString(response.text));
-        return { date: Date.now(), content: data.content, type: data.type || 'strategy' };
-    }
-    throw new Error("No content generated");
+    const data = cleanAndParseJson(response.text);
+    return { date: Date.now(), content: data.content, type: data.type || 'strategy' };
   } catch (error) {
     console.error("Proactive Oracle Error:", error);
     return { date: Date.now(), content: "A disciplina é sua bússola hoje. Use-a.", type: 'strategy' };
@@ -155,13 +133,10 @@ export const generateDailyAnalysisAI = async (userState: {rank: RankTitle, stats
     const response = await client.models.generateContent({
       model: 'gemini-2.5-pro',
       contents: prompt,
-      config: {
-        systemInstruction: MENTOR_SYSTEM_INSTRUCTION,
-        thinkingConfig: { thinkingBudget: 32768 },
-      },
+      config: { systemInstruction: MENTOR_SYSTEM_INSTRUCTION },
     });
 
-    return response.text || "O Oráculo está em silêncio. A resposta reside em suas próprias ações hoje.";
+    return response.text;
   } catch (error: any) {
     console.error("Error generating daily analysis:", error);
     throw new Error("A conexão com o Oráculo falhou. Siga sua intuição.");
@@ -179,12 +154,8 @@ export const generateDailyMissionsAI = async (level: number, rank: RankTitle): P
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-
-    if (response.text) {
-      const missions = JSON.parse(cleanJsonString(response.text)) as Mission[];
-      return missions.map((m, i) => ({ ...m, id: `ai-daily-${Date.now()}-${i}`, xp: Number(m.xp) || 20, completed: false, type: 'daily' }));
-    }
-    throw new Error("Empty response");
+    const missions = cleanAndParseJson(response.text) as Mission[];
+    return missions.map((m, i) => ({ ...m, id: `ai-daily-${Date.now()}-${i}`, xp: Number(m.xp) || 20, completed: false, type: 'daily' }));
   } catch (error: any) {
     console.error("AI Mission Generation Error:", error);
     throw new Error(error.message || "O Oráculo falhou ao gerar missões diárias.");
@@ -202,12 +173,8 @@ export const generateWeeklyMissionsAI = async (level: number, rank: RankTitle): 
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
-
-    if (response.text) {
-      const missions = JSON.parse(cleanJsonString(response.text)) as Mission[];
-      return missions.map((m, i) => ({ ...m, id: `ai-weekly-${Date.now()}-${i}`, xp: Number(m.xp) || 120, completed: false, type: 'weekly' }));
-    }
-    throw new Error("Empty response for weekly missions");
+    const missions = cleanAndParseJson(response.text) as Mission[];
+    return missions.map((m, i) => ({ ...m, id: `ai-weekly-${Date.now()}-${i}`, xp: Number(m.xp) || 120, completed: false, type: 'weekly' }));
   } catch (error: any) {
     console.error("AI Weekly Mission Generation Error:", error);
     throw new Error(error.message || "O Oráculo falhou ao gerar missões semanais.");
@@ -226,17 +193,10 @@ export const generateMilestoneMissionsAI = async (level: number, rank: RankTitle
     const response = await client.models.generateContent({
       model: 'gemini-2.5-pro',
       contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        thinkingConfig: { thinkingBudget: 32768 }
-      }
+      config: { responseMimeType: 'application/json' }
     });
-
-    if (response.text) {
-      const missions = JSON.parse(cleanJsonString(response.text)) as Mission[];
-      return missions.map((m, i) => ({ ...m, id: `ai-milestone-${Date.now()}-${i}`, xp: Number(m.xp) || 200, completed: false, type: 'milestone' }));
-    }
-    throw new Error("Empty response from AI for milestone missions");
+    const missions = cleanAndParseJson(response.text) as Mission[];
+    return missions.map((m, i) => ({ ...m, id: `ai-milestone-${Date.now()}-${i}`, xp: Number(m.xp) || 200, completed: false, type: 'milestone' }));
   } catch (error: any) {
     console.error("AI Milestone Mission Generation Error:", error);
     throw new Error(error.message || "O Oráculo falhou ao gerar os marcos épicos.");
@@ -253,13 +213,10 @@ export const generateBossVictorySpeech = async (lastMessages: any[], bossName: s
     const response = await client.models.generateContent({
       model: 'gemini-2.5-pro',
       contents: prompt,
-      config: {
-        systemInstruction: 'Você é o Guardião das Crônicas. Fale de forma épica, em caixa alta.',
-        thinkingConfig: { thinkingBudget: 32768 }
-      }
+      config: { systemInstruction: 'Você é o Guardião das Crônicas. Fale de forma épica, em caixa alta.' }
     });
 
-    return response.text || "O Oráculo não respondeu.";
+    return response.text;
   } catch (error) {
     console.error("Boss Victory Speech Error:", error);
     throw new Error("O Oráculo falhou ao registrar o feito. A vitória ainda é sua!");
@@ -277,13 +234,10 @@ export const analyzeJournalAI = async (entries: JournalEntry[], userName: string
     const response = await client.models.generateContent({
       model: 'gemini-2.5-pro',
       contents: prompt,
-      config: {
-        systemInstruction: MENTOR_SYSTEM_INSTRUCTION,
-        thinkingConfig: { thinkingBudget: 32768 },
-      },
+      config: { systemInstruction: MENTOR_SYSTEM_INSTRUCTION },
     });
 
-    return response.text || "As páginas revelam esforço, mas a clareza ainda não surgiu.";
+    return response.text;
   } catch (error) {
     console.error("Journal Analysis Error:", error);
     throw new Error("A conexão com o Oráculo está turva. Continue sua jornada.");
@@ -295,7 +249,7 @@ export const getMentorChatReply = async (chatHistory: ChatMessage[], user: UserS
     const client = initializeGenAI();
     if (!client) return "O Oráculo está meditando. Busque a resposta em suas ações.";
     
-    const hasProtecao360 = user.activeModules.length > 3; // A proxy for the full subscription
+    const hasProtecao360 = user.activeModules.length > 3;
     const modelName = hasProtecao360 ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
     
     const history = chatHistory.map(msg => ({ role: msg.role, parts: [{ text: msg.text }] }));
@@ -303,16 +257,14 @@ export const getMentorChatReply = async (chatHistory: ChatMessage[], user: UserS
     
     const response = await client.models.generateContent({
       model: modelName,
-      // FIX: Cast 'history' to 'any' to resolve type mismatch with SDK's expected 'Content[]'.
       contents: history as any,
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.8,
-        thinkingConfig: hasProtecao360 ? { thinkingBudget: 32768 } : undefined
       },
     });
 
-    return response.text || "O Oráculo pondera em silêncio.";
+    return response.text;
   } catch (error) {
     console.error("Error getting mentor chat reply:", error);
     throw new Error("A conexão com o Oráculo falhou. Busque a sabedoria no silêncio.");
@@ -333,12 +285,10 @@ export const generateChannelInsightAI = async (
         const response = await client.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
-            config: {
-                systemInstruction: MENTOR_SYSTEM_INSTRUCTION
-            }
+            config: { systemInstruction: MENTOR_SYSTEM_INSTRUCTION }
         });
 
-        return response.text || "Mantenham a disciplina. Nenhuma anomalia detectada.";
+        return response.text;
     } catch (error) {
         console.error("Channel Insight Error:", error);
         return "Interferência no sinal. Comunicação com o Oráculo perdida.";
@@ -359,12 +309,9 @@ export const generateGuildMemberReply = async (
         Canal: #${channelName}.
         Contexto recente:
         ${context}
-
-        Crie UMA resposta curta (máximo 1-2 frases) de um membro fictício da guilda reagindo ao último post.
-        Escolha um nome heroico (ex: "Alex o Bravo", "Seraphina", "Kael Titã") e uma patente aleatória entre "Iniciante", "Aventureiro", "Campeão", "Paladino".
-        
-        Retorne APENAS o objeto JSON com o seguinte formato:
-        {"author": "Nome Fictício", "rank": "Patente Escolhida", "content": "Sua mensagem curta"}
+        Crie UMA resposta curta (1-2 frases) de um membro fictício reagindo ao último post.
+        Escolha um nome heroico e uma patente aleatória (Iniciante, Aventureiro, Campeão, Paladino).
+        Retorne APENAS o objeto JSON: {"author": "Nome Fictício", "rank": "Patente Escolhida", "content": "Sua mensagem curta"}
         `;
 
         const response = await client.models.generateContent({
@@ -374,13 +321,9 @@ export const generateGuildMemberReply = async (
                 responseMimeType: 'application/json',
             }
         });
-
-        if(response.text) {
-            const cleaned = cleanJsonString(response.text);
-            const data = JSON.parse(cleaned);
-            if (data.author && data.rank && data.content) {
-                return data;
-            }
+        const data = cleanAndParseJson(response.text);
+        if (data.author && data.rank && data.content) {
+            return data as {author: string, rank: RankTitle, content: string};
         }
         return null;
     } catch (e) {
@@ -388,3 +331,24 @@ export const generateGuildMemberReply = async (
         return null;
     }
 }
+
+export const getChatbotLandingReply = async (question: string): Promise<string> => {
+    try {
+        const client = initializeGenAI();
+        if (!client) return "O Oráculo medita em silêncio. A clareza virá da ação.";
+
+        const systemInstruction = `Você é o Oráculo da Clareza. Responda a perguntas de heróis em potencial de forma sábia e enigmática, focando na jornada interior. Seja conciso e termine com uma reflexão.`;
+
+        const response = await client.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: question,
+            config: { systemInstruction }
+        });
+
+        return response.text;
+
+    } catch (error) {
+        console.error("Chatbot Landing Reply Error:", error);
+        throw new Error("A conexão com o Oráculo falhou.");
+    }
+};

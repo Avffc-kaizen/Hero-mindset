@@ -1,11 +1,13 @@
+
+
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { RankTitle, UserState, GuildPost, GuildChannelId, Archetype, Squad, SquadMember } from '../types';
+import { RankTitle, UserState, GuildPost, GuildChannelId, Archetype, Squad, SquadMember } from './src/types';
 import { Shield, Trophy, MessageSquare, Loader2, Sword, Skull, Sparkles, Crown, Star, Hexagon, Clock, Send, User as UserIcon, Hash, Flame, Zap, Plus, Lock, X, ChevronRight, Menu, Info, MessageCircle, ChevronDown, Users, Target, AlertCircle, Terminal, AlertTriangle, Briefcase, LogOut, CheckCircle } from 'lucide-react';
 import { generateBossVictorySpeech, generateChannelInsightAI, generateGuildMemberReply } from '../services/geminiService';
-import { GUILD_CHANNELS, ARCHETYPES, MIN_LEVEL_TO_CREATE_SQUAD, MAX_SQUAD_SIZE } from '../constants';
-import { getWeekStart, isToday } from '../utils';
-import { useUser } from '../contexts/UserContext';
-import { useError } from '../contexts/ErrorContext';
+import { GUILD_CHANNELS, ARCHETYPES, MIN_LEVEL_TO_CREATE_SQUAD, MAX_SQUAD_SIZE } from './src/constants';
+import { isToday } from './src/utils';
+import { useUser } from './src/contexts/UserContext';
+import { useError } from './src/contexts/ErrorContext';
 
 type BossType = 'daily' | 'weekly' | 'monthly';
 
@@ -63,7 +65,7 @@ const MOCK_LEADERBOARD = [
 ];
 
 const Guild: React.FC = () => {
-  const { user, squads, handleUpgrade, handleAscend, handleBossAttack, handlePunish, handleCreateSquad, handleJoinSquad, handleLeaveSquad } = useUser();
+  const { user, squads, handleUpgrade, handleAscend, handlePunish, handleCreateSquad, handleJoinSquad, handleLeaveSquad, handleBossAttack } = useUser();
   const { showError } = useError();
 
   const [activeTab, setActiveTab] = useState<'channels' | 'squads'>('channels');

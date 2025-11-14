@@ -1,9 +1,11 @@
+
+
 import React, { useState } from 'react';
-import { JournalEntry } from '../types';
+import { JournalEntry } from './src/types';
 import { ScrollText, Send, Lock, Zap, CheckCircle, ChevronRight, Bot } from 'lucide-react';
 import { analyzeJournalAI } from '../services/geminiService';
-import { useError } from '../contexts/ErrorContext';
-import { useUser } from '../contexts/UserContext';
+import { useError } from './src/contexts/ErrorContext';
+import { useUser } from './src/contexts/UserContext';
 
 const Journal: React.FC = () => {
   const { user, handleAddJournalEntry: onAddEntry, handleUpdateJournalEntry: onUpdateEntry, handleUpgrade: onUpgrade } = useUser();

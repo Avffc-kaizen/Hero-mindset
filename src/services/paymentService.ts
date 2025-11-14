@@ -1,4 +1,3 @@
-
 import { PRODUCTS, STRIPE_PUBLIC_KEY } from '../constants';
 import { PaymentProvider } from '../types';
 import { functions, isFirebaseConfigured } from '../firebase';
@@ -25,7 +24,6 @@ export const buyProduct = async (productId: string, metadata?: Record<string, an
     });
   }
 
-  // Primary Flow: Stripe via Firebase Functions
   if (product.provider === PaymentProvider.STRIPE && product.priceId) {
     if (!isFirebaseConfigured || !functions) {
       throw new Error('Firebase não está configurado. Pagamento indisponível.');
@@ -47,7 +45,7 @@ export const buyProduct = async (productId: string, metadata?: Record<string, an
         }
         const stripe = await loadStripe(STRIPE_PUBLIC_KEY);
         if (!stripe) {
-            throw new Error("Não foi possível carregar o sistema de pagamento. Verifique sua conexão e tente novamente.");
+            throw new Error("Não foi possível carregar o sistema de pagamento.");
         }
         const { error } = await stripe.redirectToCheckout({ sessionId });
         if (error) {

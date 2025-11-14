@@ -35,11 +35,6 @@ export interface LifeMapQuestion {
   category: LifeMapCategory;
 }
 
-export enum IAMode {
-  Fast = 'fast',
-  Deep = 'deep',
-}
-
 export type MissionCategory = 'Fitness' | 'Learning' | 'Finance' | 'Mindset';
 export type MissionType = 'daily' | 'weekly' | 'milestone';
 
@@ -63,7 +58,6 @@ export interface LessonDetails {
   quote?: string;
   mission?: string;
   tool?: string;
-  aiLoaded?: boolean;
   tags?: string[];
 }
 
@@ -118,17 +112,15 @@ export type ToolType = 'pomodoro' | 'breathing' | 'eisenhower' | 'budget' | 'pas
 export interface Skill {
   id: string;
   name: string;
-  description: string; // A descrição vaga/misteriosa
-  realBenefit?: string; // O benefício real revelado após desbloqueio
+  description: string;
+  realBenefit?: string;
   icon: LucideIcon;
   cost: number;
   missionCategoryReq: MissionCategory;
   missionCountReq: number;
   toolId?: ToolType; 
-  passiveEffect?: string; // Para skills que não abrem UI, mas dão bonus
 }
 
-// A SkillTree agora usa as categorias do LifeMap como chaves
 export type SkillTree = Record<LifeMapCategory, Skill[]>;
 
 export type GuildChannelId = 'general' | 'wins' | 'support' | 'boss_strategy' | 'protection_360';
@@ -147,15 +139,13 @@ export interface GuildPost {
   rank: RankTitle | string;
   content: string;
   channel: GuildChannelId;
-  likes: number; // Deprecated, use reactions
-  reactions: Record<string, number>; // ex: { 'fire': 5, 'muscle': 2 }
+  likes: number;
+  reactions: Record<string, number>;
   comments: GuildComment[];
   timestamp: number;
   isSystem?: boolean;
-  aiAnalysis?: string; // Para posts analisados pelo Oráculo
   action?: 'attack_boss';
 }
-
 
 export interface SquadMember {
   id: string;
@@ -181,8 +171,6 @@ export interface DailyGuidance {
   type: 'alert' | 'praise' | 'strategy';
 }
 
-// --- PROTECTION MODULE TYPES ---
-
 export type ProtectionModuleId = 'soberano' | 'tita' | 'sabio' | 'monge' | 'lider';
 
 export interface ProtectionModuleInfo {
@@ -192,33 +180,24 @@ export interface ProtectionModuleInfo {
     monthlyPrice: number;
     coveredAreas: LifeMapCategory[];
     icon: LucideIcon;
-    color: string; // Tailwind color class base (e.g., "yellow", "red")
+    color: string;
 }
 
 export interface RoadmapItem {
     id: string;
     title: string;
     completed: boolean;
-    targetDate?: number;
 }
 
 export interface CompanyInfo {
     name: string;
     description: string;
-    website?: string;
 }
 
-// --- WIDGET DATA TYPES ---
 export interface BioData {
     sleepHours: number;
     workoutsThisWeek: number;
     waterIntake: number;
-}
-
-export interface FocusSession {
-    date: number;
-    duration: number; // minutes
-    task: string;
 }
 
 export interface DailyIntention {
@@ -226,14 +205,6 @@ export interface DailyIntention {
     text: string;
     completed: boolean;
 }
-
-export interface KeyConnection {
-    id: string;
-    name: string;
-    lastContact?: number; // timestamp
-    completed: boolean;
-}
-
 
 export interface UserState {
   uid: string;
@@ -244,32 +215,23 @@ export interface UserState {
   lifeMapScores: Record<LifeMapCategory, number> | null;
   mapAnalysis?: string;
   focusAreas: LifeMapCategory[];
-  createdAt: number;
+  createdAt: any; // Can be a server timestamp
   email?: string;
-  password?: string; 
   
-  // Subscription & Protection System
-  activeModules: ProtectionModuleId[]; // Lista de módulos ativos
-  hasSubscription: boolean; // Acesso ao Mentor IA
-  hasPaidBase?: boolean; // Acesso vitalício ao produto base (Eduzz/Stripe)
+  activeModules: ProtectionModuleId[];
+  hasSubscription: boolean;
+  hasPaidBase?: boolean;
   
-  // Module Specific Data
-  company?: CompanyInfo | null; // Soberano
-  businessRoadmap?: RoadmapItem[]; // Soberano
-  bioData?: BioData; // Tita
-  focusHistory?: FocusSession[]; // Sabio
+  company?: CompanyInfo | null;
+  businessRoadmap?: RoadmapItem[];
+  bioData?: BioData;
   dailyIntention?: DailyIntention | null;
-  keyConnections?: KeyConnection[];
   
   level: number;
   currentXP: number;
   rank: RankTitle;
-  lastBossAttacks?: {
-    daily?: number;
-    weekly?: number;
-    monthly?: number;
-  };
-  joinedSquadIds: string[]; // IDs dos esquadrões que o usuário participa
+  lastBossAttacks?: { [key: string]: number };
+  joinedSquadIds: string[];
   isAscended?: boolean;
   paragonPoints: number;
   paragonPerks: Record<string, number>;
@@ -285,9 +247,10 @@ export interface UserState {
   lessonsCompletedToday: number;
   lastLessonCompletionDate: number;
   dailyGuidance: DailyGuidance | null;
+  focusHistory?: any[]; // Placeholder
+  keyConnections?: any[]; // Placeholder
 }
 
-// --- PAYMENT TYPES ---
 export enum PaymentProvider {
   STRIPE = 'stripe',
   EDUZZ = 'eduzz'
@@ -298,9 +261,9 @@ export interface ProductDef {
   name: string;
   description: string;
   provider: PaymentProvider;
-  priceId?: string; // Stripe Price ID
-  eduzzId?: string; // Eduzz Content ID
-  price: number; // In cents
-  originalPrice?: number; // In cents, for sales
+  priceId?: string;
+  eduzzId?: string;
+  price: number;
+  originalPrice?: number;
   isSubscription: boolean;
 }

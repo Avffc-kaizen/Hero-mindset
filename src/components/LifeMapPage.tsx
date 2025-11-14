@@ -22,6 +22,18 @@ const LifeMapPage: React.FC = () => {
         fullMark: 10,
     }));
     
+    const renderAnalysis = () => {
+        if (!user.mapAnalysis) {
+            return <p>A análise do Oráculo não está disponível. Recalibre o diagnóstico para gerar um novo dossiê.</p>;
+        }
+        
+        return user.mapAnalysis.split('\n').map((line, index) => {
+            if (line.startsWith('**')) return <strong key={index} className="block text-red-500 font-mono my-2">{line.replace(/\*\*/g, '')}</strong>;
+            if (line.trim() === '') return <br key={index} />;
+            return <p key={index}>{line}</p>;
+        });
+    }
+
     return (
         <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -38,18 +50,9 @@ const LifeMapPage: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
-                    <h3 className="text-sm font-bold font-mono uppercase text-zinc-300 mb-4">Dossiê Estratégico do Oráculo</h3>
+                    <h3 className="text-sm font-bold font-mono uppercase text-zinc-300 mb-4 flex items-center gap-2"><Bot className="w-4 h-4 text-yellow-500"/>Dossiê Estratégico do Oráculo</h3>
                     <div className="prose prose-sm prose-invert max-w-none prose-p:text-zinc-400 prose-headings:text-white prose-strong:text-zinc-200">
-                        {user.mapAnalysis ? (
-                            user.mapAnalysis.split('\n').map((line, index) => {
-                                if (line.startsWith('**')) {
-                                    return <strong key={index} className="block text-red-500 font-mono my-2">{line.replace(/\*\*/g, '')}</strong>;
-                                }
-                                return <p key={index}>{line}</p>;
-                            })
-                        ) : (
-                            <p>A análise do Oráculo não está disponível. Recalibre o diagnóstico para gerar um novo dossiê.</p>
-                        )}
+                        {renderAnalysis()}
                     </div>
                 </div>
 

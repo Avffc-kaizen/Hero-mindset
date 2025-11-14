@@ -1,9 +1,11 @@
+
+
 import React, { useState } from 'react';
-import { ProtectionModuleId, RoadmapItem, BioData, DailyIntention } from '../types';
-import { PROTECTION_MODULES, ARCHETYPES } from '../constants';
+import { ProtectionModuleId, RoadmapItem, BioData, DailyIntention } from './src/types';
+import { PROTECTION_MODULES, ARCHETYPES } from './src/constants';
 import { Award, Zap, RefreshCw, Star, AlertCircle, Flame, Shield, Briefcase, Activity, TrendingUp, CheckCircle, Plus, Lock, Dumbbell, Moon, Droplets, Trash2, Bot, Target, Check, AlertTriangle } from 'lucide-react';
-import { XP_PER_LEVEL_FORMULA, isToday } from '../utils';
-import { useUser } from '../contexts/UserContext';
+import { XP_PER_LEVEL_FORMULA } from './src/utils';
+import { useUser } from './src/contexts/UserContext';
 import MissionProgress from './MissionProgress';
 import LifeMapWidget from './LifeMapWidget';
 

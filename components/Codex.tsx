@@ -1,7 +1,9 @@
+
+
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Book, Lock, Play, ChevronLeft, CheckCircle, Zap, Quote as QuoteIcon, PenTool, MonitorPlay, Loader2, Search, Tag, AlertCircle, Maximize, Music, Headphones, Cloud } from 'lucide-react';
-import { Module, LessonDetails } from '../types';
-import { useUser } from '../contexts/UserContext';
+import { Module, LessonDetails } from './src/types';
+import { useUser } from './src/contexts/UserContext';
 
 const Codex: React.FC<{isDailyLimitReached: boolean}> = ({ isDailyLimitReached }) => {
   const { user, handleCompleteLesson: onCompleteLesson, handleUpgrade: onUpgrade } = useUser();
@@ -364,7 +366,7 @@ const Codex: React.FC<{isDailyLimitReached: boolean}> = ({ isDailyLimitReached }
             <div className="animate-in fade-in slide-in-from-right-4 space-y-6">
               <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
                 <div className="aspect-video w-full bg-black relative group">
-                  <iframe width="100%" height="100%" src="https://www.youtube.com/embed/y9tuE8CeWyA?autoplay=1&loop=1&playlist=y9tuE8CeWyA&controls=0&modestbranding=1" title="Final Fantasy 7 Rebirth (Ambient Theme)" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen className="w-full h-full"></iframe>
+                  <iframe width="100%" height="100%" src="https://www.youtube.com/embed/y9tuE8CeWyA?autoplay=1&loop=1&playlist=y9tuE8CeWyA&controls=0&modestbranding=1&showinfo=0" title="Final Fantasy 7 Rebirth (Ambient Theme)" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen className="w-full h-full"></iframe>
                 </div>
                 
                 <div className="p-6">

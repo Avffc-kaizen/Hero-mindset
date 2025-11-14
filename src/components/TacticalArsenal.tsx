@@ -2,18 +2,12 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { PROTECTION_MODULES } from '../constants';
-import { ProtectionModuleId, ProtectionModuleInfo } from '../types';
+import { ProtectionModuleInfo } from '../types';
 import { Lock, CheckCircle, Briefcase, Shield } from 'lucide-react';
 
 const ModuleCard: React.FC<{ module: ProtectionModuleInfo; isActive: boolean; onActivate: () => void }> = ({ module, isActive, onActivate }) => {
   const navigate = useNavigate();
   const Icon = module.icon;
-
-  const colorClasses = {
-    base: `border-${module.color}-500/30 text-${module.color}-500`,
-    hover: `hover:border-${module.color}-500`,
-    bg: `bg-${module.color}-900/10`,
-  };
   
   const handleAction = () => {
     if (isActive) {
@@ -24,11 +18,11 @@ const ModuleCard: React.FC<{ module: ProtectionModuleInfo; isActive: boolean; on
   };
 
   return (
-    <div className={`flex flex-col bg-zinc-900 border rounded-2xl p-6 transition-all duration-300 ${isActive ? `${colorClasses.base} ${colorClasses.bg}` : 'border-zinc-800'}`}>
+    <div className={`flex flex-col bg-zinc-900 border rounded-2xl p-6 transition-all duration-300 ${isActive ? `border-${module.color}-500/30 text-${module.color}-500 bg-${module.color}-900/10` : 'border-zinc-800'}`}>
       <div className="flex-grow">
         <div className="flex items-center justify-between mb-4">
           <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${isActive ? `bg-${module.color}-900/20` : 'bg-zinc-800'}`}>
-            <Icon className={`w-6 h-6 ${isActive ? colorClasses.base.split(' ')[1] : 'text-zinc-500'}`} />
+            <Icon className={`w-6 h-6 ${isActive ? `text-${module.color}-500` : 'text-zinc-500'}`} />
           </div>
           {isActive ? (
             <span className="flex items-center gap-1.5 text-xs font-mono uppercase text-green-500"><CheckCircle className="w-4 h-4" /> Ativo</span>
@@ -48,7 +42,6 @@ const ModuleCard: React.FC<{ module: ProtectionModuleInfo; isActive: boolean; on
     </div>
   );
 };
-
 
 const TacticalArsenal: React.FC = () => {
   const { user, handleUpgrade } = useUser();
@@ -72,8 +65,8 @@ const TacticalArsenal: React.FC = () => {
         {allModules.map(moduleInfo => (
           <ModuleCard
             key={moduleInfo.id}
-            module={moduleInfo as ProtectionModuleInfo}
-            isActive={user.activeModules.includes(moduleInfo.id as ProtectionModuleId)}
+            module={moduleInfo}
+            isActive={user.activeModules.includes(moduleInfo.id)}
             onActivate={handleActivate}
           />
         ))}
