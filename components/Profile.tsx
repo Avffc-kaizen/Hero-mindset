@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Shield, Calendar, Edit, Save, X, Lock, KeyRound, AlertTriangle, ChevronRight, CheckCircle } from 'lucide-react';
-import { useUser } from '../contexts/UserContext';
+// FIX: Corrected import path for UserContext
+import { useUser } from '../src/contexts/UserContext';
 
 const Profile: React.FC = () => {
   const { user, handleUpdateUser: onUpdateProfile, handleReset: onDeleteAccount, handleUpgrade: onUpgrade, handleForgotPassword: onPasswordChange } = useUser();

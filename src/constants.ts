@@ -2,21 +2,13 @@ import { UserState, ArchetypeInfo, Archetype, ArchetypeQuestion, LifeMapCategory
 import {
   Heart, Mountain, BookOpen, Shield, Clapperboard, Wand2, Users, Sun, Laugh, HandHelping, Gem, Crown,
   Zap, Brain, Dumbbell, PiggyBank, BarChart, Repeat, Award, Activity, Moon, Timer, Wind, ListTodo, Calculator,
-  Briefcase, Smile, Home, Eye, Star, Anchor, Lock, Sparkles, Flag, Flame, TrendingUp, HeartHandshake, Hash, Trophy, Map
+  Briefcase, Smile, Home, Eye, Star, Anchor, Lock, Sparkles, Flag, Flame, TrendingUp, HeartHandshake, Hash, Trophy, Map, CheckCircle
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 // --- CONFIGURAÇÕES DE AMBIENTE ---
-export const FIREBASE_CONFIG = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
-};
-export const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
-export const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+// Firebase config is now handled within firebase.ts to allow for lazy initialization.
+export const getStripePublicKey = () => process.env.VITE_STRIPE_PUBLIC_KEY;
 export const FRONTEND_URL = "https://hero-mindset.web.app";
 
 // --- CONFIGURAÇÕES DE JOGO ---
@@ -30,8 +22,7 @@ export const PRODUCTS: ProductDef[] = [
     id: 'hero_vitalicio',
     name: 'Hero Mindset Vitalício',
     description: 'Acesso único à plataforma base e todas as ferramentas estáticas.',
-    provider: PaymentProvider.STRIPE,
-    priceId: "price_1PshrWELwcc78QutdK8hB29k",
+    provider: PaymentProvider.EDUZZ,
     eduzzId: "E05XKGE7WX",
     price: 49700,
     originalPrice: 99700,

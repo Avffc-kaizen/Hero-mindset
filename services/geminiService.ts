@@ -1,16 +1,20 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
-import { Mission, RankTitle, JournalEntry, UserStats, UserState, DailyGuidance, LifeMapCategory, GuildPost, ChatMessage } from "./src/types";
-import { MENTOR_SYSTEM_INSTRUCTION, PROTECTION_MODULES, GEMINI_API_KEY } from "./src/constants";
+// FIX: Corrected import paths for types and constants to point to the 'src' directory.
+import { Mission, RankTitle, JournalEntry, UserStats, UserState, DailyGuidance, LifeMapCategory, GuildPost, ChatMessage } from "../src/types";
+import { MENTOR_SYSTEM_INSTRUCTION, PROTECTION_MODULES } from "../src/constants";
 
 let genAI: GoogleGenAI | null = null;
 
 const initializeGenAI = () => {
-  if (!GEMINI_API_KEY) {
-    console.error("VITE_GEMINI_API_KEY is missing. AI features will be disabled.");
+  // FIX: Use process.env.API_KEY as per @google/genai guidelines.
+  if (!process.env.API_KEY) {
+    console.error("API_KEY environment variable is missing. AI features will be disabled.");
     return null;
   }
   if (!genAI) {
-    genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+    // FIX: Use process.env.API_KEY for initialization.
+    genAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
   return genAI;
 };
@@ -110,6 +114,14 @@ export const generateProactiveOracleGuidance = async (user: UserState): Promise<
       contents: prompt,
       config: { 
         responseMimeType: 'application/json',
+        // FIX: Added response schema for better JSON generation reliability.
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            content: { type: Type.STRING },
+            type: { type: Type.STRING },
+          },
+        },
       }
     });
     const data = cleanAndParseJson(response.text);
@@ -152,7 +164,20 @@ export const generateDailyMissionsAI = async (level: number, rank: RankTitle): P
     const response = await client.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
-      config: { responseMimeType: 'application/json' }
+      config: { 
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              category: { type: Type.STRING },
+              xp: { type: Type.NUMBER },
+            }
+          }
+        }
+      }
     });
     const missions = cleanAndParseJson(response.text) as Mission[];
     return missions.map((m, i) => ({ ...m, id: `ai-daily-${Date.now()}-${i}`, xp: Number(m.xp) || 20, completed: false, type: 'daily' }));
@@ -171,7 +196,20 @@ export const generateWeeklyMissionsAI = async (level: number, rank: RankTitle): 
     const response = await client.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
-      config: { responseMimeType: 'application/json' }
+      config: { 
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              category: { type: Type.STRING },
+              xp: { type: Type.NUMBER },
+            }
+          }
+        }
+      }
     });
     const missions = cleanAndParseJson(response.text) as Mission[];
     return missions.map((m, i) => ({ ...m, id: `ai-weekly-${Date.now()}-${i}`, xp: Number(m.xp) || 120, completed: false, type: 'weekly' }));
@@ -193,7 +231,20 @@ export const generateMilestoneMissionsAI = async (level: number, rank: RankTitle
     const response = await client.models.generateContent({
       model: 'gemini-2.5-pro',
       contents: prompt,
-      config: { responseMimeType: 'application/json' }
+      config: { 
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              category: { type: Type.STRING },
+              xp: { type: Type.NUMBER },
+            }
+          }
+        }
+      }
     });
     const missions = cleanAndParseJson(response.text) as Mission[];
     return missions.map((m, i) => ({ ...m, id: `ai-milestone-${Date.now()}-${i}`, xp: Number(m.xp) || 200, completed: false, type: 'milestone' }));
@@ -319,6 +370,15 @@ export const generateGuildMemberReply = async (
             contents: prompt,
             config: { 
                 responseMimeType: 'application/json',
+                // FIX: Added response schema for better JSON generation reliability.
+                responseSchema: {
+                  type: Type.OBJECT,
+                  properties: {
+                    author: { type: Type.STRING },
+                    rank: { type: Type.STRING },
+                    content: { type: Type.STRING },
+                  },
+                },
             }
         });
         const data = cleanAndParseJson(response.text);

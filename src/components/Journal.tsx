@@ -1,3 +1,5 @@
+
+
 import React, { useState } from 'react';
 import { JournalEntry } from '../types';
 import { ScrollText, Send, Lock, Zap, CheckCircle, ChevronRight, Bot } from 'lucide-react';

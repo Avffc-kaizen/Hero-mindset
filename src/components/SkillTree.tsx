@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { ToolType, MissionCategory, LifeMapCategory, LifeMapCategoriesList, Skill } from '../types';

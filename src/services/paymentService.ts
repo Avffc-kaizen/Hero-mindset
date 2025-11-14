@@ -1,6 +1,6 @@
-import { PRODUCTS, STRIPE_PUBLIC_KEY } from '../constants';
+import { PRODUCTS, getStripePublicKey } from '../constants';
 import { PaymentProvider } from '../types';
-import { functions, isFirebaseConfigured } from '../firebase';
+import { getFirebaseFunctions, getIsFirebaseConfigured } from '../firebase';
 import { httpsCallable } from 'firebase/functions';
 import { loadStripe } from '@stripe/stripe-js';
 
@@ -25,9 +25,14 @@ export const buyProduct = async (productId: string, metadata?: Record<string, an
   }
 
   if (product.provider === PaymentProvider.STRIPE && product.priceId) {
-    if (!isFirebaseConfigured || !functions) {
+    if (!getIsFirebaseConfigured()) {
       throw new Error('Firebase não está configurado. Pagamento indisponível.');
     }
+    const functions = getFirebaseFunctions();
+    if (!functions) {
+        throw new Error('Firebase Functions indisponível.');
+    }
+
     try {
       const createCheckoutSession = httpsCallable(functions, 'createCheckoutSession');
       
@@ -40,6 +45,7 @@ export const buyProduct = async (productId: string, metadata?: Record<string, an
       const { id: sessionId } = response.data as { id?: string };
       
       if (sessionId) {
+        const STRIPE_PUBLIC_KEY = getStripePublicKey();
         if (!STRIPE_PUBLIC_KEY) {
             throw new Error("A chave pública do Stripe não está configurada.");
         }
@@ -59,6 +65,9 @@ export const buyProduct = async (productId: string, metadata?: Record<string, an
       console.error("Firebase Functions call or Stripe redirect failed:", error);
       throw new Error(error.message || 'Falha ao iniciar o processo de pagamento.');
     }
+  } else if (product.provider === PaymentProvider.EDUZZ && product.eduzzId) {
+      const eduzzUrl = `https://chk.eduzz.com/${product.eduzzId}`;
+      window.location.href = eduzzUrl;
   } else {
     throw new Error('Configuração de pagamento inválida para este produto.');
   }

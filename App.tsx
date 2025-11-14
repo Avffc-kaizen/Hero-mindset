@@ -1,24 +1,22 @@
-
-
 import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Navigate, Outlet, useLocation, NavLink } from 'react-router-dom';
-import { Onboarding, LoginScreen } from '../components/Login';
-import HeroicDashboard from '../components/Dashboard';
-import Codex from '../components/Codex';
-import Guild from '../components/Guild';
-import IAMentor from '../components/IAMentor';
-import Journal from '../components/Journal';
-import Pantheon from '../components/Pantheon';
-import SkillTree from '../components/SkillTree';
-import Profile from '../components/Profile';
-import Missions from '../components/Missions';
-import LandingPage from '../components/LandingPage';
-import PaymentSuccess from '../components/PaymentSuccess';
-import LevelUpModal from '../components/LevelUpModal';
-import { XP_PER_LEVEL_FORMULA, isToday } from './utils';
+import { Onboarding, LoginScreen } from './src/components/Login';
+import HeroicDashboard from './src/components/Dashboard';
+import Codex from './src/components/Codex';
+import Guild from './src/components/Guild';
+import IAMentor from './src/components/IAMentor';
+import Journal from './src/components/Journal';
+import Pantheon from './src/components/Pantheon';
+import SkillTree from './src/components/SkillTree';
+import Profile from './src/components/Profile';
+import Missions from './src/components/Missions';
+import LandingPage from './src/components/LandingPage';
+import PaymentSuccess from './src/components/PaymentSuccess';
+import LevelUpModal from './src/components/LevelUpModal';
+import { XP_PER_LEVEL_FORMULA, isToday } from './src/utils';
 import { Compass, Book, Shield, Bot, ScrollText, GitMerge, Sparkles, User as UserIcon, LogOut, Target, Menu, X, Loader2 } from 'lucide-react';
-import { ErrorProvider } from '../contexts/ErrorContext';
-import { UserProvider, useUser } from '../contexts/UserContext';
+import { ErrorProvider } from './src/contexts/ErrorContext';
+import { UserProvider, useUser } from './src/contexts/UserContext';
 
 // --- LAYOUT & ROUTING COMPONENTS ---
 

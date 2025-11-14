@@ -63,7 +63,7 @@ const MOCK_LEADERBOARD = [
 ];
 
 const Guild: React.FC = () => {
-  const { user, squads, handleUpgrade, handleAscend, handlePunish, handleCreateSquad, handleJoinSquad, handleLeaveSquad } = useUser();
+  const { user, squads, handleUpgrade, handleAscend, handlePunish, handleCreateSquad, handleJoinSquad, handleLeaveSquad, handleBossAttack } = useUser();
   const { showError } = useError();
 
   const [activeTab, setActiveTab] = useState<'channels' | 'squads'>('channels');

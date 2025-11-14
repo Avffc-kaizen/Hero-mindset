@@ -1,13 +1,20 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { UserState, Archetype, LifeMapCategory, JournalEntry, LessonDetails, Mission, RankTitle, Squad, ProtectionModuleId } from '../types';
+import { UserState, Archetype, LifeMapCategory, JournalEntry, LessonDetails, Mission, RankTitle, Squad, ProtectionModuleId, ParagonPerk } from '../types';
 import { INITIAL_USER_STATE, STATIC_DAILY_MISSIONS, STATIC_WEEKLY_MISSIONS, MOCK_SQUADS, PRODUCTS, XP_PER_LEVEL_FORMULA, PARAGON_PERKS, SKILL_TREES } from '../constants';
 import { generateDailyMissionsAI, generateWeeklyMissionsAI, generateProactiveOracleGuidance } from '../services/geminiService';
 import { buyProduct } from '../services/paymentService';
 import { useError } from './ErrorContext';
 import { getRank, isToday, isSameWeek } from '../utils';
 
-import { auth, db, functions, isFirebaseConfigured, googleProvider } from '../firebase';
+import { 
+    getFirebaseAuth, 
+    getFirebaseDb, 
+    getFirebaseFunctions, 
+    getIsFirebaseConfigured, 
+    getGoogleProvider, 
+    serverTimestamp 
+} from '../firebase';
 import { 
     onAuthStateChanged, 
     signInWithEmailAndPassword, 
@@ -28,9 +35,9 @@ import {
     where,
     limit,
     getDocs,
-    serverTimestamp,
     writeBatch
 } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 
 declare global {
   interface Window {
@@ -68,6 +75,7 @@ interface UserContextType {
   handleJoinSquad: (squadId: string) => void;
   handleLeaveSquad: (squadId: string) => void;
   handleCompleteMission: (missionId: string) => void;
+  handleBossAttack: (bossType: 'daily' | 'weekly' | 'monthly', damage: number) => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -92,6 +100,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const prevLevelRef = useRef(user.level);
   
   const writeUserUpdate = useCallback(async (updates: Partial<UserState>) => {
+    const auth = getFirebaseAuth();
+    const db = getFirebaseDb();
     if (!auth?.currentUser || !db) return;
     const userDocRef = doc(db, "users", auth.currentUser.uid);
     try {
@@ -132,6 +142,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [writeUserUpdate]);
 
   const handleLogin = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
+    const auth = getFirebaseAuth();
     if (!auth) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
     try { 
       await signInWithEmailAndPassword(auth, email, password); 
@@ -142,10 +153,22 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   const handleSignUp = async (name: string, email: string, password: string): Promise<{success: boolean, message?: string}> => {
+      const auth = getFirebaseAuth();
+      const db = getFirebaseDb();
       if (!auth || !db) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
       try {
+          // Verify purchase before creating account
+          const purchasesRef = collection(db, 'purchases');
+          const q = query(purchasesRef, where("email", "==", email), where("status", "==", "verified_for_signup"), limit(1));
+          const purchaseSnap = await getDocs(q);
+
+          if (purchaseSnap.empty) {
+              return { success: false, message: 'Nenhuma compra encontrada para este email. Garanta seu acesso e tente novamente.' };
+          }
+          
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const userDocRef = doc(db, "users", userCredential.user.uid);
+          const purchaseDocRef = purchaseSnap.docs[0].ref;
           
           const newUserState = {
             ...INITIAL_USER_STATE,
@@ -156,10 +179,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             hasPaidBase: true,
           };
 
-          await setDoc(userDocRef, {
-              ...newUserState,
-              createdAt: serverTimestamp() // Use server timestamp for accuracy
-          });
+          const batch = writeBatch(db);
+          batch.set(userDocRef, { ...newUserState, createdAt: serverTimestamp() });
+          batch.update(purchaseDocRef, { status: 'claimed', uid: userCredential.user.uid });
+          await batch.commit();
 
           setUser(newUserState); // Immediately update local state
           return { success: true };
@@ -172,6 +195,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const handleGoogleLogin = async (): Promise<{ success: boolean; message?: string }> => {
+    const auth = getFirebaseAuth();
+    const googleProvider = getGoogleProvider();
+    const db = getFirebaseDb();
     if (!auth || !googleProvider || !db) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
     try {
       const result = await signInWithPopup(auth, googleProvider);
@@ -188,14 +214,19 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             return { success: false, message: 'Conta não encontrada. Por favor, compre o acesso ou use o email da compra.' };
         }
 
-        await setDoc(userDocRef, {
+        const purchaseDocRef = purchaseSnap.docs[0].ref;
+        const newUserState = {
             ...INITIAL_USER_STATE,
             uid: result.user.uid,
             name: result.user.displayName || "Herói",
             email: result.user.email,
-            createdAt: serverTimestamp(),
             hasPaidBase: true,
-        });
+        };
+
+        const batch = writeBatch(db);
+        batch.set(userDocRef, { ...newUserState, createdAt: serverTimestamp() });
+        batch.update(purchaseDocRef, { status: 'claimed', uid: result.user.uid });
+        await batch.commit();
       }
       // if existing user, onAuthStateChanged will handle loading their data.
       return { success: true };
@@ -206,6 +237,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   const handleVerifyNewPurchase = async (sessionId: string): Promise<{ success: boolean; name?: string; email?: string; message?: string; }> => {
+      const db = getFirebaseDb();
       if (!db) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
       try {
         const purchaseRef = doc(db, "purchases", sessionId);
@@ -223,6 +255,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const handleVerifyUpgrade = async (sessionId: string) => {
+      const db = getFirebaseDb();
+      const auth = getFirebaseAuth();
       if (!db || !auth?.currentUser) return { success: false, message: "Você precisa estar logado para fazer um upgrade." };
       try {
           const purchaseRef = doc(db, "purchases", sessionId);
@@ -238,7 +272,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const handleBuy = async (productId: string) => {
-    if (!isFirebaseConfigured) {
+    if (!getIsFirebaseConfigured()) {
         showError(FIREBASE_UNCONFIGURED_ERROR);
         return;
     }
@@ -247,6 +281,14 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const handleUpgrade = (productId: string) => handleBuy(productId);
+  
+  const handleBossAttack = (bossType: 'daily' | 'weekly' | 'monthly', damage: number) => {
+    // This is a placeholder as boss logic is local in Guild component
+    console.log(`Attacking ${bossType} boss for ${damage} damage.`);
+    addXP(damage);
+    const updates = { lastBossAttacks: { ...user.lastBossAttacks, [bossType]: Date.now() }};
+    writeUserUpdate(updates);
+  };
 
   const handleCompleteMission = (missionId: string) => { 
     const mission = user.missions.find(m => m.id === missionId && !m.completed);
@@ -265,6 +307,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   const handleReset = async () => { 
+      const auth = getFirebaseAuth();
       if (auth) await signOut(auth); 
       setUser(INITIAL_USER_STATE);
       navigate('/'); 
@@ -288,6 +331,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }
 
   const handleForgotPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
+    const auth = getFirebaseAuth();
     if (!auth) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
     try { 
       await sendPasswordResetEmail(auth, email); 
@@ -328,7 +372,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   const handleSpendParagonPoint = (perkId: string) => {
-      const perk = PARAGON_PERKS.find(p => p.id === perkId);
+      const perk = PARAGON_PERKS.find((p: ParagonPerk) => p.id === perkId);
       const currentLevel = user.paragonPerks[perkId] || 0;
       if (perk && currentLevel < perk.maxLevel) {
           const cost = perk.cost(currentLevel);
@@ -370,12 +414,18 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const handleLeaveSquad = (squadId: string) => {};
 
   useEffect(() => {
-    if (!isFirebaseConfigured || !auth) {
+    if (!getIsFirebaseConfigured()) {
       setLoadingAuth(false);
       return;
     }
+    const auth = getFirebaseAuth();
+    if (!auth) {
+        setLoadingAuth(false);
+        return;
+    }
     const unsubscribe = onAuthStateChanged(auth, authUser => {
       let userSnapshotUnsubscribe: (() => void) | null = null;
+      const db = getFirebaseDb();
       if (authUser && db) {
         const userDocRef = doc(db, 'users', authUser.uid);
         userSnapshotUnsubscribe = onSnapshot(userDocRef, userDoc => {
@@ -401,7 +451,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => unsubscribe();
   }, []);
 
-  const value: UserContextType = { user, squads, isMissionsLoading, loadingAuth, levelUpData, closeLevelUpModal: () => setLevelUpData(null), handleOnboardingComplete, handleReset, handleRedoDiagnosis, handleCompleteLesson, handleAddJournalEntry, handleUpdateJournalEntry, handleUnlockSkill, handleSpendParagonPoint, handleAscend, handlePunish, handleLogin, handleGoogleLogin, handleSignUp, handleForgotPassword, handleUpdateUser, handleBuy, handleUpgrade, handleVerifyNewPurchase, handleVerifyUpgrade, handleCreateSquad, handleJoinSquad, handleLeaveSquad, handleCompleteMission };
+  const value: UserContextType = { user, squads, isMissionsLoading, loadingAuth, levelUpData, closeLevelUpModal: () => setLevelUpData(null), handleOnboardingComplete, handleReset, handleRedoDiagnosis, handleCompleteLesson, handleAddJournalEntry, handleUpdateJournalEntry, handleUnlockSkill, handleSpendParagonPoint, handleAscend, handlePunish, handleLogin, handleGoogleLogin, handleSignUp, handleForgotPassword, handleUpdateUser, handleBuy, handleUpgrade, handleVerifyNewPurchase, handleVerifyUpgrade, handleCreateSquad, handleJoinSquad, handleLeaveSquad, handleCompleteMission, handleBossAttack };
 
   return (
     <UserContext.Provider value={value}>
