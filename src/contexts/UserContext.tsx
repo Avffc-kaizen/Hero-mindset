@@ -8,12 +8,12 @@ import { useError } from './ErrorContext';
 import { getRank, isToday, isSameWeek } from '../utils';
 
 import { 
-    getFirebaseAuth, 
-    getFirebaseDb, 
-    getFirebaseFunctions, 
-    getIsFirebaseConfigured, 
-    getGoogleProvider, 
-    serverTimestamp 
+    auth as firebaseAuth,
+    db as firebaseDb,
+    functions as firebaseFunctions,
+    isFirebaseConfigured,
+    googleProvider,
+    serverTimestamp
 } from '../firebase';
 import { 
     onAuthStateChanged, 
@@ -100,8 +100,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const prevLevelRef = useRef(user.level);
   
   const writeUserUpdate = useCallback(async (updates: Partial<UserState>) => {
-    const auth = getFirebaseAuth();
-    const db = getFirebaseDb();
+    const auth = firebaseAuth;
+    const db = firebaseDb;
     if (!auth?.currentUser || !db) return;
     const userDocRef = doc(db, "users", auth.currentUser.uid);
     try {
@@ -142,7 +142,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [writeUserUpdate]);
 
   const handleLogin = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
-    const auth = getFirebaseAuth();
+    const auth = firebaseAuth;
     if (!auth) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
     try { 
       await signInWithEmailAndPassword(auth, email, password); 
@@ -153,8 +153,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   const handleSignUp = async (name: string, email: string, password: string): Promise<{success: boolean, message?: string}> => {
-      const auth = getFirebaseAuth();
-      const db = getFirebaseDb();
+      const auth = firebaseAuth;
+      const db = firebaseDb;
       if (!auth || !db) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
       try {
           // Verify purchase before creating account
@@ -195,9 +195,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const handleGoogleLogin = async (): Promise<{ success: boolean; message?: string }> => {
-    const auth = getFirebaseAuth();
-    const googleProvider = getGoogleProvider();
-    const db = getFirebaseDb();
+    const auth = firebaseAuth;
+    const db = firebaseDb;
     if (!auth || !googleProvider || !db) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
     try {
       const result = await signInWithPopup(auth, googleProvider);
@@ -237,7 +236,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   const handleVerifyNewPurchase = async (sessionId: string): Promise<{ success: boolean; name?: string; email?: string; message?: string; }> => {
-      const db = getFirebaseDb();
+      const db = firebaseDb;
       if (!db) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
       try {
         const purchaseRef = doc(db, "purchases", sessionId);
@@ -255,8 +254,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const handleVerifyUpgrade = async (sessionId: string) => {
-      const db = getFirebaseDb();
-      const auth = getFirebaseAuth();
+      const db = firebaseDb;
+      const auth = firebaseAuth;
       if (!db || !auth?.currentUser) return { success: false, message: "Você precisa estar logado para fazer um upgrade." };
       try {
           const purchaseRef = doc(db, "purchases", sessionId);
@@ -272,7 +271,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const handleBuy = async (productId: string) => {
-    if (!getIsFirebaseConfigured()) {
+    if (!isFirebaseConfigured) {
         showError(FIREBASE_UNCONFIGURED_ERROR);
         return;
     }
@@ -307,7 +306,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   const handleReset = async () => { 
-      const auth = getFirebaseAuth();
+      const auth = firebaseAuth;
       if (auth) await signOut(auth); 
       setUser(INITIAL_USER_STATE);
       navigate('/'); 
@@ -331,7 +330,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }
 
   const handleForgotPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
-    const auth = getFirebaseAuth();
+    const auth = firebaseAuth;
     if (!auth) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
     try { 
       await sendPasswordResetEmail(auth, email); 
@@ -414,18 +413,18 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const handleLeaveSquad = (squadId: string) => {};
 
   useEffect(() => {
-    if (!getIsFirebaseConfigured()) {
+    if (!isFirebaseConfigured) {
       setLoadingAuth(false);
       return;
     }
-    const auth = getFirebaseAuth();
+    const auth = firebaseAuth;
     if (!auth) {
         setLoadingAuth(false);
         return;
     }
     const unsubscribe = onAuthStateChanged(auth, authUser => {
       let userSnapshotUnsubscribe: (() => void) | null = null;
-      const db = getFirebaseDb();
+      const db = firebaseDb;
       if (authUser && db) {
         const userDocRef = doc(db, 'users', authUser.uid);
         userSnapshotUnsubscribe = onSnapshot(userDocRef, userDoc => {

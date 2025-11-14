@@ -1,3 +1,4 @@
+
 import { UserState, ArchetypeInfo, Archetype, ArchetypeQuestion, LifeMapCategory, LifeMapCategoriesList, RankTitle, SkillTree, ParagonPerk, Module, Mission, Skill, ProtectionModuleInfo, GuildChannelId, ProtectionModuleId, PaymentProvider, ProductDef, LifeMapQuestion, Squad } from './types';
 import {
   Heart, Mountain, BookOpen, Shield, Clapperboard, Wand2, Users, Sun, Laugh, HandHelping, Gem, Crown,
@@ -7,8 +8,8 @@ import {
 import type { LucideIcon } from 'lucide-react';
 
 // --- CONFIGURAÇÕES DE AMBIENTE ---
-// Firebase config is now handled within firebase.ts to allow for lazy initialization.
-export const getStripePublicKey = () => process.env.VITE_STRIPE_PUBLIC_KEY;
+// FIX: Switched from import.meta.env to process.env to resolve TypeScript errors.
+export const STRIPE_PUBLIC_KEY = process.env.VITE_STRIPE_PUBLIC_KEY;
 export const FRONTEND_URL = "https://hero-mindset.web.app";
 
 // --- CONFIGURAÇÕES DE JOGO ---

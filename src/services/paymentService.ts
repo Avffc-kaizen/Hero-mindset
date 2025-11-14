@@ -1,6 +1,6 @@
-import { PRODUCTS, getStripePublicKey } from '../constants';
+import { PRODUCTS, STRIPE_PUBLIC_KEY } from '../constants';
 import { PaymentProvider } from '../types';
-import { getFirebaseFunctions, getIsFirebaseConfigured } from '../firebase';
+import { functions as firebaseFunctions, isFirebaseConfigured } from '../firebase';
 import { httpsCallable } from 'firebase/functions';
 import { loadStripe } from '@stripe/stripe-js';
 
@@ -25,10 +25,10 @@ export const buyProduct = async (productId: string, metadata?: Record<string, an
   }
 
   if (product.provider === PaymentProvider.STRIPE && product.priceId) {
-    if (!getIsFirebaseConfigured()) {
+    if (!isFirebaseConfigured) {
       throw new Error('Firebase não está configurado. Pagamento indisponível.');
     }
-    const functions = getFirebaseFunctions();
+    const functions = firebaseFunctions;
     if (!functions) {
         throw new Error('Firebase Functions indisponível.');
     }
@@ -45,7 +45,6 @@ export const buyProduct = async (productId: string, metadata?: Record<string, an
       const { id: sessionId } = response.data as { id?: string };
       
       if (sessionId) {
-        const STRIPE_PUBLIC_KEY = getStripePublicKey();
         if (!STRIPE_PUBLIC_KEY) {
             throw new Error("A chave pública do Stripe não está configurada.");
         }

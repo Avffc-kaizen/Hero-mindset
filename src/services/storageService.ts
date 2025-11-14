@@ -1,16 +1,8 @@
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, listAll, type FirebaseStorage } from "firebase/storage";
-import { getFirebaseApp, getIsFirebaseConfigured } from "../firebase";
-
-let storage: FirebaseStorage | null = null;
+import { storage, isFirebaseConfigured } from "../firebase";
 
 const checkStorage = (): FirebaseStorage => {
-    if (!storage && getIsFirebaseConfigured()) {
-        const app = getFirebaseApp();
-        if (app) {
-            storage = getStorage(app);
-        }
-    }
-    if (!storage) {
+    if (!isFirebaseConfigured || !storage) {
         throw new Error("Firebase Storage não está configurado.");
     }
     return storage;
