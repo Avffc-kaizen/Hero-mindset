@@ -9,7 +9,7 @@ admin.initializeApp();
 const db = admin.firestore();
 
 const STRIPE_PRICES = {
-  HERO_BASE: "price_1PshrWELwcc78QutdK8hB29k",
+  HERO_BASE: "price_1SRx9eELwcc78QutsxtesYl0",
   IA_UPGRADE: "price_1PshtPELwcc78QutMvFlf3wR",
   PROTECAO_360: "price_1Pshv8ELwcc78Qut2qfW5oUh",
 };
@@ -88,16 +88,18 @@ exports.stripeWebhook = functions
     try {
       if (event.type === "checkout.session.completed") {
         const session = event.data.object;
-        const { uid, priceId, internalProductId } = session.metadata;
-
         const purchaseRef = db.collection("purchases").doc(session.id);
         const purchaseDoc = await purchaseRef.get();
         if (purchaseDoc.exists) {
           console.log(`Webhook: Purchase ${session.id} already processed.`);
           return res.json({ received: true, message: "Already processed." });
         }
+        
+        const uid = session.metadata.uid;
 
         if (uid) {
+          // This flow is for logged-in users (upgrades). It uses metadata.
+          const { priceId, internalProductId } = session.metadata;
           const userRef = db.collection("users").doc(uid);
           let updateData = {};
           if (priceId === STRIPE_PRICES.IA_UPGRADE || internalProductId === "mentor_ia") {
@@ -116,21 +118,28 @@ exports.stripeWebhook = functions
             processedAt: admin.firestore.FieldValue.serverTimestamp(),
             processedBy: "webhook",
           });
-        } else if (internalProductId === "hero_vitalicio") {
-          const name = session.customer_details?.name;
-          const email = session.customer_details?.email;
-          if (name && email) {
-            await purchaseRef.set({
-              email,
-              name,
-              sessionId: session.id,
-              priceId,
-              processedAt: admin.firestore.FieldValue.serverTimestamp(),
-              processedBy: "webhook",
-              status: "verified_for_signup",
-            });
-          } else {
-            console.error(`Webhook: Missing customer details for new user purchase ${session.id}.`);
+        } else {
+          // This flow is for new users from payment links, which don't have metadata.
+          // We must inspect the line items to identify the product.
+          const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
+          const priceId = lineItems.data.length > 0 ? lineItems.data[0].price.id : null;
+
+          if (priceId === STRIPE_PRICES.HERO_BASE) {
+            const name = session.customer_details?.name;
+            const email = session.customer_details?.email;
+            if (name && email) {
+              await purchaseRef.set({
+                email,
+                name,
+                sessionId: session.id,
+                priceId: priceId,
+                processedAt: admin.firestore.FieldValue.serverTimestamp(),
+                processedBy: "webhook",
+                status: "verified_for_signup",
+              });
+            } else {
+              console.error(`Webhook: Missing customer details for new user purchase ${session.id}.`);
+            }
           }
         }
       }

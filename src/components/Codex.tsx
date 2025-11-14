@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Book, Lock, Play, ChevronLeft, CheckCircle, Zap, Quote as QuoteIcon, PenTool, MonitorPlay, Loader2, Search, Tag, AlertCircle, Maximize, Music, Headphones, Cloud } from 'lucide-react';
 import { Module, LessonDetails } from '../types';

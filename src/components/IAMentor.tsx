@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { generateDailyAnalysisAI } from '../services/geminiService';
 import { Bot, Lock, ChevronRight, Zap } from 'lucide-react';

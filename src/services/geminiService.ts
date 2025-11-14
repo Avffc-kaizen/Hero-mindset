@@ -1,61 +1,26 @@
-
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { Mission, RankTitle, JournalEntry, UserStats, UserState, DailyGuidance, LifeMapCategory, GuildPost, ChatMessage } from "../types";
-import { MENTOR_SYSTEM_INSTRUCTION, PROTECTION_MODULES } from "../constants";
+import { MENTOR_SYSTEM_INSTRUCTION } from "../constants";
 
 let genAI: GoogleGenAI | null = null;
 
 const initializeGenAI = () => {
-  // FIX: Use process.env.API_KEY as per @google/genai guidelines.
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
     console.error("API_KEY environment variable is missing. AI features will be disabled.");
     return null;
   }
   if (!genAI) {
-    // FIX: Use process.env.API_KEY for initialization.
     genAI = new GoogleGenAI({ apiKey });
   }
   return genAI;
 };
 
-// Helper to clean and parse JSON from AI responses
 const cleanAndParseJson = (text: string): any => {
     try {
         const markdownMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
         let cleanText = markdownMatch ? markdownMatch[1].trim() : text.trim();
-
-        const firstBracket = cleanText.indexOf('[');
-        const firstBrace = cleanText.indexOf('{');
-        
-        let start = -1;
-        if (firstBracket !== -1 && (firstBrace === -1 || firstBracket < firstBrace)) {
-            start = firstBracket;
-        } else {
-            start = firstBrace;
-        }
-
-        if (start === -1) throw new Error("No JSON object or array found in the string.");
-
-        const openChar = cleanText[start];
-        const closeChar = openChar === '{' ? '}' : ']';
-        let openCount = 0;
-        let end = -1;
-
-        for (let i = start; i < cleanText.length; i++) {
-            if (cleanText[i] === openChar) openCount++;
-            else if (cleanText[i] === closeChar) openCount--;
-            if (openCount === 0) {
-                end = i;
-                break;
-            }
-        }
-        
-        if (end === -1) throw new Error("Invalid JSON structure: No closing bracket/brace found.");
-
-        const jsonString = cleanText.substring(start, end + 1);
-        return JSON.parse(jsonString);
+        return JSON.parse(cleanText);
     } catch (e: any) {
         console.error("Failed to parse JSON from AI response:", e, "Raw text:", text);
         throw new Error("A resposta do Oráculo está em um formato inválido.");
@@ -89,9 +54,7 @@ export const generateDetailedLifeMapAnalysis = async (
         const response = await client.models.generateContent({
             model: 'gemini-2.5-pro',
             contents: prompt,
-            config: {
-                systemInstruction: MENTOR_SYSTEM_INSTRUCTION,
-            }
+            config: { systemInstruction: MENTOR_SYSTEM_INSTRUCTION }
         });
         
         return response.text;
@@ -121,6 +84,7 @@ export const generateProactiveOracleGuidance = async (user: UserState): Promise<
             content: { type: Type.STRING },
             type: { type: Type.STRING },
           },
+          required: ['content', 'type']
         },
       }
     });
@@ -174,7 +138,8 @@ export const generateDailyMissionsAI = async (level: number, rank: RankTitle): P
               title: { type: Type.STRING },
               category: { type: Type.STRING },
               xp: { type: Type.NUMBER },
-            }
+            },
+            required: ['title', 'category', 'xp']
           }
         }
       }
@@ -206,7 +171,8 @@ export const generateWeeklyMissionsAI = async (level: number, rank: RankTitle): 
               title: { type: Type.STRING },
               category: { type: Type.STRING },
               xp: { type: Type.NUMBER },
-            }
+            },
+            required: ['title', 'category', 'xp']
           }
         }
       }
@@ -241,7 +207,8 @@ export const generateMilestoneMissionsAI = async (level: number, rank: RankTitle
               title: { type: Type.STRING },
               category: { type: Type.STRING },
               xp: { type: Type.NUMBER },
-            }
+            },
+             required: ['title', 'category', 'xp']
           }
         }
       }
@@ -377,6 +344,7 @@ export const generateGuildMemberReply = async (
                     rank: { type: Type.STRING },
                     content: { type: Type.STRING },
                   },
+                  required: ['author', 'rank', 'content']
                 },
             }
         });

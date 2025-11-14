@@ -1,4 +1,3 @@
-
 import { UserState, ArchetypeInfo, Archetype, ArchetypeQuestion, LifeMapCategory, LifeMapCategoriesList, RankTitle, SkillTree, ParagonPerk, Module, Mission, Skill, ProtectionModuleInfo, GuildChannelId, ProtectionModuleId, PaymentProvider, ProductDef, LifeMapQuestion, Squad } from './types';
 import {
   Heart, Mountain, BookOpen, Shield, Clapperboard, Wand2, Users, Sun, Laugh, HandHelping, Gem, Crown,
@@ -8,9 +7,8 @@ import {
 import type { LucideIcon } from 'lucide-react';
 
 // --- CONFIGURAÇÕES DE AMBIENTE ---
-// FIX: Switched from import.meta.env to process.env to resolve property 'env' does not exist error.
-export const STRIPE_PUBLIC_KEY = process.env.VITE_STRIPE_PUBLIC_KEY;
 export const FRONTEND_URL = "https://hero-mindset.web.app";
+export const STRIPE_PUBLIC_KEY = process.env.STRIPE_PUBLIC_KEY;
 
 // --- CONFIGURAÇÕES DE JOGO ---
 export const MAX_SQUAD_SIZE = 5;
@@ -23,8 +21,8 @@ export const PRODUCTS: ProductDef[] = [
     id: 'hero_vitalicio',
     name: 'Hero Mindset Vitalício',
     description: 'Acesso único à plataforma base e todas as ferramentas estáticas.',
-    provider: PaymentProvider.EDUZZ,
-    eduzzId: "E05XKGE7WX",
+    provider: PaymentProvider.STRIPE,
+    priceId: "price_1SRx9eELwcc78QutsxtesYl0",
     price: 49700,
     originalPrice: 99700,
     isSubscription: false,
@@ -114,11 +112,11 @@ export const LIFE_MAP_QUESTIONS: Record<LifeMapCategory, LifeMapQuestion[]> = {
 };
 
 export const PROTECTION_MODULES: Record<ProtectionModuleId, ProtectionModuleInfo> = {
-  'soberano': { id: 'soberano', name: 'Soberano (Business)', description: 'Gestão de recursos e expansão.', monthlyPrice: 97, coveredAreas: ['Financeiro', 'Carreira'], icon: TrendingUp, color: 'yellow' },
-  'tita': { id: 'tita', name: 'Titã (Saúde)', description: 'Biohacking e performance física.', monthlyPrice: 67, coveredAreas: ['Saúde & Fitness', 'Qualidade de Vida'], icon: Activity, color: 'red' },
-  'sabio': { id: 'sabio', name: 'Sábio (Intelectual)', description: 'Aprendizado acelerado e foco.', monthlyPrice: 47, coveredAreas: ['Intelectual', 'Visão de Vida'], icon: Brain, color: 'blue' },
-  'monge': { id: 'monge', name: 'Monge (Espiritual)', description: 'Controle emocional e propósito.', monthlyPrice: 47, coveredAreas: ['Espiritual', 'Emocional', 'Caráter'], icon: Zap, color: 'purple' },
-  'lider': { id: 'lider', name: 'Líder (Social)', description: 'Networking, influência e liderança.', monthlyPrice: 57, coveredAreas: ['Social', 'Amoroso', 'Família'], icon: HeartHandshake, color: 'pink' }
+  'soberano': { id: 'soberano', name: 'Soberano', description: 'Gestão de recursos e expansão patrimonial.', monthlyPrice: 97, coveredAreas: ['Financeiro', 'Carreira'], icon: TrendingUp, color: 'yellow' },
+  'tita': { id: 'tita', name: 'Titã', description: 'Biohacking e performance física máxima.', monthlyPrice: 67, coveredAreas: ['Saúde & Fitness', 'Qualidade de Vida'], icon: Activity, color: 'red' },
+  'sabio': { id: 'sabio', name: 'Sábio', description: 'Aprendizado acelerado e gestão do conhecimento.', monthlyPrice: 47, coveredAreas: ['Intelectual', 'Visão de Vida'], icon: Brain, color: 'blue' },
+  'monge': { id: 'monge', name: 'Monge', description: 'Controle emocional e propósito inabalável.', monthlyPrice: 47, coveredAreas: ['Espiritual', 'Emocional', 'Caráter'], icon: Zap, color: 'purple' },
+  'lider': { id: 'lider', name: 'Líder', description: 'Networking, influência e liderança de tribo.', monthlyPrice: 57, coveredAreas: ['Social', 'Amoroso', 'Família'], icon: HeartHandshake, color: 'pink' }
 };
 
 export const GUILD_CHANNELS: { id: GuildChannelId, name: string, description: string, icon: LucideIcon, exclusiveModule?: ProtectionModuleId }[] = [

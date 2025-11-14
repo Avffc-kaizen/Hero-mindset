@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { Loader2, CheckCircle, Mail, KeyRound, User, AlertCircle } from 'lucide-react';
@@ -18,7 +17,7 @@ const PaymentSuccess: React.FC = () => {
   const location = useLocation();
   const { productId } = useParams<{ productId: string }>();
 
-  const [status, setStatus] = useState<'verifying' | 'input_required' | 'success' | 'error' | 'eduzz_success'>('verifying');
+  const [status, setStatus] = useState<'verifying' | 'input_required' | 'success' | 'error' | 'generic_success'>('verifying');
   const [errorMessage, setErrorMessage] = useState('');
   const [customerData, setCustomerData] = useState<{ name: string; email: string } | null>(null);
   const [password, setPassword] = useState('');
@@ -31,7 +30,6 @@ const PaymentSuccess: React.FC = () => {
       const searchParams = new URLSearchParams(location.search);
       let sessionId = searchParams.get('session_id');
 
-      // Fallback for HashRouter if Stripe adds params to hash
       if (!sessionId) {
         const hashParams = new URLSearchParams(location.hash.split('?')[1]);
         sessionId = hashParams.get('session_id');
@@ -53,10 +51,10 @@ const PaymentSuccess: React.FC = () => {
       }
 
       if (!sessionId) {
-        // If no session ID, check if it's the Eduzz product.
+        // Handles users arriving from direct payment link without session_id
         if (isBaseProduct) {
             firePurchaseEvent();
-            setStatus('eduzz_success');
+            setStatus('generic_success');
             return;
         }
 
@@ -65,7 +63,7 @@ const PaymentSuccess: React.FC = () => {
         return;
       }
       
-      // Stripe flow continues if sessionId exists
+      // Stripe flow with session_id
       if (user.isLoggedIn) {
           const result = await handleVerifyUpgrade(sessionId);
           if (result.success) {
@@ -115,7 +113,6 @@ const PaymentSuccess: React.FC = () => {
     if (!result.success) {
       setErrorMessage(result.message || 'Não foi possível criar sua conta. O email já pode estar em uso.');
     }
-    // On success, onAuthStateChanged listener in UserContext will trigger a redirect to /onboarding.
   };
 
   return (
@@ -129,7 +126,7 @@ const PaymentSuccess: React.FC = () => {
               <p className="text-zinc-400 mt-2 font-mono text-sm">Validando sua entrada no panteão...</p>
             </>
           )}
-          {status === 'eduzz_success' && (
+          {status === 'generic_success' && (
             <>
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-white font-mono uppercase">Pagamento Confirmado!</h2>

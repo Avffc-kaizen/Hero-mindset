@@ -1,4 +1,5 @@
-import { PRODUCTS, STRIPE_PUBLIC_KEY } from '../constants';
+
+import { PRODUCTS } from '../constants';
 import { PaymentProvider } from '../types';
 import { functions as firebaseFunctions, isFirebaseConfigured } from '../firebase';
 import { httpsCallable } from 'firebase/functions';
@@ -11,6 +12,12 @@ declare global {
 }
 
 export const buyProduct = async (productId: string, metadata?: Record<string, any>) => {
+  // Redirect directly to the Stripe payment link for the main product.
+  if (productId === 'hero_vitalicio') {
+    window.location.href = 'https://buy.stripe.com/4gM3cv2sm9N04Jz7MYeZ200';
+    return;
+  }
+  
   const product = PRODUCTS.find(p => p.id === productId);
   if (!product) throw new Error('Produto não encontrado');
 
@@ -24,6 +31,7 @@ export const buyProduct = async (productId: string, metadata?: Record<string, an
     });
   }
 
+  // Fallback to Firebase Functions for other products (upgrades/subscriptions)
   if (product.provider === PaymentProvider.STRIPE && product.priceId) {
     if (!isFirebaseConfigured) {
       throw new Error('Firebase não está configurado. Pagamento indisponível.');
@@ -45,10 +53,11 @@ export const buyProduct = async (productId: string, metadata?: Record<string, an
       const { id: sessionId } = response.data as { id?: string };
       
       if (sessionId) {
-        if (!STRIPE_PUBLIC_KEY) {
+        const stripePublicKey = process.env.STRIPE_PUBLIC_KEY;
+        if (!stripePublicKey) {
             throw new Error("A chave pública do Stripe não está configurada.");
         }
-        const stripe = await loadStripe(STRIPE_PUBLIC_KEY);
+        const stripe = await loadStripe(stripePublicKey);
         if (!stripe) {
             throw new Error("Não foi possível carregar o sistema de pagamento.");
         }
@@ -64,9 +73,6 @@ export const buyProduct = async (productId: string, metadata?: Record<string, an
       console.error("Firebase Functions call or Stripe redirect failed:", error);
       throw new Error(error.message || 'Falha ao iniciar o processo de pagamento.');
     }
-  } else if (product.provider === PaymentProvider.EDUZZ && product.eduzzId) {
-      const eduzzUrl = `https://chk.eduzz.com/${product.eduzzId}`;
-      window.location.href = eduzzUrl;
   } else {
     throw new Error('Configuração de pagamento inválida para este produto.');
   }

@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { ProtectionModuleId, RoadmapItem, BioData, DailyIntention } from '../types';
 import { PROTECTION_MODULES, ARCHETYPES } from '../constants';

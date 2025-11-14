@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Archetype, LifeMapCategory, ArchetypesList, LifeMapCategoriesList } from '../types';
@@ -242,10 +240,10 @@ export const LoginScreen: React.FC = () => {
     setError('');
     setMessage('');
     const result = await handleGoogleLogin();
-    if (!result.success && result.message) {
-        setError(result.message);
+    if (!result.success) {
+        setError(result.message || 'Falha no login com Google.');
+        setLoading(false);
     }
-    setLoading(false);
   };
   
   const handleForgotSubmit = async (e: React.FormEvent) => {

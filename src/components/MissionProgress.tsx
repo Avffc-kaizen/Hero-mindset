@@ -11,7 +11,7 @@ const ProgressBar: React.FC<{ progress: number; label: string; count: string; co
       </label>
       <span className="text-xs font-mono font-bold text-white">{count}</span>
     </div>
-    <div className="w-full bg-zinc-950 rounded-full h-2 border border-zinc-800 overflow-hidden">
+    <div className="w-full bg-black/50 rounded-full h-2 border border-white/5 overflow-hidden">
       <div className={`${color} h-full rounded-full transition-all duration-500`} style={{ width: `${progress}%` }}></div>
     </div>
   </div>

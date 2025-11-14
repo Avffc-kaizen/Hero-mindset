@@ -1,5 +1,3 @@
-
-
 import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, type Auth } from "firebase/auth";
 import { getFirestore, serverTimestamp, type Firestore } from "firebase/firestore";
@@ -14,22 +12,20 @@ let storage: FirebaseStorage | null = null;
 let googleProvider: GoogleAuthProvider | null = null;
 let isFirebaseConfigured = false;
 
-// FIX: Switched from import.meta.env to process.env to resolve property 'env' does not exist error.
 const FIREBASE_CONFIG = {
-    apiKey: process.env.VITE_FIREBASE_API_KEY,
-    authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.VITE_FIREBASE_APP_ID,
-    measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID
+    apiKey: process.env.FIREBASE_API_KEY,
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.FIREBASE_APP_ID,
+    measurementId: process.env.FIREBASE_MEASUREMENT_ID
 };
 
 const isConfiguredCheck = !!(
     FIREBASE_CONFIG.apiKey &&
     FIREBASE_CONFIG.projectId &&
-    FIREBASE_CONFIG.appId &&
-    !String(FIREBASE_CONFIG.apiKey).startsWith("VITE_")
+    FIREBASE_CONFIG.appId
 );
 
 if (isConfiguredCheck) {
