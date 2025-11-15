@@ -8,7 +8,10 @@ import type { LucideIcon } from 'lucide-react';
 
 // --- CONFIGURAÇÕES DE AMBIENTE ---
 export const FRONTEND_URL = "https://hero-mindset.web.app";
-export const STRIPE_PUBLIC_KEY = process.env.STRIPE_PUBLIC_KEY;
+
+// ATENÇÃO: A CHAVE ABAIXO É PÚBLICA E SEGURA PARA SER USADA NO FRONTEND.
+export const STRIPE_PUBLIC_KEY = "pk_live_51RoTtnELwcc78QutLToQM50aQtE7YEnjEMJwBBxhAMguKiBqNWOqXqi0tixmKxnO6WVNPNRCFvGSIoatViXE2jw500H45RN2Ro";
+
 
 // --- CONFIGURAÇÕES DE JOGO ---
 export const MAX_SQUAD_SIZE = 5;
@@ -32,7 +35,7 @@ export const PRODUCTS: ProductDef[] = [
     name: 'Assinatura: Mentor IA',
     description: 'Desbloqueie o Oráculo. Missões, análises e guias gerados por IA.',
     provider: PaymentProvider.STRIPE,
-    priceId: "price_1PshtPELwcc78QutMvFlf3wR",
+    priceId: "price_1SRxBwELwcc78QutnLm4OcVA",
     price: 4700, // Mensal
     isSubscription: true,
   },
@@ -185,5 +188,5 @@ export const INITIAL_USER_STATE: UserState = {
   stats: { mind: 0, body: 0, spirit: 0, wealth: 0 }, missions: [], lastDailyMissionRefresh: 0, lastWeeklyMissionRefresh: 0,
   lastMilestoneMissionRefresh: 0, lessonsCompletedToday: 0, lastLessonCompletionDate: 0, dailyGuidance: null, activeModules: [],
   company: null, businessRoadmap: [], bioData: { sleepHours: 0, workoutsThisWeek: 0, waterIntake: 0 }, focusHistory: [],
-  dailyIntention: null, keyConnections: [], joinedSquadIds: [],
+  dailyIntention: null, keyConnections: [], joinedSquadIds: [], mentorChatHistory: [], lastAnalysisTimestamp: undefined,
 };

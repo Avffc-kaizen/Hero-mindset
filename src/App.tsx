@@ -21,6 +21,7 @@ const Journal = lazy(() => import('./components/Journal'));
 const SkillTree = lazy(() => import('./components/SkillTree'));
 const Pantheon = lazy(() => import('./components/Pantheon'));
 const Profile = lazy(() => import('./components/Profile'));
+const Settings = lazy(() => import('./components/Settings'));
 const LifeMapPage = lazy(() => import('./components/LifeMapPage'));
 const TacticalArsenal = lazy(() => import('./components/TacticalArsenal'));
 const StorageTest = lazy(() => import('./components/StorageTest'));
@@ -79,6 +80,7 @@ const AppContent: React.FC = () => {
                     <Route path="arsenal" element={<TacticalArsenal />} />
                     <Route path="pantheon" element={<Pantheon />} />
                     <Route path="profile" element={<Profile />} />
+                    <Route path="settings" element={<Settings />} />
                     <Route path="storage-test" element={<StorageTest />} />
                 </Route>
                 

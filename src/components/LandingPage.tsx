@@ -5,6 +5,7 @@ import { useUser } from '../contexts/UserContext';
 import { PRODUCTS, FRONTEND_URL, PROTECTION_MODULES } from '../constants';
 import ChatbotWidget from './ChatbotWidget';
 import { ProtectionModuleInfo } from '../types';
+import LiteYouTubeEmbed from './LiteYouTubeEmbed';
 
 const LazySection = ({ children, className = "", id = "", ...props }: React.HTMLAttributes<HTMLDivElement> & { children: React.ReactNode, id?: string }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -23,27 +24,6 @@ const LazySection = ({ children, className = "", id = "", ...props }: React.HTML
   return (
     <div id={id} ref={elementRef} className={`transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'} ${className}`} {...props}>
       {children}
-    </div>
-  );
-};
-
-const LiteYouTubeEmbed = ({ videoId, title }: { videoId: string, title: string }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  return (
-    <div className="absolute inset-0 w-full h-full bg-black group cursor-pointer overflow-hidden rounded-xl">
-      {!isLoaded ? (
-        <button onClick={() => setIsLoaded(true)} className="w-full h-full">
-            <img 
-              src={`https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`}
-              alt={title} 
-              className="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity" 
-            />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20"><div className="w-20 h-20 bg-red-600/80 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-white/20 group-hover:bg-red-500 transition-colors"><Play className="w-8 h-8 text-white ml-1" /></div></div>
-        </button>
-      ) : (
-        <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`} title={title} allow="autoplay; encrypted-media" allowFullScreen className="w-full h-full" />
-      )}
     </div>
   );
 };
@@ -98,6 +78,7 @@ const LandingPage: React.FC = () => {
   const { handleBuy } = useUser();
   const navigate = useNavigate();
   const [shareText, setShareText] = useState('Convoque Aliados');
+  const stripeUrl = 'https://buy.stripe.com/4gM3cv2sm9N04Jz7MYeZ200';
 
   const onGoToLogin = () => {
     navigate('/login');
@@ -131,7 +112,7 @@ const LandingPage: React.FC = () => {
         </div>
         <div className="absolute left-1/2 -translate-x-1/2">
             <button 
-                onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} 
+                onClick={() => window.location.href = stripeUrl} 
                 className="bg-black text-yellow-400 border-2 border-yellow-500 text-[10px] font-bold uppercase tracking-widest px-4 py-2 hover:bg-yellow-900/50 transition rounded-lg animate-button-glow shadow-lg shadow-yellow-500/10">
                 Acesso Black Friday
             </button>
@@ -153,8 +134,7 @@ const LandingPage: React.FC = () => {
                 className="w-full h-full object-cover"
                 poster="https://i.ytimg.com/vi/7JQeToR6pQs/maxresdefault.jpg"
             >
-              {/* Placeholder for actual video source */}
-              {/* <source src="your-video-url.mp4" type="video/mp4" /> */}
+              {/* Adicione o URL do seu vídeo de fundo aqui. Ex: <source src="URL_DO_VIDEO.mp4" type="video/mp4" /> */}
             </video>
             <div className="absolute inset-0 bg-black/60 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-950/20 via-transparent to-black/80"></div>
         </div>
@@ -162,7 +142,7 @@ const LandingPage: React.FC = () => {
           <h1 className="text-5xl sm:text-7xl font-extrabold mb-6 tracking-tighter font-mono uppercase">O Fim do Homem Comum.</h1>
           <p className="text-lg text-zinc-400 mb-10 max-w-3xl mx-auto">O sistema operacional que transforma disciplina em poder e execução em legado. A Black Friday é sua única chance de entrar com acesso vitalício.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="bg-red-600 text-white px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-red-700 transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-3 shadow-lg shadow-red-600/20 hover:shadow-xl hover:shadow-red-500/40">
+            <button onClick={() => handleBuy('hero_vitalicio')} className="bg-red-600 text-white px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-red-700 transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-3 shadow-lg shadow-red-600/20 hover:shadow-xl hover:shadow-red-500/40">
               Declarar Guerra <ChevronRight />
             </button>
             <button onClick={handleShare} className="bg-transparent border border-zinc-700 text-zinc-300 px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-zinc-800 hover:border-zinc-600 hover:text-white transition flex items-center gap-3">
@@ -245,7 +225,7 @@ const LandingPage: React.FC = () => {
                     <li className="flex items-center gap-3"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Acesso à Guilda, Esquadrões e Panteão</li>
                   </ul>
                 </div>
-                <button onClick={() => handleBuy(product.id)} className="w-full mt-auto bg-gradient-to-br from-yellow-400 to-yellow-500 text-black py-4 rounded-lg font-bold uppercase tracking-widest transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/40 active:scale-95 animate-button-glow">Garantir Acesso Vitalício</button>
+                <button onClick={() => window.location.href = stripeUrl} className="w-full mt-auto bg-gradient-to-br from-yellow-400 to-yellow-500 text-black py-4 rounded-lg font-bold uppercase tracking-widest transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/40 active:scale-95 animate-button-glow">Garantir Acesso Vitalício</button>
                  <p className="text-xs text-zinc-500 mt-4">Upgrades para Mentor IA e Proteção 360 disponíveis opcionalmente dentro da plataforma.</p>
               </div>
             ))}
@@ -285,7 +265,6 @@ const LandingPage: React.FC = () => {
           <div className="space-y-4">
             <FAQItem q="O que é o Acesso Vitalício da Black Friday?" a="É um pagamento único que garante seu acesso para sempre a toda a plataforma base e suas futuras atualizações. Sem mensalidades. As assinaturas de IA são upgrades opcionais." />
             <FAQItem q="Para quem é o Hero Mindset?" a="É para homens que buscam um sistema de auto-responsabilidade brutal. Se você valoriza disciplina e execução, este é seu lugar." />
-            <FAQItem q="E se eu não gostar? Qual a garantia?" a="A mentalidade do herói não busca rotas de escape. Nossa garantia é o impacto que este sistema terá se você se comprometer." />
             <FAQItem q="Como funcionam os upgrades de IA e Proteção 360?" a="Após garantir seu Acesso Vitalício, você poderá ativar o Mentor IA ou a Proteção 360 (que inclui o Mentor e todos os Protocolos) como assinaturas mensais opcionais, diretamente de dentro da plataforma." />
           </div>
         </div>
@@ -305,7 +284,7 @@ const LandingPage: React.FC = () => {
         <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-4xl font-bold font-mono uppercase mb-4 text-red-500">Ninguém Virá Te Salvar.</h2>
             <p className="text-lg text-zinc-300 mb-8">A decisão é sua. A hora é agora. Chegou a hora de parar de se perguntar e começar a construir, de parar de desejar e começar a executar.</p>
-            <button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="bg-gradient-to-br from-yellow-400 to-yellow-500 text-black px-8 py-4 rounded-lg font-bold uppercase tracking-widest transition-all transform hover:scale-105 animate-button-glow">
+            <button onClick={() => window.location.href = stripeUrl} className="bg-gradient-to-br from-yellow-400 to-yellow-500 text-black px-8 py-4 rounded-lg font-bold uppercase tracking-widest transition-all transform hover:scale-105 animate-button-glow">
                 Iniciar Ascensão
             </button>
         </div>

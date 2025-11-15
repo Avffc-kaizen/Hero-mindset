@@ -1,5 +1,5 @@
 import React from 'react';
-import { Target, CheckCircle, Flag, CalendarDays } from 'lucide-react';
+import { Target, CheckCircle, Flag, Award } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 
 const ProgressBar: React.FC<{ progress: number; label: string; count: string; color: string; allCompleted: boolean; icon: React.ElementType }> = ({ progress, label, count, color, allCompleted, icon: Icon }) => (
@@ -57,7 +57,7 @@ const MissionProgress: React.FC = () => {
         count={`${completedWeekly}/${totalWeekly}`}
         color="bg-gradient-to-r from-blue-600 to-blue-500"
         allCompleted={totalWeekly > 0 && completedWeekly === totalWeekly}
-        icon={CalendarDays}
+        icon={Award}
       />
       <ProgressBar
         label="Marcos"

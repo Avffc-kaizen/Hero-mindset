@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { XP_PER_LEVEL_FORMULA } from '../utils';
-import { Compass, Book, Shield, Bot, ScrollText, GitMerge, Sparkles, User as UserIcon, LogOut, Target, Menu, X, Briefcase, Map } from 'lucide-react';
+import { Compass, Book, Shield, Bot, ScrollText, GitMerge, Sparkles, User as UserIcon, LogOut, Target, Menu, X, Briefcase, Map, Settings } from 'lucide-react';
 
 const MainAppLayout: React.FC = () => {
   const { user, handleReset } = useUser();
@@ -45,7 +45,10 @@ const MainAppLayout: React.FC = () => {
                 </NavLink>
             ))}
         </nav>
-        <div className="p-4 border-t border-zinc-800">
+        <div className="p-4 border-t border-zinc-800 space-y-1">
+            <NavLink to="/app/settings" onClick={onLinkClick} className={({ isActive }) =>`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium ${isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-800/50'}`}>
+                <Settings className="w-5 h-5" /> Configurações
+            </NavLink>
             <button onClick={handleReset} className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-zinc-400 hover:bg-zinc-800/50">
                 <LogOut className="w-5 h-5" /> Sair
             </button>

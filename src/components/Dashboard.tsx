@@ -1,13 +1,78 @@
 import React, { useState } from 'react';
 import { ProtectionModuleId, RoadmapItem, BioData, DailyIntention } from '../types';
 import { PROTECTION_MODULES, ARCHETYPES } from '../constants';
-import { Award, Zap, RefreshCw, Star, AlertCircle, Flame, Shield, Briefcase, Activity, TrendingUp, CheckCircle, Plus, Lock, Dumbbell, Moon, Droplets, Trash2, Bot, Target, Check, AlertTriangle } from 'lucide-react';
+import { Award, Zap, RefreshCw, Star, AlertCircle, Flame, Shield, Briefcase, Activity, TrendingUp, CheckCircle, Plus, Lock, Dumbbell, Moon, Droplets, Trash2, Bot, Target, Check, AlertTriangle, Send, Loader2 } from 'lucide-react';
 import { XP_PER_LEVEL_FORMULA } from '../utils';
 import { useUser } from '../contexts/UserContext';
+import { useError } from '../contexts/ErrorContext';
 import MissionProgress from './MissionProgress';
 import LifeMapWidget from './LifeMapWidget';
+import LiteYouTubeEmbed from './LiteYouTubeEmbed';
+
 
 // --- MODULAR WIDGETS ---
+
+const QuickChatWidget: React.FC = () => {
+    const { user, handleSendMentorMessage } = useUser();
+    const { showError } = useError();
+    const [input, setInput] = useState('');
+    const [lastResponse, setLastResponse] = useState('');
+    const [isSending, setIsSending] = useState(false);
+
+    const handleSend = async () => {
+        if (!input.trim() || isSending) return;
+        setIsSending(true);
+        const question = input;
+        setInput('');
+        setLastResponse('');
+        try {
+            await handleSendMentorMessage(question, true); // `true` to indicate it's a quick chat
+        } catch (err: any) {
+            showError(err.message || 'Erro ao contatar o Oráculo.');
+            setInput(question); // Add message back to input
+        } finally {
+            setIsSending(false);
+        }
+    };
+    
+    const lastUserMessage = user.mentorChatHistory.filter(m => m.role === 'user' && m.isQuickChat).slice(-1)[0];
+    const lastModelMessage = user.mentorChatHistory.filter(m => m.role === 'model' && m.isQuickChat).slice(-1)[0];
+    
+    if (!user.hasSubscription) return null;
+
+    return (
+        <div className="bg-zinc-900/40 border border-blue-500/20 rounded-2xl p-6 backdrop-blur-md h-full flex flex-col">
+            <h2 className="text-sm font-bold font-mono uppercase text-blue-500 flex items-center gap-2 mb-4"><Bot className="w-4 h-4" /> Chat Rápido com Oráculo</h2>
+            <div className="flex-grow space-y-2 mb-4 overflow-y-auto text-sm">
+                 {isSending && <div className="flex justify-center items-center h-full"><Loader2 className="w-6 h-6 animate-spin text-blue-400"/></div>}
+                 {!isSending && lastUserMessage && (
+                     <p className="text-zinc-400 font-mono text-xs">Você: "{lastUserMessage.text}"</p>
+                 )}
+                 {!isSending && lastModelMessage && (
+                     <p className="text-blue-200">{lastModelMessage.text}</p>
+                 )}
+                  {!isSending && !lastUserMessage && (
+                    <p className="text-zinc-500 text-center text-xs font-mono pt-4">Faça uma pergunta direta ao seu mentor.</p>
+                  )}
+            </div>
+            <div className="flex items-center gap-2 mt-auto">
+                <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                    placeholder="Sua pergunta..."
+                    className="flex-1 bg-black/50 border border-white/10 rounded px-3 py-2 text-sm font-mono placeholder:text-zinc-600"
+                    disabled={isSending}
+                />
+                <button onClick={handleSend} disabled={isSending || !input.trim()} className="p-2 bg-blue-600 rounded-md hover:bg-blue-500 disabled:opacity-50">
+                    <Send className="w-4 h-4 text-white"/>
+                </button>
+            </div>
+        </div>
+    );
+};
+
 
 const DailyIntentionWidget = () => {
     const { user, handleUpdateUser } = useUser();
@@ -229,11 +294,20 @@ const HeroicDashboard: React.FC = () => {
         </div>
         <button onClick={() => setShowRecalibrateModal(true)} className="flex items-center gap-2 text-[10px] font-bold font-mono uppercase text-zinc-500 hover:text-white bg-zinc-900/50 border border-white/10 px-4 py-2.5 rounded-lg backdrop-blur-sm"><RefreshCw className="w-3 h-3"/> Recalibrar</button>
       </header>
+
+      <div className="p-1 bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-2xl shadow-2xl animate-in fade-in">
+        <div className="bg-zinc-950 rounded-xl p-1">
+          <div className="aspect-video w-full relative">
+             <LiteYouTubeEmbed videoId="cWrWyPtsllM" title="Comunicado do Comando" />
+          </div>
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {renderOracleDecree()}
             <DailyIntentionWidget />
+            <QuickChatWidget />
             <LifeMapWidget />
           </div>
           <div className="space-y-6">

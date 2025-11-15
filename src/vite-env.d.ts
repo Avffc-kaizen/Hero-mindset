@@ -1,13 +1,8 @@
+// This file provides types for `process.env` to align with the application's environment variable access method.
+// Frontend environment variables are no longer used; configuration is hardcoded.
+
 declare namespace NodeJS {
   interface ProcessEnv {
-    readonly STRIPE_PUBLIC_KEY: string;
-    readonly FIREBASE_API_KEY: string;
-    readonly FIREBASE_AUTH_DOMAIN: string;
-    readonly FIREBASE_PROJECT_ID: string;
-    readonly FIREBASE_STORAGE_BUCKET: string;
-    readonly FIREBASE_MESSAGING_SENDER_ID: string;
-    readonly FIREBASE_APP_ID: string;
-    readonly FIREBASE_MEASUREMENT_ID: string;
-    readonly API_KEY: string;
+    // No frontend environment variables are needed.
   }
 }

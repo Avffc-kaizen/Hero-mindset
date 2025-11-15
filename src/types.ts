@@ -96,6 +96,7 @@ export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
   timestamp: number;
+  isQuickChat?: boolean;
 }
 
 export interface ParagonPerk {
@@ -247,6 +248,8 @@ export interface UserState {
   lessonsCompletedToday: number;
   lastLessonCompletionDate: number;
   dailyGuidance: DailyGuidance | null;
+  mentorChatHistory: ChatMessage[];
+  lastAnalysisTimestamp?: number;
   focusHistory?: any[]; // Placeholder
   keyConnections?: any[]; // Placeholder
 }

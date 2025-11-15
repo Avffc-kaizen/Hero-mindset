@@ -1,8 +1,8 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { UserState, Archetype, LifeMapCategory, JournalEntry, LessonDetails, Mission, RankTitle, Squad, ProtectionModuleId, ParagonPerk } from '../types';
+import { UserState, Archetype, LifeMapCategory, JournalEntry, LessonDetails, Mission, RankTitle, Squad, ProtectionModuleId, ParagonPerk, ChatMessage } from '../types';
 import { INITIAL_USER_STATE, STATIC_DAILY_MISSIONS, STATIC_WEEKLY_MISSIONS, MOCK_SQUADS, PRODUCTS, XP_PER_LEVEL_FORMULA, PARAGON_PERKS, SKILL_TREES } from '../constants';
-import { generateDailyMissionsAI, generateWeeklyMissionsAI, generateProactiveOracleGuidance } from '../services/geminiService';
+import { generateDailyMissionsAI, generateWeeklyMissionsAI, generateProactiveOracleGuidance, getMentorChatReply, generateDailyAnalysisAI } from '../services/geminiService';
 import { buyProduct } from '../services/paymentService';
 import { useError } from './ErrorContext';
 import { getRank, isToday, isSameWeek } from '../utils';
@@ -64,7 +64,7 @@ interface UserContextType {
   handlePunish: (amount: number) => void;
   handleLogin: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   handleGoogleLogin: () => Promise<{ success: boolean; message?: string }>;
-  handleSignUp: (name: string, email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  handleSignUp: (name: string, email: string, password: string, sessionId?: string | null) => Promise<{ success: boolean; message?: string }>;
   handleForgotPassword: (email: string) => Promise<{ success: boolean; message: string }>;
   handleUpdateUser: (updates: Partial<UserState>) => void;
   handleBuy: (productId: string) => Promise<void>;
@@ -76,6 +76,8 @@ interface UserContextType {
   handleLeaveSquad: (squadId: string) => void;
   handleCompleteMission: (missionId: string) => void;
   handleBossAttack: (bossType: 'daily' | 'weekly' | 'monthly', damage: number) => void;
+  handleSendMentorMessage: (message: string, isQuickChat?: boolean) => Promise<void>;
+  handleRequestDailyAnalysis: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -152,23 +154,35 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  const handleSignUp = async (name: string, email: string, password: string): Promise<{success: boolean, message?: string}> => {
+  const handleSignUp = async (name: string, email: string, password: string, sessionId?: string | null): Promise<{success: boolean, message?: string}> => {
       const auth = firebaseAuth;
       const db = firebaseDb;
       if (!auth || !db) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
       try {
-          // Verify purchase before creating account
-          const purchasesRef = collection(db, 'purchases');
-          const q = query(purchasesRef, where("email", "==", email), where("status", "==", "verified_for_signup"), limit(1));
-          const purchaseSnap = await getDocs(q);
+          let purchaseDocRef;
+          
+          if (sessionId) {
+              const specificPurchaseRef = doc(db, "purchases", sessionId);
+              const purchaseDoc = await getDoc(specificPurchaseRef);
+              if (purchaseDoc.exists() && purchaseDoc.data().email.toLowerCase() === email.toLowerCase() && purchaseDoc.data().status === 'verified_for_signup') {
+                  purchaseDocRef = purchaseDoc.ref;
+              } else {
+                   return { success: false, message: 'A sessão de compra é inválida, não corresponde a este email ou já foi utilizada.' };
+              }
+          } else {
+              // Fallback for generic flow (e.g., Eduzz or manual)
+              const purchasesRef = collection(db, 'purchases');
+              const q = query(purchasesRef, where("email", "==", email.toLowerCase()), where("status", "==", "verified_for_signup"), limit(1));
+              const purchaseSnap = await getDocs(q);
 
-          if (purchaseSnap.empty) {
-              return { success: false, message: 'Nenhuma compra encontrada para este email. Garanta seu acesso e tente novamente.' };
+              if (purchaseSnap.empty) {
+                  return { success: false, message: 'Nenhuma compra verificada foi encontrada para este email. Garanta seu acesso e tente novamente.' };
+              }
+              purchaseDocRef = purchaseSnap.docs[0].ref;
           }
           
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const userDocRef = doc(db, "users", userCredential.user.uid);
-          const purchaseDocRef = purchaseSnap.docs[0].ref;
           
           const newUserState = {
             ...INITIAL_USER_STATE,
@@ -190,6 +204,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (error.code === 'auth/email-already-in-use') {
               return { success: false, message: 'Este email já está em uso.' };
           }
+          console.error("SignUp error:", error);
           return { success: false, message: 'Falha ao criar a conta.' };
       }
   };
@@ -227,7 +242,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         batch.update(purchaseDocRef, { status: 'claimed', uid: result.user.uid });
         await batch.commit();
       }
-      // if existing user, onAuthStateChanged will handle loading their data.
       return { success: true };
     } catch (error: any) {
       console.error("Google Login Error:", error);
@@ -238,19 +252,29 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const handleVerifyNewPurchase = async (sessionId: string): Promise<{ success: boolean; name?: string; email?: string; message?: string; }> => {
       const db = firebaseDb;
       if (!db) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
-      try {
-        const purchaseRef = doc(db, "purchases", sessionId);
-        const purchaseDoc = await getDoc(purchaseRef);
 
-        if (purchaseDoc.exists() && purchaseDoc.data().status === 'verified_for_signup') {
-            const data = purchaseDoc.data();
-            return { success: true, name: data.name, email: data.email };
-        } else {
-             return { success: false, message: "Compra não verificada. Aguarde alguns instantes ou contate o suporte." };
-        }
-      } catch (error) {
-        return { success: false, message: "Erro ao verificar a compra." };
+      const retries = 5;
+      const delay = 2000; // 2 seconds
+
+      for (let i = 0; i < retries; i++) {
+          try {
+              const purchaseRef = doc(db, "purchases", sessionId);
+              const purchaseDoc = await getDoc(purchaseRef);
+
+              if (purchaseDoc.exists() && purchaseDoc.data().status === 'verified_for_signup') {
+                  const data = purchaseDoc.data();
+                  return { success: true, name: data.name, email: data.email };
+              }
+          } catch (error) {
+              console.error(`Tentativa de verificação ${i + 1} falhou:`, error);
+          }
+          
+          if (i < retries - 1) {
+              await new Promise(resolve => setTimeout(resolve, delay));
+          }
       }
+
+      return { success: false, message: "Não foi possível verificar sua compra. Isso pode levar alguns minutos. Se o problema persistir, contate o suporte." };
   };
 
   const handleVerifyUpgrade = async (sessionId: string) => {
@@ -282,7 +306,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const handleUpgrade = (productId: string) => handleBuy(productId);
   
   const handleBossAttack = (bossType: 'daily' | 'weekly' | 'monthly', damage: number) => {
-    // This is a placeholder as boss logic is local in Guild component
     console.log(`Attacking ${bossType} boss for ${damage} damage.`);
     addXP(damage);
     const updates = { lastBossAttacks: { ...user.lastBossAttacks, [bossType]: Date.now() }};
@@ -393,9 +416,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const updates = {
               isAscended: true,
               rank: RankTitle.Divino,
-              level: 1, // Reset level
+              level: 1,
               currentXP: 0,
-              paragonPoints: user.paragonPoints + 10 // Grant initial points
+              paragonPoints: user.paragonPoints + 10
           };
           writeUserUpdate(updates);
       }
@@ -411,6 +434,36 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const handleCreateSquad = (name: string, motto: string) => {};
   const handleJoinSquad = (squadId: string) => {};
   const handleLeaveSquad = (squadId: string) => {};
+  
+  const handleSendMentorMessage = async (message: string, isQuickChat: boolean = false) => {
+    const userMessage: ChatMessage = { id: `msg-${Date.now()}`, role: 'user', text: message, timestamp: Date.now(), isQuickChat };
+    const updatedHistory = [...user.mentorChatHistory, userMessage];
+    setUser(prev => ({...prev, mentorChatHistory: updatedHistory})); // Optimistic update
+
+    try {
+        const replyText = await getMentorChatReply(updatedHistory, user);
+        const modelMessage: ChatMessage = { id: `msg-${Date.now()+1}`, role: 'model', text: replyText, timestamp: Date.now(), isQuickChat };
+        writeUserUpdate({ mentorChatHistory: [...updatedHistory, modelMessage] });
+    } catch(err) {
+        setUser(prev => ({...prev, mentorChatHistory: user.mentorChatHistory})); // Revert on error
+        throw err;
+    }
+  };
+
+  const handleRequestDailyAnalysis = async () => {
+    const analysisText = await generateDailyAnalysisAI({ rank: user.rank, stats: user.stats, journalEntries: user.journalEntries });
+    const analysisMessage: ChatMessage = {
+      id: `analysis-${Date.now()}`,
+      role: 'model',
+      text: `**Análise Diária do Oráculo**\n\n${analysisText}`,
+      timestamp: Date.now(),
+    };
+    const lastAnalysisTimestamp = Date.now();
+    writeUserUpdate({ 
+        mentorChatHistory: [...user.mentorChatHistory, analysisMessage],
+        lastAnalysisTimestamp: lastAnalysisTimestamp,
+    });
+  };
 
   useEffect(() => {
     if (!isFirebaseConfigured) {
@@ -431,7 +484,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (userDoc.exists()) {
             const userData = userDoc.data() as UserState;
             setUser({
-                ...INITIAL_USER_STATE, // Ensure all fields are present
+                ...INITIAL_USER_STATE,
                 ...userData,
                 createdAt: userData.createdAt?.toMillis ? userData.createdAt.toMillis() : userData.createdAt,
                 uid: authUser.uid, 
@@ -450,11 +503,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => unsubscribe();
   }, []);
 
-  const value: UserContextType = { user, squads, isMissionsLoading, loadingAuth, levelUpData, closeLevelUpModal: () => setLevelUpData(null), handleOnboardingComplete, handleReset, handleRedoDiagnosis, handleCompleteLesson, handleAddJournalEntry, handleUpdateJournalEntry, handleUnlockSkill, handleSpendParagonPoint, handleAscend, handlePunish, handleLogin, handleGoogleLogin, handleSignUp, handleForgotPassword, handleUpdateUser, handleBuy, handleUpgrade, handleVerifyNewPurchase, handleVerifyUpgrade, handleCreateSquad, handleJoinSquad, handleLeaveSquad, handleCompleteMission, handleBossAttack };
+  const value: UserContextType = { user, squads, isMissionsLoading, loadingAuth, levelUpData, closeLevelUpModal: () => setLevelUpData(null), handleOnboardingComplete, handleReset, handleRedoDiagnosis, handleCompleteLesson, handleAddJournalEntry, handleUpdateJournalEntry, handleUnlockSkill, handleSpendParagonPoint, handleAscend, handlePunish, handleLogin, handleGoogleLogin, handleSignUp, handleForgotPassword, handleUpdateUser, handleBuy, handleUpgrade, handleVerifyNewPurchase, handleVerifyUpgrade, handleCreateSquad, handleJoinSquad, handleLeaveSquad, handleCompleteMission, handleBossAttack, handleSendMentorMessage, handleRequestDailyAnalysis };
 
   return (
     <UserContext.Provider value={value}>
       {children}
     </UserContext.Provider>
   );
-};

@@ -1,16 +1,45 @@
 
 const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? require("stripe")(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-04-10" })
-  : null;
 
 admin.initializeApp();
 const db = admin.firestore();
 
+// --- Robust Service Initializations ---
+
+let stripe = null;
+const stripeSecret = functions.config().stripe?.secret_key;
+if (stripeSecret) {
+    try {
+        stripe = require("stripe")(stripeSecret, { apiVersion: "2024-04-10" });
+    } catch(e) {
+        console.error("CRITICAL: Could not initialize Stripe. Ensure the 'stripe' package is installed in the functions directory (`npm install stripe`). Error: ", e);
+    }
+} else {
+    console.warn("Stripe secret key not found in Firebase config (functions.config().stripe.secret_key). Payment features will be disabled.");
+}
+
+let ai = null;
+const geminiKey = functions.config().api?.key;
+if (geminiKey) {
+    try {
+        const { GoogleGenAI } = require("@google/genai");
+        ai = new GoogleGenAI({ apiKey: geminiKey });
+    } catch(e) {
+        console.error("CRITICAL: Could not initialize GoogleGenAI. Ensure '@google/genai' is installed in the functions directory (`npm install @google/genai`). Error: ", e);
+    }
+} else {
+    console.warn("Gemini API key not found in Firebase config (functions.config().api.key). AI features will be disabled.");
+}
+
+
+const MENTOR_SYSTEM_INSTRUCTION = `Você é o Oráculo, um mentor estratégico, observador e militar. Sua função NÃO é bater papo. É analisar os dados do usuário e dar UMA diretriz diária precisa, curta e impactante. Use linguagem estoica, firme e inspiradora.`;
+// --- End Service Initializations ---
+
+
 const STRIPE_PRICES = {
   HERO_BASE: "price_1SRx9eELwcc78QutsxtesYl0",
-  IA_UPGRADE: "price_1PshtPELwcc78QutMvFlf3wR",
+  IA_UPGRADE: "price_1SRxBwELwcc78QutnLm4OcVA",
   PROTECAO_360: "price_1Pshv8ELwcc78Qut2qfW5oUh",
 };
 const ONE_TIME_PAYMENT_PRICE_IDS = [STRIPE_PRICES.HERO_BASE];
@@ -19,8 +48,8 @@ exports.createCheckoutSession = functions
   .region("southamerica-east1")
   .https.onCall(async (data, context) => {
     if (!stripe) {
-      console.error("CRITICAL: Stripe not configured. STRIPE_SECRET_KEY missing.");
-      throw new functions.https.HttpsError("internal", "Stripe not configured.");
+      console.error("CRITICAL: Stripe not configured. Check warnings on function startup.");
+      throw new functions.https.HttpsError("internal", "O sistema de pagamento não está configurado no servidor.");
     }
 
     const { priceId, internalProductId } = data;
@@ -28,7 +57,6 @@ exports.createCheckoutSession = functions
       throw new functions.https.HttpsError("invalid-argument", "priceId and internalProductId are required.");
     }
 
-    const isBaseProductPurchase = internalProductId === "hero_vitalicio";
     const mode = ONE_TIME_PAYMENT_PRICE_IDS.includes(priceId) ? "payment" : "subscription";
     const frontendUrl = "https://hero-mindset.web.app";
 
@@ -39,15 +67,21 @@ exports.createCheckoutSession = functions
       success_url: `${frontendUrl}/#/payment-success/${internalProductId}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendUrl}/`,
       metadata: { internalProductId, priceId },
+      billing_address_collection: "required",
+      tax_id_collection: {
+        enabled: true,
+      },
     };
 
     if (context.auth) {
-      sessionParams.customer_email = context.auth.token.email;
       sessionParams.metadata.uid = context.auth.uid;
-    } else if (isBaseProductPurchase) {
-      sessionParams.customer_email = data.email || undefined;
-      sessionParams.billing_address_collection = "required";
+      if (context.auth.token.email) {
+        sessionParams.customer_email = context.auth.token.email;
+      }
+    } else if (internalProductId === "hero_vitalicio") {
+      // Guest checkout is allowed. billing_address_collection is already 'auto'.
     } else {
+      // Disallow guest checkout for subscription products.
       throw new functions.https.HttpsError("unauthenticated", "Action requires authentication.");
     }
 
@@ -56,7 +90,7 @@ exports.createCheckoutSession = functions
       return { id: session.id };
     } catch (e) {
       console.error("Stripe Session Error:", e);
-      throw new functions.https.HttpsError("internal", "Failed to create checkout session.");
+      throw new functions.https.HttpsError("internal", "Falha ao criar sessão de checkout.");
     }
   });
 
@@ -70,7 +104,7 @@ exports.stripeWebhook = functions
     }
 
     const sig = req.headers["stripe-signature"];
-    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const endpointSecret = functions.config().stripe?.webhook_secret;
 
     if (!endpointSecret) {
       console.error("CRITICAL: STRIPE_WEBHOOK_SECRET not set.");
@@ -97,8 +131,7 @@ exports.stripeWebhook = functions
         
         const uid = session.metadata.uid;
 
-        if (uid) {
-          // This flow is for logged-in users (upgrades). It uses metadata.
+        if (uid) { // User is logged in, processing an upgrade
           const { priceId, internalProductId } = session.metadata;
           const userRef = db.collection("users").doc(uid);
           let updateData = {};
@@ -112,33 +145,33 @@ exports.stripeWebhook = functions
 
           await purchaseRef.set({
             uid,
-            email: session.customer_email,
+            email: session.customer_email || session.customer_details?.email,
             sessionId: session.id,
             priceId,
             processedAt: admin.firestore.FieldValue.serverTimestamp(),
             processedBy: "webhook",
           });
-        } else {
-          // This flow is for new users from payment links, which don't have metadata.
-          // We must inspect the line items to identify the product.
-          const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
-          const priceId = lineItems.data.length > 0 ? lineItems.data[0].price.id : null;
 
-          if (priceId === STRIPE_PRICES.HERO_BASE) {
-            const name = session.customer_details?.name;
-            const email = session.customer_details?.email;
-            if (name && email) {
+        } else { // New user purchase
+          const { internalProductId } = session.metadata;
+          
+          if (internalProductId === "hero_vitalicio") {
+            const email = (session.customer_email || session.customer_details?.email || '').toLowerCase();
+            
+            if (email) {
+              const name = session.customer_details?.name || email.split('@')[0];
               await purchaseRef.set({
                 email,
                 name,
                 sessionId: session.id,
-                priceId: priceId,
+                priceId: session.metadata.priceId,
+                internalProductId,
                 processedAt: admin.firestore.FieldValue.serverTimestamp(),
                 processedBy: "webhook",
                 status: "verified_for_signup",
               });
             } else {
-              console.error(`Webhook: Missing customer details for new user purchase ${session.id}.`);
+              console.error(`Webhook CRITICAL: Missing customer email for new user purchase ${session.id}.`);
             }
           }
         }
@@ -147,5 +180,128 @@ exports.stripeWebhook = functions
     } catch (err) {
       console.error(`Stripe Processing Error: ${err.message}`);
       res.status(500).send("Server Error");
+    }
+  });
+
+
+// --- NEW GEMINI AI FUNCTION ---
+
+exports.callGeminiAI = functions
+  .region("southamerica-east1")
+  .https.onCall(async (data, context) => {
+    if (!ai) {
+      console.error("CRITICAL: Gemini not configured. Check warnings on function startup.");
+      throw new functions.https.HttpsError("internal", "O modelo de IA não está configurado no servidor.");
+    }
+    
+    const { Type } = require("@google/genai");
+    const { endpoint, payload } = data;
+
+    try {
+      switch (endpoint) {
+        case 'generateDetailedLifeMapAnalysis': {
+          const { scores, focusAreas } = payload;
+          const scoresList = Object.entries(scores).map(([k, v]) => `${k}: ${v}/10`).join('\n');
+          const prompt = `ATUE COMO O ORÁULO DO HERO MINDSET. Analise o Mapa de Vida 360 deste Herói. DADOS: ${scoresList}. FOCO (90 dias): ${focusAreas.join(', ')}. Gere um DOSSIÊ ESTRATÉGICO (Markdown) contendo: 1. **Diagnóstico de Sombra:** Analise a área com menor pontuação. 2. **Protocolo de Intervenção:** Dê uma ferramenta ou hábito para a área de Foco nº 1. 3. **Ponto de Alavancagem:** Identifique a área mais forte e como usá-la. 4. **Tríade de Ação:** 3 passos práticos para hoje. Tom: Militar, Estoico, Lendário.`;
+          const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { systemInstruction: MENTOR_SYSTEM_INSTRUCTION } });
+          return { text: response.text };
+        }
+
+        case 'generateProactiveOracleGuidance': {
+            const { user } = payload;
+            const lifeMapSummary = user.lifeMapScores ? Object.entries(user.lifeMapScores).map(([k, v]) => `${k}: ${v}`).join(', ') : "N/A";
+            const prompt = `Analisar perfil do herói: ${user.rank} (Lvl ${user.level}). Mapa: ${lifeMapSummary}. Gere um JSON com UM DECRETO ESTRATÉGICO para hoje: {"content": "Frase curta e imperativa.", "type": "alert" | "strategy" | "praise"}`;
+            const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt, config: { responseMimeType: 'application/json', responseSchema: { type: Type.OBJECT, properties: { content: { type: Type.STRING }, type: { type: Type.STRING } }, required: ['content', 'type'] } } });
+            const guidance = JSON.parse(response.text);
+            return { guidance: { ...guidance, date: Date.now() } };
+        }
+        
+        case 'generateDailyAnalysisAI': {
+            const { userState } = payload;
+            const statsString = `Mente: ${userState.stats.mind}, Corpo: ${userState.stats.body}, Espírito: ${userState.stats.spirit}, Riqueza: ${userState.stats.wealth}`;
+            const journalSummary = userState.journalEntries.length > 0 ? `Último registro: "${userState.journalEntries[0].content}"` : "Diário vazio.";
+            const prompt = `Analise o estado deste Herói: ${userState.rank}, Status: ${statsString}, ${journalSummary}. Forneça: 1. Virtude em Foco, 2. Sombra a Enfrentar, 3. Oráculo do Dia. Seja inspirador e use a persona do Oráculo. Não use markdown.`;
+            const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { systemInstruction: MENTOR_SYSTEM_INSTRUCTION } });
+            return { text: response.text };
+        }
+
+        case 'generateDailyMissionsAI':
+        case 'generateWeeklyMissionsAI':
+        case 'generateMilestoneMissionsAI': {
+            const isDaily = endpoint === 'generateDailyMissionsAI';
+            const isWeekly = endpoint === 'generateWeeklyMissionsAI';
+            const { level, rank, stats, journalEntries } = payload;
+            const xpRange = isDaily ? '15-50' : isWeekly ? '100-200' : '150-300';
+            const count = isDaily ? 4 : isWeekly ? 3 : 2;
+            let prompt = `Gere ${count} missões ${isDaily ? 'diárias' : isWeekly ? 'semanais' : 'de marco (milestone)'} para um herói de nível ${level}, patente ${rank}, em JSON. Categorias: 'Fitness', 'Learning', 'Finance', 'Mindset'. XP: ${xpRange}.`;
+            if (!isDaily && !isWeekly) {
+                const statsString = `Stats: Mente: ${stats.mind}, Corpo: ${stats.body}, Espírito: ${stats.spirit}, Riqueza: ${stats.wealth}`;
+                const journalSummary = journalEntries.length > 0 ? `Diário: ${journalEntries.map(e => e.content).join('; ')}` : "Diário vazio.";
+                prompt = `Baseado no perfil (Nível ${level}, ${rank}, ${statsString}, ${journalSummary}), ${prompt}`;
+            }
+            prompt += ' Retorne APENAS o array JSON cru.';
+
+            const model = isDaily || isWeekly ? 'gemini-2.5-flash' : 'gemini-2.5-pro';
+            const response = await ai.models.generateContent({ model, contents: prompt, config: { responseMimeType: 'application/json', responseSchema: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, category: { type: Type.STRING }, xp: { type: Type.NUMBER } }, required: ['title', 'category', 'xp'] } } } });
+            return { missions: JSON.parse(response.text) };
+        }
+
+        case 'getMentorChatReply': {
+            const { chatHistory, user } = payload;
+            const history = chatHistory.map(msg => ({ role: msg.role, parts: [{ text: msg.text }] }));
+            const systemInstruction = `${MENTOR_SYSTEM_INSTRUCTION}\nO nome do herói é ${user.name}. Mantenha suas respostas concisas e focadas em ação.`;
+            const modelName = user.activeModules.length > 3 ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
+            const response = await ai.models.generateContent({ model: modelName, contents: history, config: { systemInstruction, temperature: 0.8 } });
+            return { text: response.text };
+        }
+
+        case 'analyzeJournalAI': {
+            const { entries, userName } = payload;
+            const recentEntriesText = entries.slice(-5).map(e => `[${new Date(e.date).toLocaleDateString()}] ${e.content}`).join('\n');
+            const prompt = `Analise as entradas do Diário do Herói ${userName}:\n\n${recentEntriesText}\n\nComo Oráculo, forneça uma análise inspiradora: 1. Identifique um padrão (virtude ou sombra). 2. Dê um conselho profundo. 3. Termine com UMA pergunta reflexiva. Seja direto e use a persona do Oráculo.`;
+            const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { systemInstruction: MENTOR_SYSTEM_INSTRUCTION } });
+            return { text: response.text };
+        }
+
+        case 'generateBossVictorySpeech': {
+            const { lastMessages, bossName } = payload;
+            const prompt = `O desafio "${bossName}" foi superado. Analise o esforço conjunto e crie um discurso curto e épico declarando a vitória, como um bardo narrando um grande feito. Termine EXATAMENTE com: "A CRÔNICA FOI ESCRITA. UM NOVO CAPÍTULO AGUARDA."`;
+            const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { systemInstruction: 'Você é o Guardião das Crônicas. Fale de forma épica, em caixa alta.' } });
+            return { text: response.text };
+        }
+
+        case 'generateChannelInsightAI': {
+            const { channelName, lastPosts } = payload;
+            const conversation = lastPosts.slice(-5).map(p => `${p.author}: ${p.content}`).join('\n');
+            const prompt = `ATUE COMO O ORÁULO. Analise os últimos posts no canal #${channelName} e forneça um resumo tático ou insight militar. Seja breve e direto.\n\nCONVERSA:\n${conversation}`;
+            const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt, config: { systemInstruction: MENTOR_SYSTEM_INSTRUCTION } });
+            return { text: response.text };
+        }
+
+        case 'generateGuildMemberReply': {
+            const { channelName, lastPosts } = payload;
+            const context = lastPosts.slice(-3).map(p => `${p.author}: ${p.content}`).join('\n');
+            const prompt = `Você está simulando um chat de RPG/Desenvolvimento Pessoal. Canal: #${channelName}. Contexto recente:\n${context}\nCrie UMA resposta curta (1-2 frases) de um membro fictício reagindo ao último post. Escolha um nome heroico e uma patente aleatória (Iniciante, Aventureiro, Campeão, Paladino). Retorne APENAS o objeto JSON: {"author": "Nome Fictício", "rank": "Patente Escolhida", "content": "Sua mensagem curta"}`;
+            const config = { 
+                responseMimeType: 'application/json',
+                responseSchema: { type: Type.OBJECT, properties: { author: { type: Type.STRING }, rank: { type: Type.STRING }, content: { type: Type.STRING } }, required: ['author', 'rank', 'content'] }
+            };
+            const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt, config });
+            return { reply: JSON.parse(response.text) };
+        }
+
+        case 'getChatbotLandingReply': {
+            const { question } = payload;
+            const systemInstruction = `Você é o Oráculo da Clareza. Responda a perguntas de heróis em potencial de forma sábia e enigmática, focando na jornada interior. Seja conciso e termine com uma reflexão.`;
+            const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: question, config: { systemInstruction } });
+            return { text: response.text };
+        }
+        
+        default:
+          throw new functions.https.HttpsError("not-found", "AI endpoint not found.");
+      }
+    } catch (error) {
+      console.error(`Gemini AI function error for endpoint ${endpoint}:`, error);
+      throw new functions.https.HttpsError("internal", "An error occurred while calling the AI model.");
     }
   });

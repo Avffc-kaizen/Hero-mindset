@@ -21,6 +21,7 @@ const PaymentSuccess: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [customerData, setCustomerData] = useState<{ name: string; email: string } | null>(null);
   const [password, setPassword] = useState('');
+  const [sessionId, setSessionId] = useState<string | null>(null);
   
   const firedPixel = useRef(false);
   const isBaseProduct = productId === 'hero_vitalicio';
@@ -28,12 +29,14 @@ const PaymentSuccess: React.FC = () => {
   useEffect(() => {
     const verify = async () => {
       const searchParams = new URLSearchParams(location.search);
-      let sessionId = searchParams.get('session_id');
+      let foundSessionId = searchParams.get('session_id');
 
-      if (!sessionId) {
+      if (!foundSessionId) {
         const hashParams = new URLSearchParams(location.hash.split('?')[1]);
-        sessionId = hashParams.get('session_id');
+        foundSessionId = hashParams.get('session_id');
       }
+      
+      setSessionId(foundSessionId);
 
       const product = PRODUCTS.find(p => p.id === productId);
 
@@ -50,9 +53,9 @@ const PaymentSuccess: React.FC = () => {
           }
       }
 
-      if (!sessionId) {
-        // Handles users arriving from direct payment link without session_id
-        if (isBaseProduct) {
+      if (!foundSessionId) {
+        // Handle non-Stripe provider or manual redirection.
+        if (product && product.provider !== 'stripe') {
             firePurchaseEvent();
             setStatus('generic_success');
             return;
@@ -63,9 +66,8 @@ const PaymentSuccess: React.FC = () => {
         return;
       }
       
-      // Stripe flow with session_id
       if (user.isLoggedIn) {
-          const result = await handleVerifyUpgrade(sessionId);
+          const result = await handleVerifyUpgrade(foundSessionId);
           if (result.success) {
               firePurchaseEvent();
               navigate('/app/dashboard', { replace: true });
@@ -79,7 +81,7 @@ const PaymentSuccess: React.FC = () => {
               setStatus('error');
               return;
           }
-          const result = await handleVerifyNewPurchase(sessionId);
+          const result = await handleVerifyNewPurchase(foundSessionId);
           if (result.success && result.name && result.email) {
               firePurchaseEvent();
               setCustomerData({ name: result.name, email: result.email });
@@ -108,7 +110,7 @@ const PaymentSuccess: React.FC = () => {
       return;
     }
 
-    const result = await handleSignUp(customerData.name, customerData.email, password);
+    const result = await handleSignUp(customerData.name, customerData.email, password, sessionId);
 
     if (!result.success) {
       setErrorMessage(result.message || 'Não foi possível criar sua conta. O email já pode estar em uso.');

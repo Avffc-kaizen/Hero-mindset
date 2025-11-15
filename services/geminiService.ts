@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Type } from "@google/genai";
 // FIX: Corrected import paths for types and constants to point to the 'src' directory.
 import { Mission, RankTitle, JournalEntry, UserStats, UserState, DailyGuidance, LifeMapCategory, GuildPost, ChatMessage } from "../src/types";
@@ -121,6 +122,8 @@ export const generateProactiveOracleGuidance = async (user: UserState): Promise<
             content: { type: Type.STRING },
             type: { type: Type.STRING },
           },
+          // FIX: Added required properties to ensure consistent JSON output.
+          required: ['content', 'type'],
         },
       }
     });
@@ -174,7 +177,9 @@ export const generateDailyMissionsAI = async (level: number, rank: RankTitle): P
               title: { type: Type.STRING },
               category: { type: Type.STRING },
               xp: { type: Type.NUMBER },
-            }
+            },
+            // FIX: Added required properties to ensure consistent JSON output.
+            required: ['title', 'category', 'xp'],
           }
         }
       }
@@ -206,7 +211,9 @@ export const generateWeeklyMissionsAI = async (level: number, rank: RankTitle): 
               title: { type: Type.STRING },
               category: { type: Type.STRING },
               xp: { type: Type.NUMBER },
-            }
+            },
+            // FIX: Added required properties to ensure consistent JSON output.
+            required: ['title', 'category', 'xp'],
           }
         }
       }
@@ -241,7 +248,9 @@ export const generateMilestoneMissionsAI = async (level: number, rank: RankTitle
               title: { type: Type.STRING },
               category: { type: Type.STRING },
               xp: { type: Type.NUMBER },
-            }
+            },
+            // FIX: Added required properties to ensure consistent JSON output.
+            required: ['title', 'category', 'xp'],
           }
         }
       }
@@ -378,6 +387,8 @@ export const generateGuildMemberReply = async (
                     rank: { type: Type.STRING },
                     content: { type: Type.STRING },
                   },
+                  // FIX: Added required properties to ensure consistent JSON output.
+                  required: ['author', 'rank', 'content'],
                 },
             }
         });
