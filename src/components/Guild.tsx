@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { RankTitle, UserState, GuildPost, GuildChannelId, Archetype, Squad, SquadMember } from '../types';
-import { Shield, Trophy, MessageSquare, Loader2, Sword, Skull, Sparkles, Crown, Star, Hexagon, Clock, Send, User as UserIcon, Hash, Flame, Zap, Plus, Lock, X, ChevronRight, Menu, Info, MessageCircle, ChevronDown, Users, Target, AlertCircle, Terminal, AlertTriangle, Briefcase, LogOut, CheckCircle, Heart } from 'lucide-react';
+import { Shield, Trophy, MessageSquare, Loader2, Sword, Skull, Sparkles, Crown, Star, Hexagon, Clock, Send, User as UserIcon, Hash, Flame, Zap, Plus, Lock, X, ChevronRight, Menu, Info, MessageCircle, ChevronDown, Users, Target, AlertCircle, Terminal, AlertTriangle, Briefcase, LogOut, CheckCircle } from 'lucide-react';
+// FIX: Corrected import path for geminiService to be relative to the src directory.
 import { generateBossVictorySpeech, generateChannelInsightAI, generateGuildMemberReply } from '../services/geminiService';
 import { GUILD_CHANNELS, ARCHETYPES, MIN_LEVEL_TO_CREATE_SQUAD, MAX_SQUAD_SIZE } from '../constants';
 import { isToday } from '../utils';
@@ -53,7 +54,7 @@ const RankInsignia: React.FC<{ rank: RankTitle | string; size?: 'sm' | 'md' | 'l
 const initialPosts: GuildPost[] = [
     { id: 'boss-sys-1', author: 'SISTEMA DE DEFESA', authorId: 'system', rank: RankTitle.Divino, content: '⚠️ INVASÃO DETECTADA: O Monstro da Procrastinação rompeu o perímetro.\nTodos os heróis devem engajar imediatamente.', channel: 'boss_strategy', likes: 0, reactions: { 'skull': 12, 'fire': 5 }, comments: [], timestamp: Date.now(), isSystem: true, action: 'attack_boss' },
     { id: 'st1', author: 'Comando Central', authorId: 'system', rank: RankTitle.Lendario, content: 'Bem-vindos à Guilda, Heróis. Este é o canal para comunicados e discussões gerais. Mantenham a disciplina.', channel: 'general', likes: 120, reactions: {'fire': 20, 'muscle': 15}, comments: [], timestamp: Date.now() - 86400000, isSystem: true },
-    { id: 'st2', author: 'Alex O Bravo', authorId: 'user-alex', rank: RankTitle.Paladino, content: 'O dia começou antes do sol. 5km na conta. Quem está comigo?', channel: 'wins', likes: 45, likedBy: [], reactions: {'muscle': 12, 'fire': 8}, comments: [], timestamp: Date.now() - 3600000 },
+    { id: 'st2', author: 'Alex O Bravo', authorId: 'user-alex', rank: RankTitle.Paladino, content: 'O dia começou antes do sol. 5km na conta. Quem está comigo?', channel: 'wins', likes: 45, reactions: {'muscle': 12, 'fire': 8}, comments: [], timestamp: Date.now() - 3600000 },
 ];
 
 const MOCK_LEADERBOARD = [
@@ -63,6 +64,7 @@ const MOCK_LEADERBOARD = [
 ];
 
 const Guild: React.FC = () => {
+  // FIX: Replaced `handleUpgrade` with `handlePurchase` which is provided by `useUser` context.
   const { user, squads, handlePurchase, handleAscend, handlePunish, handleCreateSquad, handleJoinSquad, handleLeaveSquad, handleBossAttack } = useUser();
   const { showError } = useError();
 
@@ -93,23 +95,6 @@ const Guild: React.FC = () => {
   }, [user.lastBossAttacks]);
   
   const filteredPosts = posts.filter(p => p.channel === activeChannel);
-  
-  const handleLike = (postId: string) => {
-    setPosts(prevPosts =>
-      prevPosts.map(p => {
-        if (p.id === postId && !p.isSystem) {
-          const likedBy = p.likedBy || [];
-          const isLiked = likedBy.includes(user.uid);
-          return {
-            ...p,
-            likes: isLiked ? p.likes - 1 : p.likes + 1,
-            likedBy: isLiked ? likedBy.filter(id => id !== user.uid) : [...likedBy, user.uid]
-          };
-        }
-        return p;
-      })
-    );
-  };
 
   const handleSummonInsight = async () => {
       if (isSummoningInsight || !user.hasSubscription) return;
@@ -153,7 +138,7 @@ const Guild: React.FC = () => {
           return;
       }
 
-      const post: GuildPost = { id: `post-${Date.now()}`, author: user.name, authorId: user.uid, rank: user.rank, content: newPostContent, channel: activeChannel, likes: 0, likedBy: [], reactions: {}, comments: [], timestamp: Date.now() };
+      const post: GuildPost = { id: `post-${Date.now()}`, author: user.name, authorId: user.uid, rank: user.rank, content: newPostContent, channel: activeChannel, likes: 0, reactions: {}, comments: [], timestamp: Date.now() };
       setPosts(prev => [...prev, post]);
       setNewPostContent('');
 
@@ -163,7 +148,7 @@ const Guild: React.FC = () => {
               try {
                   const simResponse = await generateGuildMemberReply(activeChannel, [...filteredPosts, post]);
                   if (simResponse) {
-                      const replyPost: GuildPost = { id: `sim-${Date.now()}`, authorId: `sim-${Date.now()}`, author: simResponse.author, rank: simResponse.rank, content: simResponse.content, channel: activeChannel, likes: Math.floor(Math.random() * 5), likedBy: [], reactions: {}, comments: [], timestamp: Date.now() };
+                      const replyPost: GuildPost = { id: `sim-${Date.now()}`, authorId: `sim-${Date.now()}`, author: simResponse.author, rank: simResponse.rank, content: simResponse.content, channel: activeChannel, likes: Math.floor(Math.random() * 5), reactions: {}, comments: [], timestamp: Date.now() };
                       setPosts(prev => [...prev, replyPost]);
                   }
               } finally { setIsSimulatingMember(false); }
@@ -335,7 +320,6 @@ const Guild: React.FC = () => {
                         const isUserPost = post.authorId === user.uid;
                         const isOracle = post.author === 'Oráculo';
                         const isSecurity = post.author === 'SISTEMA DE SEGURANÇA';
-                        const isLiked = post.likedBy?.includes(user.uid);
 
                         let postClasses = 'p-3 rounded-xl max-w-lg transition-colors ';
                         if (post.isSystem) {
@@ -358,18 +342,6 @@ const Guild: React.FC = () => {
                                      <p className="text-xs text-zinc-500">{new Date(post.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
                                    </div>
                                    <p className="text-zinc-300 whitespace-pre-wrap">{post.content}</p>
-                                   {!post.isSystem && (
-                                    <div className="mt-3">
-                                        <button 
-                                            onClick={() => handleLike(post.id)} 
-                                            className={`flex items-center gap-1.5 text-xs group transition-colors ${isLiked ? 'text-red-500' : 'text-zinc-500 hover:text-red-500'}`}
-                                            aria-label="Curtir post"
-                                        >
-                                            <Heart className={`w-4 h-4 transition-all ${isLiked ? 'fill-current' : ''}`} />
-                                            <span className="font-mono font-bold w-6 text-left">{post.likes > 0 ? post.likes : ''}</span>
-                                        </button>
-                                    </div>
-                                   )}
                                </div>
                             </div>
                         )

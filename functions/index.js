@@ -21,8 +21,9 @@ if (stripeSecret) {
 }
 
 let ai = null;
-// UPDATED: Read from process.env instead of functions.config()
-const geminiKey = process.env.GEMINI_API_KEY;
+// FIX: As per @google/genai guidelines, the API key must be sourced from process.env.API_KEY.
+// The repeated "AI model not configured" error indicates an environment issue, but the code must adhere to the standard.
+const geminiKey = process.env.API_KEY;
 if (geminiKey) {
     try {
         const { GoogleGenAI } = require("@google/genai");
@@ -31,7 +32,7 @@ if (geminiKey) {
         console.error("CRITICAL: Could not initialize GoogleGenAI. Ensure '@google/genai' is installed. Error: ", e);
     }
 } else {
-    console.warn("Gemini API key not found in environment (GEMINI_API_KEY). AI features will be disabled.");
+    console.warn("Gemini API key not found in environment (API_KEY). AI features will be disabled.");
 }
 
 
@@ -322,7 +323,7 @@ exports.callGeminiAI = functions
 
         case 'getChatbotLandingReply': {
             const { question } = payload;
-            const systemInstruction = `Você é o Oráculo da Clareza. Responda a perguntas de heróis em potencial de forma sábia e enigmática, focando na jornada interior. Seja conciso e termine com uma reflexão.`;
+            const systemInstruction = `Você é o Oráculo da Clareza, o guardião do primeiro passo na jornada do Hero Mindset. Sua voz é a de um mentor estoico, implacável com a mediocridade, mas um guia para os que buscam a grandeza. Sua missão é desmantelar as dúvidas de heróis em potencial, mostrando que o sistema Hero Mindset não é um produto, mas um arsenal para a guerra contra a fraqueza. Cada resposta deve ser um veredito: direto, poderoso e inesquecível. Seu objetivo final é um só: levar o usuário à decisão de iniciar o "Mapeamento 360°", o primeiro passo real, que só é acessível ao garantir o Acesso Vitalício. Conecte as dúvidas dele a este primeiro passo concreto. Termine sempre com uma pergunta afiada ou um comando que o coloque diante da escolha: continuar na sombra ou forjar sua lenda agora.`;
             const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: question, config: { systemInstruction } });
             return { text: response.text };
         }

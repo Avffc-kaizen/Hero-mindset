@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+// FIX: Corrected import paths to be relative.
 import { ProtectionModuleId, RoadmapItem, BioData, DailyIntention } from '../types';
 import { PROTECTION_MODULES, ARCHETYPES } from '../constants';
-import { Award, Zap, RefreshCw, Star, AlertCircle, Flame, Shield, Briefcase, Activity, TrendingUp, CheckCircle, Plus, Lock, Dumbbell, Moon, Droplets, Trash2, Bot, Target, Check, AlertTriangle, Send, Loader2 } from 'lucide-react';
+import { Award, Zap, RefreshCw, Star, AlertCircle, Flame, Shield, Briefcase, Activity, TrendingUp, CheckCircle, Plus, Lock, Dumbbell, Moon, Droplets, Trash2, Bot, Target, Check, AlertTriangle, Send, Loader2, X } from 'lucide-react';
+// FIX: Corrected import paths to be relative.
 import { XP_PER_LEVEL_FORMULA } from '../utils';
 import { useUser } from '../contexts/UserContext';
-// FIX: import useError hook to handle error display in QuickChatWidget.
 import { useError } from '../contexts/ErrorContext';
 import MissionProgress from './MissionProgress';
 import LifeMapWidget from './LifeMapWidget';
@@ -242,8 +243,22 @@ const BioShieldWidget = () => {
 }
 
 const HeroicDashboard: React.FC = () => {
+  // FIX: Replaced `handleUpgrade` with `handlePurchase` which is provided by `useUser` context.
   const { user, handleRedoDiagnosis, handlePurchase, isProcessingPayment } = useUser();
   const [showRecalibrateModal, setShowRecalibrateModal] = useState(false);
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
+
+  useEffect(() => {
+    const hasSeenBanner = localStorage.getItem('heroWelcomeBannerDismissed');
+    if (!hasSeenBanner) {
+        setShowWelcomeBanner(true);
+    }
+  }, []);
+
+  const handleDismissBanner = () => {
+      setShowWelcomeBanner(false);
+      localStorage.setItem('heroWelcomeBannerDismissed', 'true');
+  };
   
   if (!user.archetype || !user.lifeMapScores) return null;
 
@@ -301,6 +316,21 @@ const HeroicDashboard: React.FC = () => {
         </div>
         <button onClick={() => setShowRecalibrateModal(true)} className="flex items-center gap-2 text-[10px] font-bold font-mono uppercase text-zinc-500 hover:text-white bg-zinc-900/50 border border-white/10 px-4 py-2.5 rounded-lg backdrop-blur-sm"><RefreshCw className="w-3 h-3"/> Recalibrar</button>
       </header>
+
+      {showWelcomeBanner && (
+        <div className="relative bg-gradient-to-r from-zinc-900 via-zinc-950 to-black border border-yellow-500/30 rounded-xl p-6 animate-in fade-in shadow-lg shadow-yellow-500/10">
+            <button onClick={handleDismissBanner} className="absolute top-3 right-3 text-zinc-500 hover:text-white transition-colors" aria-label="Dispensar banner">
+                <X className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-4">
+                <Shield className="w-10 h-10 text-yellow-500 flex-shrink-0 animate-pulse" />
+                <div>
+                    <h2 className="text-lg font-bold font-mono text-white">Bem-vindo de volta, Herói.</h2>
+                    <p className="text-zinc-400 text-sm mt-1">Sua central de comando está operacional. Execute sua missão diária e avance em sua jornada.</p>
+                </div>
+            </div>
+        </div>
+      )}
 
       <div className="p-1 bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-2xl shadow-2xl animate-in fade-in">
         <div className="bg-zinc-950 rounded-xl p-1">

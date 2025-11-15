@@ -3,10 +3,10 @@ import { X, Sparkles, Loader2, ChevronLeft } from 'lucide-react';
 import { getChatbotLandingReply } from '../services/geminiService';
 
 const PREDEFINED_QUESTIONS = [
-  "Qual o verdadeiro propósito desta jornada?",
-  "Como a disciplina se transforma em poder?",
-  "Estou pronto para abandonar minha antiga versão?",
-  "O que significa 'forjar minha própria lenda'?",
+  "Este sistema realmente funciona para mim?",
+  "Tenho medo de falhar. O que o Oráculo diz?",
+  "Qual o primeiro passo para começar a mudança?",
+  "O que exatamente eu ganho com o Acesso Vitalício?",
 ];
 
 const ChatbotWidget: React.FC = () => {
@@ -62,7 +62,7 @@ const ChatbotWidget: React.FC = () => {
           <div className="flex-grow overflow-y-auto p-4">
             {view === 'questions' && (
               <div className="animate-in fade-in">
-                <p className="text-yellow-200/70 text-sm mb-4">As névoas da dúvida pairam. O que busca esclarecer?</p>
+                <p className="text-yellow-200/70 text-sm mb-4">Eu sou o Guardião deste santuário. Minha função é guiar aqueles que estão prontos para forjar sua lenda. A clareza precede a ação. Pergunte.</p>
                 {PREDEFINED_QUESTIONS.map((q) => (
                   <button key={q} onClick={() => handleQuestionClick(q)} className="w-full p-3 mb-2 bg-yellow-950/20 hover:bg-yellow-950/40 rounded-lg text-left text-yellow-100/90 text-sm font-mono transition-colors border border-yellow-800/30">
                     {q}

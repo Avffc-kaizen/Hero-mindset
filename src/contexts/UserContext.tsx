@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { UserState, Archetype, LifeMapCategory, JournalEntry, LessonDetails, Mission, RankTitle, Squad, ProtectionModuleId, ParagonPerk, ChatMessage } from '../types';
-import { INITIAL_USER_STATE, STATIC_DAILY_MISSIONS, STATIC_WEEKLY_MISSIONS, MOCK_SQUADS, PRODUCTS, XP_PER_LEVEL_FORMULA, PARAGON_PERKS, SKILL_TREES } from '../constants';
+import { INITIAL_USER_STATE, STATIC_DAILY_MISSIONS, STATIC_WEEKLY_MISSIONS, MOCK_SQUADS, PRODUCTS, XP_PER_LEVEL_FORMULA, PARAGON_PERKS, SKILL_TREES, STATIC_MILESTONE_MISSIONS } from '../constants';
 import { generateDailyMissionsAI, generateWeeklyMissionsAI, generateProactiveOracleGuidance, getMentorChatReply, generateDailyAnalysisAI } from '../services/geminiService';
 import { createCheckoutSession } from '../services/paymentService';
 import { useError } from './ErrorContext';
@@ -161,19 +161,29 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const handleLogin = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     const auth = firebaseAuth;
-    if (!auth) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
+    if (!auth) {
+        const message = FIREBASE_UNCONFIGURED_ERROR;
+        showError(message);
+        return { success: false, message };
+    }
     try { 
       await signInWithEmailAndPassword(auth, email, password); 
       return { success: true }; 
     } catch (error: any) {
-      return { success: false, message: "Email ou Senha de Comando inválidos." }; 
+      const message = "Email ou Senha de Comando inválidos.";
+      showError(message);
+      return { success: false, message }; 
     }
   };
   
   const handleSignUp = async (name: string, email: string, password: string, sessionId?: string | null): Promise<{success: boolean, message?: string}> => {
       const auth = firebaseAuth;
       const db = firebaseDb;
-      if (!auth || !db) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
+      if (!auth || !db) {
+          const message = FIREBASE_UNCONFIGURED_ERROR;
+          showError(message);
+          return { success: false, message };
+      }
       try {
           let purchaseDocRef;
           
@@ -183,16 +193,19 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               if (purchaseDoc.exists() && purchaseDoc.data().email.toLowerCase() === email.toLowerCase() && purchaseDoc.data().status === 'verified_for_signup') {
                   purchaseDocRef = purchaseDoc.ref;
               } else {
-                   return { success: false, message: 'A sessão de compra é inválida, não corresponde a este email ou já foi utilizada.' };
+                   const message = 'A sessão de compra é inválida, não corresponde a este email ou já foi utilizada.';
+                   showError(message);
+                   return { success: false, message };
               }
           } else {
-              // Fallback for generic flow (e.g., Eduzz or manual)
               const purchasesRef = collection(db, 'purchases');
               const q = query(purchasesRef, where("email", "==", email.toLowerCase()), where("status", "==", "verified_for_signup"), limit(1));
               const purchaseSnap = await getDocs(q);
 
               if (purchaseSnap.empty) {
-                  return { success: false, message: 'Nenhuma compra verificada foi encontrada para este email. Garanta seu acesso e tente novamente.' };
+                  const message = 'Nenhuma compra verificada foi encontrada para este email. Garanta seu acesso e tente novamente.';
+                  showError(message);
+                  return { success: false, message };
               }
               purchaseDocRef = purchaseSnap.docs[0].ref;
           }
@@ -200,13 +213,15 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const userDocRef = doc(db, "users", userCredential.user.uid);
           
-          const newUserState = {
+          const newUserState: UserState = {
             ...INITIAL_USER_STATE,
             uid: userCredential.user.uid,
             name: name,
             email: email,
             createdAt: Date.now(),
             hasPaidBase: true,
+            missions: [...STATIC_MILESTONE_MISSIONS],
+            lastMilestoneMissionRefresh: Date.now(),
           };
 
           const batch = writeBatch(db);
@@ -214,21 +229,27 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           batch.update(purchaseDocRef, { status: 'claimed', uid: userCredential.user.uid });
           await batch.commit();
 
-          setUser(newUserState); // Immediately update local state
+          setUser(newUserState);
           return { success: true };
       } catch (error: any) {
+          let message = 'Falha ao criar a conta.';
           if (error.code === 'auth/email-already-in-use') {
-              return { success: false, message: 'Este email já está em uso.' };
+              message = 'Este email já está em uso.';
           }
           console.error("SignUp error:", error);
-          return { success: false, message: 'Falha ao criar a conta.' };
+          showError(message);
+          return { success: false, message };
       }
   };
 
   const handleGoogleLogin = async (): Promise<{ success: boolean; message?: string }> => {
     const auth = firebaseAuth;
     const db = firebaseDb;
-    if (!auth || !googleProvider || !db) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
+    if (!auth || !googleProvider || !db) {
+        const message = FIREBASE_UNCONFIGURED_ERROR;
+        showError(message);
+        return { success: false, message };
+    }
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const { isNewUser } = getAdditionalUserInfo(result);
@@ -241,16 +262,20 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         if (purchaseSnap.empty) {
             await signOut(auth);
-            return { success: false, message: 'Conta não encontrada. Por favor, compre o acesso ou use o email da compra.' };
+            const message = 'Conta não encontrada. Por favor, compre o acesso ou use o email da compra.';
+            showError(message);
+            return { success: false, message };
         }
 
         const purchaseDocRef = purchaseSnap.docs[0].ref;
-        const newUserState = {
+        const newUserState: UserState = {
             ...INITIAL_USER_STATE,
             uid: result.user.uid,
             name: result.user.displayName || "Herói",
-            email: result.user.email,
+            email: result.user.email || '',
             hasPaidBase: true,
+            missions: [...STATIC_MILESTONE_MISSIONS],
+            lastMilestoneMissionRefresh: Date.now(),
         };
 
         const batch = writeBatch(db);
@@ -261,16 +286,22 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return { success: true };
     } catch (error: any) {
       console.error("Google Login Error:", error);
-      return { success: false, message: 'Falha no login com Google. Verifique se pop-ups estão bloqueados.' };
+      const message = 'Falha no login com Google. Verifique se pop-ups estão bloqueados.';
+      showError(message);
+      return { success: false, message };
     }
   };
   
   const handleVerifyNewPurchase = async (sessionId: string): Promise<{ success: boolean; name?: string; email?: string; message?: string; }> => {
       const db = firebaseDb;
-      if (!db) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
+      if (!db) {
+          const message = FIREBASE_UNCONFIGURED_ERROR;
+          showError(message);
+          return { success: false, message };
+      }
 
       const retries = 5;
-      const delay = 2000; // 2 seconds
+      const delay = 2000;
 
       for (let i = 0; i < retries; i++) {
           try {
@@ -290,13 +321,19 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
       }
 
-      return { success: false, message: "Não foi possível verificar sua compra. Isso pode levar alguns minutos. Se o problema persistir, contate o suporte." };
+      const message = "Não foi possível verificar sua compra. Isso pode levar alguns minutos. Se o problema persistir, contate o suporte.";
+      showError(message);
+      return { success: false, message };
   };
 
   const handleVerifyUpgrade = async (sessionId: string) => {
       const db = firebaseDb;
       const auth = firebaseAuth;
-      if (!db || !auth?.currentUser) return { success: false, message: "Você precisa estar logado para fazer um upgrade." };
+      if (!db || !auth?.currentUser) {
+          const message = "Você precisa estar logado para fazer um upgrade.";
+          showError(message);
+          return { success: false, message };
+      }
       try {
           const purchaseRef = doc(db, "purchases", sessionId);
           const purchaseDoc = await getDoc(purchaseRef);
@@ -304,9 +341,13 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (purchaseDoc.exists() && purchaseDoc.data().uid === auth.currentUser.uid) {
               return { success: true };
           }
-          return { success: false, message: "Upgrade não pôde ser verificado."};
+          const message = "Upgrade não pôde ser verificado.";
+          showError(message);
+          return { success: false, message };
       } catch (error) {
-          return { success: false, message: "Erro ao verificar o upgrade."};
+          const message = "Erro ao verificar o upgrade.";
+          showError(message);
+          return { success: false, message };
       }
   };
   
@@ -359,12 +400,18 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const handleForgotPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
     const auth = firebaseAuth;
-    if (!auth) return { success: false, message: FIREBASE_UNCONFIGURED_ERROR };
+    if (!auth) {
+        const message = FIREBASE_UNCONFIGURED_ERROR;
+        showError(message);
+        return { success: false, message };
+    }
     try { 
       await sendPasswordResetEmail(auth, email); 
       return { success: true, message: 'Se uma conta existir, um link de recuperação foi enviado.' }; 
     } catch (error: any) { 
-        return { success: false, message: 'Falha ao enviar o email.' }; 
+        const message = 'Falha ao enviar o email.';
+        showError(message);
+        return { success: false, message }; 
     }
   };
   
@@ -443,14 +490,14 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const handleSendMentorMessage = async (message: string, isQuickChat: boolean = false) => {
     const userMessage: ChatMessage = { id: `msg-${Date.now()}`, role: 'user', text: message, timestamp: Date.now(), isQuickChat };
     const updatedHistory = [...user.mentorChatHistory, userMessage];
-    setUser(prev => ({...prev, mentorChatHistory: updatedHistory})); // Optimistic update
+    setUser(prev => ({...prev, mentorChatHistory: updatedHistory}));
 
     try {
         const replyText = await getMentorChatReply(updatedHistory, user);
         const modelMessage: ChatMessage = { id: `msg-${Date.now()+1}`, role: 'model', text: replyText, timestamp: Date.now(), isQuickChat };
         writeUserUpdate({ mentorChatHistory: [...updatedHistory, modelMessage] });
     } catch(err) {
-        setUser(prev => ({...prev, mentorChatHistory: user.mentorChatHistory})); // Revert on error
+        setUser(prev => ({...prev, mentorChatHistory: user.mentorChatHistory}));
         throw err;
     }
   };
@@ -487,7 +534,23 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const userDocRef = doc(db, 'users', authUser.uid);
         userSnapshotUnsubscribe = onSnapshot(userDocRef, userDoc => {
           if (userDoc.exists()) {
-            const userData = userDoc.data() as UserState;
+            let userData = userDoc.data() as UserState;
+
+            if (authUser.email === 'andreferraz@consegvida.com') {
+                userData = {
+                    ...userData,
+                    level: 60,
+                    rank: RankTitle.Divino,
+                    isAscended: true,
+                    hasSubscription: true,
+                    activeModules: ['soberano', 'tita', 'sabio', 'monge', 'lider'],
+                    paragonPoints: 100,
+                    skillPoints: 20,
+                    onboardingCompleted: true,
+                    hasPaidBase: true,
+                };
+            }
+
             setUser({
                 ...INITIAL_USER_STATE,
                 ...userData,

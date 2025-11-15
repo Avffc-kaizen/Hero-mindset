@@ -1,7 +1,7 @@
 
-
 import { GoogleGenAI, Type } from "@google/genai";
-// FIX: Corrected import paths for types and constants to point to the 'src' directory.
+// FIX: Corrected import paths for types and constants to be relative.
+// FIX: Removed .ts extension from imports.
 import { Mission, RankTitle, JournalEntry, UserStats, UserState, DailyGuidance, LifeMapCategory, GuildPost, ChatMessage } from "../src/types";
 import { MENTOR_SYSTEM_INSTRUCTION, PROTECTION_MODULES } from "../src/constants";
 

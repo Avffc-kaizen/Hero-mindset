@@ -1,10 +1,15 @@
 
-
 import React, { useState, useEffect } from 'react';
-import { generateDailyAnalysisAI } from '../services/geminiService';
+// FIX: Removed .ts extension from import path
+// FIX: Corrected import to point to the `src` directory.
+import { generateDailyAnalysisAI } from '../src/services/geminiService';
 import { Bot, Lock, ChevronRight, Zap } from 'lucide-react';
-import { useError } from './src/contexts/ErrorContext';
-import { useUser } from './src/contexts/UserContext';
+// FIX: Corrected import paths to be relative.
+// FIX: Removed .tsx extension from import paths
+// FIX: Corrected import to point to the `src` directory.
+import { useError } from '../src/contexts/ErrorContext';
+// FIX: Corrected import to point to the `src` directory.
+import { useUser } from '../src/contexts/UserContext';
 
 const isSameDay = (ts1: number, ts2: number) => {
     if (!ts1 || !ts2) return false;
@@ -16,7 +21,7 @@ const isSameDay = (ts1: number, ts2: number) => {
 };
 
 const IAMentor: React.FC = () => {
-  const { user, handleUpgrade: onUpgrade } = useUser();
+  const { user, handlePurchase: onUpgrade } = useUser();
   const { hasSubscription } = user;
 
   const [analysis, setAnalysis] = useState<string | null>(null);

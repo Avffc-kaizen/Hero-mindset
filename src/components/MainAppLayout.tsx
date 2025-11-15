@@ -37,7 +37,7 @@ const MainAppLayout: React.FC = () => {
                 <p className="text-xs text-zinc-400">{user.rank}</p>
             </div>
         </NavLink>
-        <nav className="flex-grow p-4 space-y-1 overflow-y-auto no-scrollbar">
+        <nav className="flex-grow p-4 space-y-2 overflow-y-auto no-scrollbar">
             {sidebarNavLinks.map(link => (
                 <NavLink key={link.to} to={link.to} onClick={onLinkClick} className={({ isActive }) =>`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium ${isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-800/50'}`}>
                     <link.icon className="w-5 h-5" />

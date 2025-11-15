@@ -95,7 +95,7 @@ const FAQItem = ({ q, a }: { q: string, a: string }) => {
 };
 
 const LandingPage: React.FC = () => {
-  const { handleBuy } = useUser();
+  const { handlePurchase } = useUser();
   const navigate = useNavigate();
   const [shareText, setShareText] = useState('Convoque Aliados');
 
@@ -144,7 +144,14 @@ const LandingPage: React.FC = () => {
       </nav>
 
       <header className="relative py-32 sm:py-40 px-6 text-center border-b border-zinc-900 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-950/20 via-zinc-950 to-zinc-950"></div>
+        <div className="absolute inset-0">
+          <img 
+            src="https://images.unsplash.com/photo-1581022206213-91b5a279143c?q=80&w=2670&auto=format&fit=crop"
+            alt="Soldados em silhueta contra um céu dramático, representando a jornada do herói."
+            className="w-full h-full object-cover opacity-20"
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-950/30 via-zinc-950 to-zinc-950"></div>
+        </div>
         <div className="relative z-10 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-10">
           <h1 className="text-5xl sm:text-7xl font-extrabold mb-6 tracking-tighter font-mono uppercase">O Fim do Homem Comum.</h1>
           <p className="text-lg text-zinc-400 mb-10 max-w-3xl mx-auto">O sistema operacional que transforma disciplina em poder e execução em legado. A Black Friday é sua única chance de entrar com acesso vitalício.</p>
@@ -168,6 +175,20 @@ const LandingPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      <LazySection className="py-20 px-6 bg-zinc-950 border-y border-zinc-900">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold uppercase font-mono mb-4">Sua Central de Comando</h2>
+            <p className="text-zinc-400 max-w-2xl mx-auto">Veja o sistema operacional por dentro. Onde a estratégia encontra a execução.</p>
+          </div>
+          <div className="p-1 bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-2xl shadow-2xl">
+            <div className="bg-zinc-950 rounded-xl p-1">
+              <div className="aspect-video w-full relative"><LiteYouTubeEmbed videoId="cWrWyPtsllM" title="Demonstração da Central de Comando" /></div>
+            </div>
+          </div>
+        </div>
+      </LazySection>
 
       <LazySection className="py-20 px-6 bg-zinc-900/20 border-y border-zinc-900">
         <div className="max-w-6xl mx-auto">
@@ -229,7 +250,7 @@ const LandingPage: React.FC = () => {
                     <li className="flex items-center gap-3"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Acesso à Guilda, Esquadrões e Panteão</li>
                   </ul>
                 </div>
-                <button onClick={() => handleBuy(product.id)} className="w-full mt-auto bg-gradient-to-br from-yellow-400 to-yellow-500 text-black py-4 rounded-lg font-bold uppercase tracking-widest transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/40 active:scale-95 animate-button-glow">Garantir Acesso Vitalício</button>
+                <button onClick={() => handlePurchase(product.id)} className="w-full mt-auto bg-gradient-to-br from-yellow-400 to-yellow-500 text-black py-4 rounded-lg font-bold uppercase tracking-widest transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/40 active:scale-95 animate-button-glow">Garantir Acesso Vitalício</button>
                  <p className="text-xs text-zinc-500 mt-4">Upgrades para Mentor IA e Proteção 360 disponíveis opcionalmente.</p>
               </div>
             ))}

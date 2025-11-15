@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, ChevronRight, LogIn, CheckCircle, Play, Bot, Award, Share2, Briefcase, TrendingUp, Activity, Brain, Zap, HeartHandshake, Target, Book, ScrollText, Sparkles, GitMerge, ShieldAlert, Loader2 } from 'lucide-react';
+import { Shield, ChevronRight, LogIn, CheckCircle, Play, Bot, Award, Share2, Briefcase, TrendingUp, Activity, Brain, Zap, HeartHandshake, Target, Book, ScrollText, Sparkles, GitMerge } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import { PRODUCTS, FRONTEND_URL, PROTECTION_MODULES } from '../constants';
 import ChatbotWidget from './ChatbotWidget';
 import { ProtectionModuleInfo } from '../types';
-import LiteYouTubeEmbed from './LiteYouTubeEmbed';
 
 const LazySection = ({ children, className = "", id = "", ...props }: React.HTMLAttributes<HTMLDivElement> & { children: React.ReactNode, id?: string }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -24,6 +23,27 @@ const LazySection = ({ children, className = "", id = "", ...props }: React.HTML
   return (
     <div id={id} ref={elementRef} className={`transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'} ${className}`} {...props}>
       {children}
+    </div>
+  );
+};
+
+const LiteYouTubeEmbed = ({ videoId, title }: { videoId: string, title: string }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  return (
+    <div className="absolute inset-0 w-full h-full bg-black group cursor-pointer overflow-hidden rounded-xl">
+      {!isLoaded ? (
+        <button onClick={() => setIsLoaded(true)} className="w-full h-full">
+            <img 
+              src={`https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`}
+              alt={title} 
+              className="w-full h-full object-cover opacity-80 group-hover:opacity-60" 
+            />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20"><div className="w-20 h-20 bg-red-600/80 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-white/20 group-hover:bg-red-500 transition-colors"><Play className="w-8 h-8 text-white ml-1" /></div></div>
+        </button>
+      ) : (
+        <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`} title={title} allow="autoplay; encrypted-media" allowFullScreen className="w-full h-full" />
+      )}
     </div>
   );
 };
@@ -75,9 +95,9 @@ const FAQItem = ({ q, a }: { q: string, a: string }) => {
 };
 
 const LandingPage: React.FC = () => {
+  const { handlePurchase } = useUser();
   const navigate = useNavigate();
   const [shareText, setShareText] = useState('Convoque Aliados');
-  const { handlePurchase, isProcessingPayment } = useUser();
 
   const onGoToLogin = () => {
     navigate('/login');
@@ -111,10 +131,9 @@ const LandingPage: React.FC = () => {
         </div>
         <div className="absolute left-1/2 -translate-x-1/2">
             <button 
-                onClick={() => handlePurchase('hero_vitalicio')} 
-                disabled={!!isProcessingPayment}
-                className="bg-black text-yellow-400 border-2 border-yellow-500 text-[10px] font-bold uppercase tracking-widest px-4 py-2 hover:bg-yellow-900/50 transition rounded-lg animate-button-glow shadow-lg shadow-yellow-500/10 disabled:opacity-50 disabled:animate-none">
-                {isProcessingPayment === 'hero_vitalicio' ? <Loader2 className="w-4 h-4 animate-spin"/> : 'Acesso Black Friday'}
+                onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} 
+                className="bg-black text-yellow-400 border-2 border-yellow-500 text-[10px] font-bold uppercase tracking-widest px-4 py-2 hover:bg-yellow-900/50 transition rounded-lg animate-button-glow shadow-lg shadow-yellow-500/10">
+                Acesso Black Friday
             </button>
         </div>
         <div className="flex items-center gap-4">
@@ -124,26 +143,21 @@ const LandingPage: React.FC = () => {
         </div>
       </nav>
 
-      <header className="relative py-32 sm:py-40 px-6 text-center border-b border-zinc-900 overflow-hidden h-[80vh] flex items-center justify-center">
-        <div className="absolute inset-0 z-0">
-            <video
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="w-full h-full object-cover"
-                poster="https://i.ytimg.com/vi/7JQeToR6pQs/maxresdefault.jpg"
-            >
-              {/* Adicione o URL do seu vídeo de fundo aqui. Ex: <source src="URL_DO_VIDEO.mp4" type="video/mp4" /> */}
-            </video>
-            <div className="absolute inset-0 bg-black/60 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-950/20 via-transparent to-black/80"></div>
+      <header className="relative py-32 sm:py-40 px-6 text-center border-b border-zinc-900 overflow-hidden">
+        <div className="absolute inset-0">
+          <img 
+            src="https://images.unsplash.com/photo-1581022206213-91b5a279143c?q=80&w=2670&auto=format&fit=crop"
+            alt="Soldados em silhueta contra um céu dramático, representando a jornada do herói."
+            className="w-full h-full object-cover opacity-20"
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-950/30 via-zinc-950 to-zinc-950"></div>
         </div>
         <div className="relative z-10 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-10">
           <h1 className="text-5xl sm:text-7xl font-extrabold mb-6 tracking-tighter font-mono uppercase">O Fim do Homem Comum.</h1>
           <p className="text-lg text-zinc-400 mb-10 max-w-3xl mx-auto">O sistema operacional que transforma disciplina em poder e execução em legado. A Black Friday é sua única chance de entrar com acesso vitalício.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button onClick={() => handlePurchase('hero_vitalicio')} disabled={!!isProcessingPayment} className="bg-red-600 text-white px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-red-700 transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3 shadow-lg shadow-red-600/20 hover:shadow-xl hover:shadow-red-500/40 disabled:opacity-50">
-              {isProcessingPayment === 'hero_vitalicio' ? <Loader2 className="w-5 h-5 animate-spin"/> : <>Declarar Guerra <ChevronRight /></>}
+            <button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="bg-red-600 text-white px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-red-700 transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-3 shadow-lg shadow-red-600/20 hover:shadow-xl hover:shadow-red-500/40">
+              Declarar Guerra <ChevronRight />
             </button>
             <button onClick={handleShare} className="bg-transparent border border-zinc-700 text-zinc-300 px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-zinc-800 hover:border-zinc-600 hover:text-white transition flex items-center gap-3">
               {shareText} <Share2 className="w-4 h-4"/>
@@ -162,36 +176,47 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
+      <LazySection className="py-20 px-6 bg-zinc-950 border-y border-zinc-900">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold uppercase font-mono mb-4">Sua Central de Comando</h2>
+            <p className="text-zinc-400 max-w-2xl mx-auto">Veja o sistema operacional por dentro. Onde a estratégia encontra a execução.</p>
+          </div>
+          <div className="p-1 bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-2xl shadow-2xl">
+            <div className="bg-zinc-950 rounded-xl p-1">
+              <div className="aspect-video w-full relative"><LiteYouTubeEmbed videoId="cWrWyPtsllM" title="Demonstração da Central de Comando" /></div>
+            </div>
+          </div>
+        </div>
+      </LazySection>
+
       <LazySection className="py-20 px-6 bg-zinc-900/20 border-y border-zinc-900">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold uppercase font-mono mb-4">Seu Arsenal Completo</h2>
-            <p className="text-zinc-400 max-w-3xl mx-auto">Um ecossistema integrado para a guerra contra a mediocridade, dividido em três frentes de batalha.</p>
+            <p className="text-zinc-400 max-w-2xl mx-auto">Um ecossistema integrado para a guerra contra a mediocridade.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800">
-              <h3 className="text-lg font-bold font-mono uppercase text-red-500 mb-2">Arsenal Militar</h3>
-              <p className="text-sm text-zinc-500 mb-4">A infantaria da sua jornada. Ferramentas para a execução diária e o combate direto.</p>
+              <h3 className="text-lg font-bold font-mono uppercase text-red-500 mb-4">Arsenal Militar</h3>
               <ul className="space-y-4 text-zinc-300 text-sm">
-                <li className="flex items-start gap-3"><Target className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Missões</span><p className="text-zinc-500">Diretrizes diárias e semanais para acumular XP e provar seu valor.</p></div></li>
-                <li className="flex items-start gap-3"><Book className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Codex</span><p className="text-zinc-500">Sua biblioteca de conhecimento tático sobre disciplina, foco e poder.</p></div></li>
-                <li className="flex items-start gap-3"><Shield className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Guilda</span><p className="text-zinc-500">Una-se a outros heróis, combata chefes e compartilhe vitórias.</p></div></li>
+                <li className="flex items-start gap-3"><Target className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Missões</span><p className="text-zinc-500">Diretrizes diárias e semanais.</p></div></li>
+                <li className="flex items-start gap-3"><Book className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Codex</span><p className="text-zinc-500">Sua biblioteca de conhecimento.</p></div></li>
+                <li className="flex items-start gap-3"><Shield className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Guilda</span><p className="text-zinc-500">Una-se a outros heróis.</p></div></li>
               </ul>
             </div>
             <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800">
-              <h3 className="text-lg font-bold font-mono uppercase text-blue-500 mb-2">Arsenal Estratégico</h3>
-               <p className="text-sm text-zinc-500 mb-4">Sua inteligência de combate. Ferramentas para clareza, análise e estratégia.</p>
+              <h3 className="text-lg font-bold font-mono uppercase text-blue-500 mb-4">Arsenal Estratégico</h3>
               <ul className="space-y-4 text-zinc-300 text-sm">
-                <li className="flex items-start gap-3"><Bot className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Oráculo IA</span><p className="text-zinc-500">Seu mentor IA que analisa seus dados e fornece diretrizes de combate.</p></div></li>
-                <li className="flex items-start gap-3"><ScrollText className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Diário de Bordo</span><p className="text-zinc-500">Registre sua jornada para que o Oráculo identifique padrões e fraquezas.</p></div></li>
+                <li className="flex items-start gap-3"><Bot className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Oráculo IA</span><p className="text-zinc-500">Seu mentor IA personalizado.</p></div></li>
+                <li className="flex items-start gap-3"><ScrollText className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Diário de Bordo</span><p className="text-zinc-500">Registre sua jornada para análise.</p></div></li>
               </ul>
             </div>
             <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800">
-              <h3 className="text-lg font-bold font-mono uppercase text-yellow-500 mb-2">Arsenal Pessoal</h3>
-              <p className="text-sm text-zinc-500 mb-4">Sua pesquisa e desenvolvimento. Ferramentas para a evolução do seu personagem e legado.</p>
+              <h3 className="text-lg font-bold font-mono uppercase text-yellow-500 mb-4">Arsenal Pessoal</h3>
               <ul className="space-y-4 text-zinc-300 text-sm">
-                <li className="flex items-start gap-3"><GitMerge className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Habilidades</span><p className="text-zinc-500">Desbloqueie ferramentas (Pomodoro, etc.) e bônus passivos.</p></div></li>
-                <li className="flex items-start gap-3"><Sparkles className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Panteão</span><p className="text-zinc-500">Ascenda ao Nível 50 para desbloquear bônus divinos permanentes.</p></div></li>
+                <li className="flex items-start gap-3"><GitMerge className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Habilidades</span><p className="text-zinc-500">Desbloqueie ferramentas e bônus.</p></div></li>
+                <li className="flex items-start gap-3"><Sparkles className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Panteão</span><p className="text-zinc-500">Ascenda e ganhe bônus divinos.</p></div></li>
               </ul>
             </div>
           </div>
@@ -202,7 +227,7 @@ const LandingPage: React.FC = () => {
         <div className="max-w-4xl mx-auto">
            <div className="mb-12">
             <h2 className="text-4xl font-bold uppercase font-mono mb-4 text-yellow-400">Black Friday: Acesso Vitalício</h2>
-            <p className="text-zinc-400 max-w-2xl mx-auto">Esta oferta não se repetirá. Garanta seu lugar no Panteão dos Heróis para sempre. Acesso por assinatura após o término.</p>
+            <p className="text-zinc-400 max-w-2xl mx-auto">Esta oferta não se repetirá. Garanta seu lugar no Panteão dos Heróis para sempre.</p>
             <div className="mt-8"><CountdownTimer targetDate="2024-11-28T23:59:59" /></div>
           </div>
           
@@ -225,10 +250,8 @@ const LandingPage: React.FC = () => {
                     <li className="flex items-center gap-3"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Acesso à Guilda, Esquadrões e Panteão</li>
                   </ul>
                 </div>
-                <button onClick={() => handlePurchase(product.id)} disabled={!!isProcessingPayment} className="w-full h-14 mt-auto bg-gradient-to-br from-yellow-400 to-yellow-500 text-black py-4 rounded-lg font-bold uppercase tracking-widest transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/40 active:scale-95 animate-button-glow disabled:opacity-50 disabled:animate-none flex items-center justify-center">
-                  {isProcessingPayment === product.id ? <Loader2 className="w-6 h-6 animate-spin"/> : 'Garantir Acesso Vitalício'}
-                </button>
-                 <p className="text-xs text-zinc-500 mt-4">Upgrades para Mentor IA e Proteção 360 disponíveis opcionalmente dentro da plataforma.</p>
+                <button onClick={() => handlePurchase(product.id)} className="w-full mt-auto bg-gradient-to-br from-yellow-400 to-yellow-500 text-black py-4 rounded-lg font-bold uppercase tracking-widest transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/40 active:scale-95 animate-button-glow">Garantir Acesso Vitalício</button>
+                 <p className="text-xs text-zinc-500 mt-4">Upgrades para Mentor IA e Proteção 360 disponíveis opcionalmente.</p>
               </div>
             ))}
           </div>
@@ -267,17 +290,7 @@ const LandingPage: React.FC = () => {
           <div className="space-y-4">
             <FAQItem q="O que é o Acesso Vitalício da Black Friday?" a="É um pagamento único que garante seu acesso para sempre a toda a plataforma base e suas futuras atualizações. Sem mensalidades. As assinaturas de IA são upgrades opcionais." />
             <FAQItem q="Para quem é o Hero Mindset?" a="É para homens que buscam um sistema de auto-responsabilidade brutal. Se você valoriza disciplina e execução, este é seu lugar." />
-            <FAQItem q="Como funcionam os upgrades de IA e Proteção 360?" a="Após garantir seu Acesso Vitalício, você poderá ativar o Mentor IA ou a Proteção 360 (que inclui o Mentor e todos os Protocolos) como assinaturas mensais opcionais, diretamente de dentro da plataforma." />
-          </div>
-        </div>
-      </LazySection>
-
-      <LazySection className="py-20 px-6 bg-zinc-900/50 border-y border-zinc-800">
-        <div className="max-w-3xl mx-auto text-center flex flex-col sm:flex-row items-center gap-6">
-          <ShieldAlert className="w-16 h-16 text-yellow-500 flex-shrink-0" />
-          <div className="text-left">
-            <h2 className="text-2xl font-bold font-mono uppercase mb-2 text-yellow-400">A Garantia do Herói</h2>
-            <p className="text-zinc-400">Não há garantia de devolução do dinheiro, porque a mentalidade do herói não busca rotas de escape. A única garantia que importa é o seu compromisso. Nossa garantia é o impacto que este sistema terá na sua vida SE você se comprometer. Essa é a única garantia que um verdadeiro herói precisa.</p>
+            <FAQItem q="E se eu não gostar? Qual a garantia?" a="A mentalidade do herói não busca rotas de escape. Nossa garantia é o impacto que este sistema terá se você se comprometer." />
           </div>
         </div>
       </LazySection>
@@ -285,9 +298,9 @@ const LandingPage: React.FC = () => {
       <LazySection className="py-20 px-6">
         <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-4xl font-bold font-mono uppercase mb-4 text-red-500">Ninguém Virá Te Salvar.</h2>
-            <p className="text-lg text-zinc-300 mb-8">A decisão é sua. A hora é agora. Chegou a hora de parar de se perguntar e começar a construir, de parar de desejar e começar a executar.</p>
-            <button onClick={() => handlePurchase('hero_vitalicio')} disabled={!!isProcessingPayment} className="bg-gradient-to-br from-yellow-400 to-yellow-500 text-black px-8 py-4 rounded-lg font-bold uppercase tracking-widest transition-all transform hover:scale-105 animate-button-glow h-14 flex items-center justify-center disabled:opacity-50 disabled:animate-none">
-                {isProcessingPayment === 'hero_vitalicio' ? <Loader2 className="w-6 h-6 animate-spin"/> : 'Iniciar Ascensão'}
+            <p className="text-lg text-zinc-300 mb-8">A decisão é sua. A hora é agora.</p>
+            <button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="bg-gradient-to-br from-yellow-400 to-yellow-500 text-black px-8 py-4 rounded-lg font-bold uppercase tracking-widest transition-all transform hover:scale-105 animate-button-glow">
+                Iniciar Ascensão
             </button>
         </div>
       </LazySection>

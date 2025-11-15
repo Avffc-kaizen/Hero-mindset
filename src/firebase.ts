@@ -19,7 +19,7 @@ const FIREBASE_CONFIG = {
   apiKey: "AIzaSyDYAR2rsJ673seTMClTGfMhp4a6GjwLEio",
   authDomain: "hero-mindset.firebaseapp.com",
   projectId: "hero-mindset",
-  storageBucket: "hero-mindset.firebasestorage.app",
+  storageBucket: "hero-mindset.appspot.com",
   messagingSenderId: "220402560101",
   appId: "1:220402560101:web:93c6fa158a1f675d55ea8c",
   measurementId: "G-FE75B12XCS"

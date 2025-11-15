@@ -179,6 +179,10 @@ export const STATIC_WEEKLY_MISSIONS: Mission[] = [
     { id: 'static-w-1', title: 'Completar 3 sessões de treino na semana', xp: 150, completed: false, type: 'weekly', category: 'Fitness' },
 ];
 
+export const STATIC_MILESTONE_MISSIONS: Mission[] = [
+    { id: 'static-m-1', title: 'Revisar Dossiê Estratégico e validar o Mapa 360', xp: 100, completed: false, type: 'milestone', category: 'Mindset' },
+];
+
 export const INITIAL_USER_STATE: UserState = {
   uid: '', isLoggedIn: false, name: "Herói", onboardingCompleted: false, archetype: null, lifeMapScores: null,
   mapAnalysis: undefined, focusAreas: [], createdAt: 0, email: '', level: 1, currentXP: 0, rank: RankTitle.Iniciante,

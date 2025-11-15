@@ -1,10 +1,9 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { Loader2, CheckCircle, Mail, KeyRound, User, AlertCircle } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import { PRODUCTS } from '../constants';
+import { useError } from '../contexts/ErrorContext';
 
 declare global {
   interface Window {
@@ -16,10 +15,10 @@ const PaymentSuccess: React.FC = () => {
   const { user, handleVerifyNewPurchase, handleSignUp, handleVerifyUpgrade } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
+  const { showError } = useError();
   const { productId } = useParams<{ productId: string }>();
 
   const [status, setStatus] = useState<'verifying' | 'input_required' | 'success' | 'error' | 'generic_success'>('verifying');
-  const [errorMessage, setErrorMessage] = useState('');
   const [customerData, setCustomerData] = useState<{ name: string; email: string } | null>(null);
   const [password, setPassword] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -55,14 +54,13 @@ const PaymentSuccess: React.FC = () => {
       }
 
       if (!foundSessionId) {
-        // Handle non-Stripe provider or manual redirection.
         if (product && product.provider !== 'stripe') {
             firePurchaseEvent();
             setStatus('generic_success');
             return;
         }
 
-        setErrorMessage('ID da sessão de pagamento não encontrado.');
+        showError('ID da sessão de pagamento não encontrado.');
         setStatus('error');
         return;
       }
@@ -73,12 +71,12 @@ const PaymentSuccess: React.FC = () => {
               firePurchaseEvent();
               navigate('/app/dashboard', { replace: true });
           } else {
-              setErrorMessage(result.message || 'Falha ao verificar seu upgrade.');
+              // showError is called inside handleVerifyUpgrade
               setStatus('error');
           }
       } else {
           if (!isBaseProduct) {
-              setErrorMessage('Apenas a compra do acesso vitalício é permitida para novos usuários.');
+              showError('Apenas a compra do acesso vitalício é permitida para novos usuários.');
               setStatus('error');
               return;
           }
@@ -88,8 +86,8 @@ const PaymentSuccess: React.FC = () => {
               setCustomerData({ name: result.name, email: result.email });
               setStatus('input_required');
           } else {
+              // showError is called inside handleVerifyNewPurchase
               setStatus('error');
-              setErrorMessage(result.message || "Falha ao verificar sua compra. Contate o suporte.");
           }
       }
     };
@@ -97,24 +95,23 @@ const PaymentSuccess: React.FC = () => {
     if (status === 'verifying') {
       verify();
     }
-  }, [status, user.isLoggedIn, isBaseProduct, navigate, location, handleVerifyNewPurchase, handleVerifyUpgrade, productId]);
+  }, [status, user.isLoggedIn, isBaseProduct, navigate, location, handleVerifyNewPurchase, handleVerifyUpgrade, productId, showError]);
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage('');
     if (!customerData || !password) {
-      setErrorMessage("Dados insuficientes para criar a conta.");
+      showError("Dados insuficientes para criar a conta.");
       return;
     }
     if (password.length < 6) {
-      setErrorMessage("A senha deve ter no mínimo 6 caracteres.");
+      showError("A senha deve ter no mínimo 6 caracteres.");
       return;
     }
 
     const result = await handleSignUp(customerData.name, customerData.email, password, sessionId);
 
     if (!result.success) {
-      setErrorMessage(result.message || 'Não foi possível criar sua conta. O email já pode estar em uso.');
+      // showError is called inside handleSignUp
     }
   };
 
@@ -150,7 +147,6 @@ const PaymentSuccess: React.FC = () => {
               <h2 className="text-2xl font-bold text-white font-mono uppercase">Pagamento Confirmado!</h2>
               <p className="text-zinc-400 mt-2 mb-6 font-mono text-sm">Bem-vindo, Herói. Defina sua senha para acessar o santuário.</p>
               <form onSubmit={handleCreateAccount} className="space-y-4 text-left">
-                  {errorMessage && <div className="bg-red-950/50 border border-red-900 text-red-400 px-4 py-3 rounded text-sm flex items-center gap-2"><AlertCircle className="w-4 h-4" />{errorMessage}</div>}
                   <div>
                     <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Nome de Herói</label>
                     <div className="relative"><User className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" /><input type="text" value={customerData.name} readOnly className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 text-zinc-300 font-mono" /></div>
@@ -171,7 +167,7 @@ const PaymentSuccess: React.FC = () => {
              <>
               <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-white font-mono uppercase">Ocorreu um Erro</h2>
-              <p className="text-zinc-400 mt-2 text-sm">{errorMessage}</p>
+              <p className="text-zinc-400 mt-2 text-sm">Uma falha ocorreu durante a verificação. Por favor, tente novamente ou contate o suporte se o problema persistir.</p>
              </>
           )}
         </div>

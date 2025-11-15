@@ -3,6 +3,7 @@ import { useUser } from '../contexts/UserContext';
 import { LifeMapCategory } from '../types';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { Map, RefreshCw, Target, Bot, ShieldAlert, Zap, TrendingUp, CheckCircle, ListChecks } from 'lucide-react';
+import { abbreviateCategory } from '../utils';
 
 const AnalysisCard: React.FC<{ icon: React.ElementType; title: string; children: React.ReactNode; className?: string }> = ({ icon: Icon, title, children, className = '' }) => (
     <div className={`bg-zinc-950/50 border border-zinc-800 rounded-xl p-6 ${className}`}>
@@ -28,7 +29,7 @@ const LifeMapPage: React.FC = () => {
     }
     
     const radarData = Object.entries(user.lifeMapScores).map(([subject, score]) => ({
-        subject: subject as LifeMapCategory,
+        subject: abbreviateCategory(subject as LifeMapCategory),
         score: score,
         fullMark: 10,
     }));
@@ -41,9 +42,9 @@ const LifeMapPage: React.FC = () => {
         if (scores.length === 0) {
             return '0.0';
         }
-        // FIX: The `score` value from `user.lifeMapScores` might not be a number due to loose typing from Firestore.
-        // Explicitly cast `score` to a number and provide a fallback to 0 to prevent runtime errors during the reduce operation.
-        // FIX: Cast score to a number to resolve TS errors.
+        // FIX: The error is likely due to 'scores' containing non-number values from Firestore.
+        // This causes 'sum' to become a string via concatenation, which then fails in the division for 'avg'.
+        // Explicitly casting score to a number makes the sum robust.
         const sum = scores.reduce((currentSum, score) => currentSum + (Number(score) || 0), 0);
         const avg = sum / scores.length;
         return avg.toFixed(1);

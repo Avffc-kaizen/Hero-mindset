@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Archetype, LifeMapCategory, ArchetypesList, LifeMapCategoriesList } from '../types';
 import { ARCHETYPE_QUESTIONS, INITIAL_LIFE_MAP_SCORES, LIFE_MAP_QUESTIONS } from '../constants';
-import { ArrowRight, Compass, Loader2, LogIn, User, KeyRound, AlertCircle, Shield, Mail, Bot } from 'lucide-react';
+import { ArrowRight, Compass, Loader2, LogIn, User, KeyRound, Shield, Mail, Bot } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { useUser } from '../contexts/UserContext';
 import { generateDetailedLifeMapAnalysis } from '../services/geminiService';
+import { abbreviateCategory } from '../utils';
 
 export const Onboarding: React.FC = () => {
   const { handleOnboardingComplete } = useUser();
@@ -157,7 +158,7 @@ export const Onboarding: React.FC = () => {
                 {LifeMapCategoriesList.map(category => (<button key={category} onClick={() => handleToggleFocusArea(category)} className={`p-3 rounded-lg border-2 text-left font-mono font-bold transition-all text-sm ${focusAreas.includes(category) ? 'bg-zinc-800 border-white text-white' : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-600'} ${!focusAreas.includes(category) && focusAreas.length === 3 ? 'opacity-50' : ''}`} disabled={!focusAreas.includes(category) && focusAreas.length === 3}> {category} </button>))}
               </div>
             </div>
-            <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 h-[300px] md:h-[400px]"><ResponsiveContainer width="100%" height="100%"><RadarChart cx="50%" cy="50%" outerRadius="80%" data={LifeMapCategoriesList.map(cat => ({ subject: cat, A: calculatedLifeMapScores[cat], fullMark: 10 }))}><PolarGrid /><PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa', fontSize: 10 }} /><PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} /><Radar name="Score" dataKey="A" stroke="#dc2626" fill="#dc2626" fillOpacity={0.6} /></RadarChart></ResponsiveContainer></div>
+            <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 h-[300px] md:h-[400px]"><ResponsiveContainer width="100%" height="100%"><RadarChart cx="50%" cy="50%" outerRadius="80%" data={LifeMapCategoriesList.map(cat => ({ subject: abbreviateCategory(cat), A: calculatedLifeMapScores[cat], fullMark: 10 }))}><PolarGrid /><PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa', fontSize: 10 }} /><PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} /><Radar name="Score" dataKey="A" stroke="#dc2626" fill="#dc2626" fillOpacity={0.6} /></RadarChart></ResponsiveContainer></div>
             <div className="md:col-span-2"><button onClick={generateAnalysis} disabled={focusAreas.length !== 3} className="w-full bg-white text-zinc-950 py-4 rounded font-bold uppercase tracking-widest hover:bg-zinc-200 disabled:opacity-50">Concluir e Gerar Análise <ArrowRight className="w-5 h-5 inline" /></button></div>
           </div>
         );
@@ -193,7 +194,6 @@ export const LoginScreen: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -209,48 +209,52 @@ export const LoginScreen: React.FC = () => {
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) { setError("Email e senha são obrigatórios."); return; }
+    if (!email || !password) { 
+        // showError is now called from UserContext
+        return; 
+    }
     setLoading(true);
-    setError('');
     setMessage('');
     const result = await handleLogin(email, password);
     if (!result.success) {
-      setError(result.message || 'Falha no login.');
       setLoading(false);
     }
   };
   
   const handleSignUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !password) { setError("Nome, email e senha são obrigatórios."); return; }
-    if (password.length < 6) { setError("A senha deve ter no mínimo 6 caracteres."); return; }
+    if (!name || !email || !password) {
+        // showError will be called from UserContext
+        return; 
+    }
+    if (password.length < 6) { 
+        // showError will be called from UserContext
+        return; 
+    }
     setLoading(true);
-    setError('');
     setMessage('');
     const result = await handleSignUp(name, email, password);
     if (!result.success) {
-      setError(result.message || 'Falha no cadastro.');
       setLoading(false);
     }
-    // On success, the onAuthStateChanged listener in UserContext will handle navigation.
   };
 
   const onGoogleLogin = async () => {
     setLoading(true);
-    setError('');
     setMessage('');
     const result = await handleGoogleLogin();
     if (!result.success) {
-        setError(result.message || 'Falha no login com Google.');
         setLoading(false);
     }
   };
   
   const handleForgotSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!email) { setError("O email é obrigatório."); return; }
+      if (!email) { 
+        // showError will be called from UserContext
+        return; 
+      }
       setLoading(true);
-      setError('');
       setMessage('');
       const result = await handleForgotPassword(email);
       setMessage(result.message);
@@ -282,12 +286,6 @@ export const LoginScreen: React.FC = () => {
           <p className="text-zinc-400 mt-2">{renderSubtitle()}</p>
         </div>
         
-        {error && (
-            <div className="bg-red-950/50 border border-red-900 text-red-400 px-4 py-3 rounded flex items-center gap-3 text-sm mb-4">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              {error}
-            </div>
-        )}
         {message && (
              <div className="bg-green-950/50 border border-green-900/50 text-green-400 px-4 py-3 rounded flex items-center gap-3 text-sm mb-4">
                 {message}
@@ -323,7 +321,7 @@ export const LoginScreen: React.FC = () => {
               <KeyRound className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
               <input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:border-zinc-600 font-mono transition-colors" placeholder="••••••••" />
             </div>
-             <button type="button" onClick={() => { setView('forgotPassword'); setError(''); setMessage('');}} className="text-xs text-zinc-500 hover:text-white mt-2 font-mono underline">Esqueceu a senha?</button>
+             <button type="button" onClick={() => { setView('forgotPassword'); setMessage('');}} className="text-xs text-zinc-500 hover:text-white mt-2 font-mono underline">Esqueceu a senha?</button>
           </div>
           <div className="pt-2">
              <button type="submit" disabled={loading} className="w-full bg-white text-zinc-950 py-4 rounded font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
@@ -389,7 +387,6 @@ export const LoginScreen: React.FC = () => {
                 <button 
                   onClick={() => { 
                     setView(view === 'login' ? 'signup' : 'login'); 
-                    setError(''); 
                     setMessage(''); 
                   }} 
                   className="font-bold text-zinc-300 hover:text-white underline"

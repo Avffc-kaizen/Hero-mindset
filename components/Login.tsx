@@ -1,12 +1,12 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Archetype, LifeMapCategory, ArchetypesList, LifeMapCategoriesList } from './src/types';
 import { ARCHETYPE_QUESTIONS, INITIAL_LIFE_MAP_SCORES, LIFE_MAP_QUESTIONS } from './src/constants';
-import { ArrowRight, Compass, Loader2, LogIn, User, KeyRound, AlertCircle, Shield, Mail, Bot } from 'lucide-react';
+import { ArrowRight, Compass, Loader2, LogIn, User, KeyRound, Shield, Mail, Bot } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { useUser } from './src/contexts/UserContext';
+import { useError } from './src/contexts/ErrorContext';
 
 export const Onboarding: React.FC = () => {
   const { handleOnboardingComplete } = useUser();
@@ -190,12 +190,12 @@ export const Onboarding: React.FC = () => {
 
 export const LoginScreen: React.FC = () => {
   const { user, loadingAuth, handleLogin, handleSignUp, handleGoogleLogin, handleForgotPassword } = useUser();
+  const { showError } = useError();
   const navigate = useNavigate();
   const [view, setView] = useState<'login' | 'signup' | 'forgotPassword'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -211,48 +211,40 @@ export const LoginScreen: React.FC = () => {
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) { setError("Email e senha são obrigatórios."); return; }
+    if (!email || !password) { showError("Email e senha são obrigatórios."); return; }
     setLoading(true);
-    setError('');
     setMessage('');
     const result = await handleLogin(email, password);
     if (!result.success) {
-      setError(result.message || 'Falha no login.');
       setLoading(false);
     }
   };
   
   const handleSignUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !password) { setError("Nome, email e senha são obrigatórios."); return; }
-    if (password.length < 6) { setError("A senha deve ter no mínimo 6 caracteres."); return; }
+    if (!name || !email || !password) { showError("Nome, email e senha são obrigatórios."); return; }
+    if (password.length < 6) { showError("A senha deve ter no mínimo 6 caracteres."); return; }
     setLoading(true);
-    setError('');
     setMessage('');
     const result = await handleSignUp(name, email, password);
     if (!result.success) {
-      setError(result.message || 'Falha no cadastro.');
       setLoading(false);
     }
-    // On success, the onAuthStateChanged listener in UserContext will handle navigation.
   };
 
   const onGoogleLogin = async () => {
     setLoading(true);
-    setError('');
     setMessage('');
     const result = await handleGoogleLogin();
     if (!result.success) {
-        setError(result.message || 'Falha no login com Google.');
         setLoading(false);
     }
   };
   
   const handleForgotSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!email) { setError("O email é obrigatório."); return; }
+      if (!email) { showError("O email é obrigatório."); return; }
       setLoading(true);
-      setError('');
       setMessage('');
       const result = await handleForgotPassword(email);
       setMessage(result.message);
@@ -276,20 +268,23 @@ export const LoginScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
-       <div className="bg-zinc-900 p-8 rounded-xl border border-zinc-800 shadow-2xl w-full max-w-md animate-in fade-in">
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="absolute inset-0 z-0">
+            <img 
+                src="https://images.unsplash.com/photo-1581022206213-91b5a279143c?q=80&w=2670&auto=format&fit=crop"
+                alt="Fundo de login"
+                className="w-full h-full object-cover opacity-10"
+            />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-950/20 via-zinc-950 to-zinc-950"></div>
+        </div>
+
+       <div className="bg-zinc-900 p-8 rounded-xl border border-zinc-800 shadow-2xl w-full max-w-md animate-in fade-in relative z-10">
         <div className="text-center mb-8">
           <Shield className="w-16 h-16 text-red-600 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white font-mono uppercase">{renderTitle()}</h2>
           <p className="text-zinc-400 mt-2">{renderSubtitle()}</p>
         </div>
         
-        {error && (
-            <div className="bg-red-950/50 border border-red-900 text-red-400 px-4 py-3 rounded flex items-center gap-3 text-sm mb-4">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              {error}
-            </div>
-        )}
         {message && (
              <div className="bg-green-950/50 border border-green-900/50 text-green-400 px-4 py-3 rounded flex items-center gap-3 text-sm mb-4">
                 {message}
@@ -325,7 +320,7 @@ export const LoginScreen: React.FC = () => {
               <KeyRound className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
               <input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:border-zinc-600 font-mono transition-colors" placeholder="••••••••" />
             </div>
-             <button type="button" onClick={() => { setView('forgotPassword'); setError(''); setMessage('');}} className="text-xs text-zinc-500 hover:text-white mt-2 font-mono underline">Esqueceu a senha?</button>
+             <button type="button" onClick={() => { setView('forgotPassword'); setMessage('');}} className="text-xs text-zinc-500 hover:text-white mt-2 font-mono underline">Esqueceu a senha?</button>
           </div>
           <div className="pt-2">
              <button type="submit" disabled={loading} className="w-full bg-white text-zinc-950 py-4 rounded font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
@@ -391,7 +386,6 @@ export const LoginScreen: React.FC = () => {
                 <button 
                   onClick={() => { 
                     setView(view === 'login' ? 'signup' : 'login'); 
-                    setError(''); 
                     setMessage(''); 
                   }} 
                   className="font-bold text-zinc-300 hover:text-white underline"

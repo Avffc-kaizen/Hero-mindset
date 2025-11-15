@@ -1,4 +1,4 @@
-import { RankTitle } from './types';
+import { RankTitle, LifeMapCategory } from './types';
 
 export const XP_PER_LEVEL_FORMULA = (level: number) => Math.floor(100 * Math.pow(level, 1.5));
 
@@ -42,4 +42,22 @@ export const isSameWeek = (ts1: number, ts2: number) => {
     const [year1, week1] = getWeekNumber(new Date(ts1));
     const [year2, week2] = getWeekNumber(new Date(ts2));
     return year1 === year2 && week1 === week2;
+};
+
+export const abbreviateCategory = (category: LifeMapCategory): string => {
+  const abbreviations: Record<LifeMapCategory, string> = {
+    'Saúde & Fitness': 'Saúde',
+    'Intelectual': 'Mente',
+    'Emocional': 'Emoções',
+    'Caráter': 'Caráter',
+    'Espiritual': 'Espírito',
+    'Amoroso': 'Amor',
+    'Social': 'Social',
+    'Financeiro': 'Finanças',
+    'Carreira': 'Carreira',
+    'Qualidade de Vida': 'Qualidade',
+    'Visão de Vida': 'Visão',
+    'Família': 'Família',
+  };
+  return abbreviations[category] || category;
 };

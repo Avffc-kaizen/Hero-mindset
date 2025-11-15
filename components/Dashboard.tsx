@@ -1,11 +1,13 @@
 
-
 import React, { useState } from 'react';
-import { ProtectionModuleId, RoadmapItem, BioData, DailyIntention } from './src/types';
-import { PROTECTION_MODULES, ARCHETYPES } from './src/constants';
+// FIX: Corrected import paths to be relative.
+// FIX: Removed file extensions from import paths.
+import { ProtectionModuleId, RoadmapItem, BioData, DailyIntention } from '../src/types';
+import { PROTECTION_MODULES, ARCHETYPES } from '../src/constants';
 import { Award, Zap, RefreshCw, Star, AlertCircle, Flame, Shield, Briefcase, Activity, TrendingUp, CheckCircle, Plus, Lock, Dumbbell, Moon, Droplets, Trash2, Bot, Target, Check, AlertTriangle } from 'lucide-react';
-import { XP_PER_LEVEL_FORMULA } from './src/utils';
-import { useUser } from './src/contexts/UserContext';
+// FIX: Corrected import paths to be relative.
+import { XP_PER_LEVEL_FORMULA } from '../src/utils';
+import { useUser } from '../src/contexts/UserContext';
 import MissionProgress from './MissionProgress';
 import LifeMapWidget from './LifeMapWidget';
 
@@ -178,7 +180,7 @@ const BioShieldWidget = () => {
 }
 
 const HeroicDashboard: React.FC = () => {
-  const { user, handleRedoDiagnosis, handleUpgrade } = useUser();
+  const { user, handleRedoDiagnosis, handlePurchase: handleUpgrade } = useUser();
   const [showRecalibrateModal, setShowRecalibrateModal] = useState(false);
   
   if (!user.archetype || !user.lifeMapScores) return null;
