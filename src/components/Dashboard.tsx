@@ -4,6 +4,7 @@ import { PROTECTION_MODULES, ARCHETYPES } from '../constants';
 import { Award, Zap, RefreshCw, Star, AlertCircle, Flame, Shield, Briefcase, Activity, TrendingUp, CheckCircle, Plus, Lock, Dumbbell, Moon, Droplets, Trash2, Bot, Target, Check, AlertTriangle, Send, Loader2 } from 'lucide-react';
 import { XP_PER_LEVEL_FORMULA } from '../utils';
 import { useUser } from '../contexts/UserContext';
+// FIX: import useError hook to handle error display in QuickChatWidget.
 import { useError } from '../contexts/ErrorContext';
 import MissionProgress from './MissionProgress';
 import LifeMapWidget from './LifeMapWidget';
@@ -241,7 +242,7 @@ const BioShieldWidget = () => {
 }
 
 const HeroicDashboard: React.FC = () => {
-  const { user, handleRedoDiagnosis, handleUpgrade } = useUser();
+  const { user, handleRedoDiagnosis, handlePurchase, isProcessingPayment } = useUser();
   const [showRecalibrateModal, setShowRecalibrateModal] = useState(false);
   
   if (!user.archetype || !user.lifeMapScores) return null;
@@ -252,7 +253,7 @@ const HeroicDashboard: React.FC = () => {
   const xpRemaining = nextLevelXP > 0 ? Math.max(0, nextLevelXP - user.currentXP) : 0;
 
 
-  const handleModuleUnlock = (moduleId: ProtectionModuleId) => handleUpgrade('protecao_360');
+  const handleModuleUnlock = (moduleId: ProtectionModuleId) => handlePurchase('protecao_360');
 
   const onConfirmRecalibrate = () => {
     handleRedoDiagnosis();
@@ -266,7 +267,13 @@ const HeroicDashboard: React.FC = () => {
             <div className="w-12 h-12 bg-zinc-900 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 border border-white/5"><Lock className="w-5 h-5 text-zinc-500" /></div>
             <h2 className="text-xs font-bold font-mono uppercase text-zinc-400 mb-1">Link Neural Inativo</h2>
             <p className="text-[10px] text-zinc-500 mb-4">O Oráculo requer permissão superior.</p>
-            <button onClick={() => handleUpgrade('mentor_ia')} className="text-[10px] bg-white text-black px-5 py-2.5 rounded font-bold uppercase tracking-widest hover:bg-zinc-200 shadow-lg">Ativar Oráculo</button>
+            <button 
+              onClick={() => handlePurchase('mentor_ia')} 
+              disabled={!!isProcessingPayment}
+              className="text-[10px] bg-white text-black px-5 py-2.5 rounded font-bold uppercase tracking-widest hover:bg-zinc-200 shadow-lg disabled:opacity-50 flex items-center justify-center"
+            >
+              {isProcessingPayment === 'mentor_ia' ? <Loader2 className="w-4 h-4 animate-spin"/> : 'Ativar Oráculo'}
+            </button>
         </div>
       );
     }

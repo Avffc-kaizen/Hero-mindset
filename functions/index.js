@@ -8,28 +8,30 @@ const db = admin.firestore();
 // --- Robust Service Initializations ---
 
 let stripe = null;
-const stripeSecret = functions.config().stripe?.secret_key;
+// UPDATED: Read from process.env instead of functions.config()
+const stripeSecret = process.env.STRIPE_SECRET_KEY;
 if (stripeSecret) {
     try {
         stripe = require("stripe")(stripeSecret, { apiVersion: "2024-04-10" });
     } catch(e) {
-        console.error("CRITICAL: Could not initialize Stripe. Ensure the 'stripe' package is installed in the functions directory (`npm install stripe`). Error: ", e);
+        console.error("CRITICAL: Could not initialize Stripe. Ensure the 'stripe' package is installed. Error: ", e);
     }
 } else {
-    console.warn("Stripe secret key not found in Firebase config (functions.config().stripe.secret_key). Payment features will be disabled.");
+    console.warn("Stripe secret key not found in environment (STRIPE_SECRET_KEY). Payment features will be disabled.");
 }
 
 let ai = null;
-const geminiKey = functions.config().api?.key;
+// UPDATED: Read from process.env instead of functions.config()
+const geminiKey = process.env.GEMINI_API_KEY;
 if (geminiKey) {
     try {
         const { GoogleGenAI } = require("@google/genai");
         ai = new GoogleGenAI({ apiKey: geminiKey });
     } catch(e) {
-        console.error("CRITICAL: Could not initialize GoogleGenAI. Ensure '@google/genai' is installed in the functions directory (`npm install @google/genai`). Error: ", e);
+        console.error("CRITICAL: Could not initialize GoogleGenAI. Ensure '@google/genai' is installed. Error: ", e);
     }
 } else {
-    console.warn("Gemini API key not found in Firebase config (functions.config().api.key). AI features will be disabled.");
+    console.warn("Gemini API key not found in environment (GEMINI_API_KEY). AI features will be disabled.");
 }
 
 
@@ -74,23 +76,34 @@ exports.createCheckoutSession = functions
     };
 
     if (context.auth) {
-      sessionParams.metadata.uid = context.auth.uid;
+      sessionParams.client_reference_id = context.auth.uid;
+      sessionParams.metadata.uid = context.auth.uid; // Keep for auditing
       if (context.auth.token.email) {
         sessionParams.customer_email = context.auth.token.email;
       }
     } else if (internalProductId === "hero_vitalicio") {
-      // Guest checkout is allowed. billing_address_collection is already 'auto'.
+      sessionParams.client_reference_id = `guest-${Date.now()}`;
+      sessionParams.customer_creation = 'always';
     } else {
-      // Disallow guest checkout for subscription products.
-      throw new functions.https.HttpsError("unauthenticated", "Action requires authentication.");
+      throw new functions.https.HttpsError("unauthenticated", "Apenas o Acesso Vitalício pode ser comprado sem uma conta.");
     }
 
     try {
       const session = await stripe.checkout.sessions.create(sessionParams);
-      return { id: session.id };
+      return { url: session.url };
     } catch (e) {
-      console.error("Stripe Session Error:", e);
-      throw new functions.https.HttpsError("internal", "Falha ao criar sessão de checkout.");
+      console.error("Stripe Session Error:", e.type, e.message);
+      let userMessage = "Falha ao criar sessão de checkout.";
+      if (e.type === 'StripeAuthenticationError') {
+          userMessage = "Erro de autenticação com o sistema de pagamento. Verifique se as chaves de API do servidor estão corretas.";
+      } else if (e.code === 'resource_missing') {
+          userMessage = `Recurso de pagamento não encontrado. Verifique se o ID do produto (${priceId}) é válido no Stripe.`;
+      } else if (e.message.includes('You cannot use Tax ID collection with an account in your region')) {
+          userMessage = "A coleta de CPF/CNPJ não está habilitada para sua região no Stripe.";
+      } else if (e.message.includes('As a guest, you can only checkout items with `customer_creation` set to `always`')) {
+          userMessage = "Erro de configuração: Compras de visitantes precisam de criação de cliente.";
+      }
+      throw new functions.https.HttpsError("internal", userMessage);
     }
   });
 
@@ -104,10 +117,11 @@ exports.stripeWebhook = functions
     }
 
     const sig = req.headers["stripe-signature"];
-    const endpointSecret = functions.config().stripe?.webhook_secret;
+    // UPDATED: Read from process.env instead of functions.config()
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
     if (!endpointSecret) {
-      console.error("CRITICAL: STRIPE_WEBHOOK_SECRET not set.");
+      console.error("CRITICAL: STRIPE_WEBHOOK_SECRET not set in environment.");
       return res.status(500).send("Webhook handler configuration error: Missing secret.");
     }
 
@@ -129,11 +143,13 @@ exports.stripeWebhook = functions
           return res.json({ received: true, message: "Already processed." });
         }
         
-        const uid = session.metadata.uid;
+        const uid = session.client_reference_id;
+        const isGuest = !uid || uid.startsWith('guest-');
 
-        if (uid) { // User is logged in, processing an upgrade
+        if (!isGuest) { // User is logged in, processing an upgrade.
           const { priceId, internalProductId } = session.metadata;
           const userRef = db.collection("users").doc(uid);
+          
           let updateData = {};
           if (priceId === STRIPE_PRICES.IA_UPGRADE || internalProductId === "mentor_ia") {
             updateData = { hasSubscription: true };
@@ -141,18 +157,32 @@ exports.stripeWebhook = functions
             const allModules = ["soberano", "tita", "sabio", "monge", "lider"];
             updateData = { hasSubscription: true, activeModules: admin.firestore.FieldValue.arrayUnion(...allModules) };
           }
-          if (Object.keys(updateData).length > 0) await userRef.update(updateData);
+
+          const stripeCustomerId = session.customer;
+          updateData.stripe = {
+              customerId: stripeCustomerId,
+              lastSessionId: session.id,
+              mode: session.mode,
+              status: 'active',
+          };
+          updateData.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+
+          if (Object.keys(updateData).length > 2) { 
+             await userRef.set(updateData, { merge: true });
+          }
 
           await purchaseRef.set({
             uid,
             email: session.customer_email || session.customer_details?.email,
             sessionId: session.id,
             priceId,
+            internalProductId,
             processedAt: admin.firestore.FieldValue.serverTimestamp(),
             processedBy: "webhook",
+            status: "completed",
           });
 
-        } else { // New user purchase
+        } else { // New user (guest) purchase.
           const { internalProductId } = session.metadata;
           
           if (internalProductId === "hero_vitalicio") {

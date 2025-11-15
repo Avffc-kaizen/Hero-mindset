@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { UserState, Archetype, LifeMapCategory, JournalEntry, LessonDetails, Mission, RankTitle, Squad, ProtectionModuleId, ParagonPerk, ChatMessage } from '../types';
 import { INITIAL_USER_STATE, STATIC_DAILY_MISSIONS, STATIC_WEEKLY_MISSIONS, MOCK_SQUADS, PRODUCTS, XP_PER_LEVEL_FORMULA, PARAGON_PERKS, SKILL_TREES } from '../constants';
 import { generateDailyMissionsAI, generateWeeklyMissionsAI, generateProactiveOracleGuidance, getMentorChatReply, generateDailyAnalysisAI } from '../services/geminiService';
-import { buyProduct } from '../services/paymentService';
+import { createCheckoutSession } from '../services/paymentService';
 import { useError } from './ErrorContext';
 import { getRank, isToday, isSameWeek } from '../utils';
 
@@ -50,6 +50,7 @@ interface UserContextType {
   squads: Squad[];
   isMissionsLoading: boolean;
   loadingAuth: boolean;
+  isProcessingPayment: string;
   levelUpData: { level: number; rank: RankTitle } | null;
   closeLevelUpModal: () => void;
   handleOnboardingComplete: (archetype: Archetype, lifeMapScores: Record<LifeMapCategory, number>, focusAreas: LifeMapCategory[], mapAnalysis?: string) => void;
@@ -67,8 +68,7 @@ interface UserContextType {
   handleSignUp: (name: string, email: string, password: string, sessionId?: string | null) => Promise<{ success: boolean; message?: string }>;
   handleForgotPassword: (email: string) => Promise<{ success: boolean; message: string }>;
   handleUpdateUser: (updates: Partial<UserState>) => void;
-  handleBuy: (productId: string) => Promise<void>;
-  handleUpgrade: (productId: string) => Promise<void>;
+  handlePurchase: (productId: string) => Promise<void>;
   handleVerifyNewPurchase: (sessionId: string) => Promise<{ success: boolean; name?: string; email?: string; message?: string; }>;
   handleVerifyUpgrade: (sessionId: string) => Promise<{ success: boolean; message?: string }>;
   handleCreateSquad: (name: string, motto: string) => void;
@@ -96,6 +96,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isMissionsLoading, setIsMissionsLoading] = useState(false);
   const [levelUpData, setLevelUpData] = useState<{ level: number; rank: RankTitle } | null>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
+  const [isProcessingPayment, setIsProcessingPayment] = useState('');
   
   const navigate = useNavigate();
   const { showError } = useError();
@@ -142,6 +143,21 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return { ...currentUser, ...updates };
     });
   }, [writeUserUpdate]);
+  
+  const handlePurchase = async (productId: string) => {
+    if (isProcessingPayment) return;
+    setIsProcessingPayment(productId);
+    try {
+        const { sessionUrl } = await createCheckoutSession(productId);
+        if (!sessionUrl) {
+            throw new Error("O servidor não retornou uma URL de checkout.");
+        }
+        window.location.href = sessionUrl;
+    } catch (err: any) {
+        showError(err.message || "Falha ao iniciar o pagamento.");
+        setIsProcessingPayment('');
+    }
+  };
 
   const handleLogin = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     const auth = firebaseAuth;
@@ -293,17 +309,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return { success: false, message: "Erro ao verificar o upgrade."};
       }
   };
-
-  const handleBuy = async (productId: string) => {
-    if (!isFirebaseConfigured) {
-        showError(FIREBASE_UNCONFIGURED_ERROR);
-        return;
-    }
-    try { await buyProduct(productId, { email: user.email }); }
-    catch (err: any) { showError(err.message || 'Erro ao iniciar compra.'); }
-  };
-
-  const handleUpgrade = (productId: string) => handleBuy(productId);
   
   const handleBossAttack = (bossType: 'daily' | 'weekly' | 'monthly', damage: number) => {
     console.log(`Attacking ${bossType} boss for ${damage} damage.`);
@@ -503,10 +508,11 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => unsubscribe();
   }, []);
 
-  const value: UserContextType = { user, squads, isMissionsLoading, loadingAuth, levelUpData, closeLevelUpModal: () => setLevelUpData(null), handleOnboardingComplete, handleReset, handleRedoDiagnosis, handleCompleteLesson, handleAddJournalEntry, handleUpdateJournalEntry, handleUnlockSkill, handleSpendParagonPoint, handleAscend, handlePunish, handleLogin, handleGoogleLogin, handleSignUp, handleForgotPassword, handleUpdateUser, handleBuy, handleUpgrade, handleVerifyNewPurchase, handleVerifyUpgrade, handleCreateSquad, handleJoinSquad, handleLeaveSquad, handleCompleteMission, handleBossAttack, handleSendMentorMessage, handleRequestDailyAnalysis };
+  const value: UserContextType = { user, squads, isMissionsLoading, loadingAuth, isProcessingPayment, levelUpData, closeLevelUpModal: () => setLevelUpData(null), handleOnboardingComplete, handleReset, handleRedoDiagnosis, handleCompleteLesson, handleAddJournalEntry, handleUpdateJournalEntry, handleUnlockSkill, handleSpendParagonPoint, handleAscend, handlePunish, handleLogin, handleGoogleLogin, handleSignUp, handleForgotPassword, handleUpdateUser, handlePurchase, handleVerifyNewPurchase, handleVerifyUpgrade, handleCreateSquad, handleJoinSquad, handleLeaveSquad, handleCompleteMission, handleBossAttack, handleSendMentorMessage, handleRequestDailyAnalysis };
 
   return (
     <UserContext.Provider value={value}>
       {children}
     </UserContext.Provider>
   );
+};

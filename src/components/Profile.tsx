@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Shield, Calendar, Edit, Save, X, Lock, KeyRound, AlertTriangle, ChevronRight, CheckCircle, Award } from 'lucide-react';
+import { User, Shield, Calendar, Edit, Save, X, Lock, KeyRound, AlertTriangle, ChevronRight, CheckCircle, Award, Loader2 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 
 const Profile: React.FC = () => {
-  const { user, handleUpdateUser: onUpdateProfile, handleReset: onDeleteAccount, handleUpgrade: onUpgrade, handleForgotPassword: onPasswordChange } = useUser();
+  const { user, handleUpdateUser: onUpdateProfile, handleReset: onDeleteAccount, handlePurchase, isProcessingPayment, handleForgotPassword: onPasswordChange } = useUser();
   const navigate = useNavigate();
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -104,6 +104,7 @@ const Profile: React.FC = () => {
         {passwordMessage && <div className="bg-green-950/50 border border-green-900/50 text-green-400 text-sm p-3 rounded-lg flex items-center gap-2"><CheckCircle className="w-4 h-4" /> {passwordMessage}</div>}
         <div className="grid sm:grid-cols-2 gap-4">
           <button onClick={handleChangePassword} className="w-full text-left bg-zinc-950 border border-zinc-800 p-4 rounded-lg flex items-center gap-3"><KeyRound className="w-5 h-5" /><div><p className="font-bold">Redefinir Senha</p><p className="text-xs text-zinc-500">Enviaremos um link.</p></div></button>
+          {!user.hasSubscription && (<button onClick={() => handlePurchase('mentor_ia')} disabled={!!isProcessingPayment} className="w-full text-left bg-red-950/40 border border-red-900/50 p-4 rounded-lg flex items-center gap-3 disabled:opacity-50"><Lock className="w-5 h-5" /><div><p className="font-bold text-red-400">Upgrade Oráculo IA</p><p className="text-xs">Desbloqueie o acesso.</p></div>{isProcessingPayment ? <Loader2 className="w-5 h-5 ml-auto animate-spin" /> : <ChevronRight className="w-5 h-5 ml-auto text-red-500" />}</button>)}
         </div>
       </div>
       

@@ -13,7 +13,7 @@ const isSameDay = (ts1: number, ts2: number) => {
 };
 
 const IAMentor: React.FC = () => {
-  const { user, handleUpgrade: onUpgrade, handleSendMentorMessage, handleRequestDailyAnalysis } = useUser();
+  const { user, handleSendMentorMessage, handleRequestDailyAnalysis, handlePurchase, isProcessingPayment } = useUser();
   const { hasSubscription, mentorChatHistory } = user;
   
   const [input, setInput] = useState('');
@@ -67,10 +67,11 @@ const IAMentor: React.FC = () => {
             ELEVE SUA JORNADA COM SABEDORIA DIVINA. O Oráculo não é um assistente. É um mentor ancestral, que analisa sua jornada e oferece a clareza necessária para superar seus maiores desafios.
           </p>
           <button
-            onClick={() => onUpgrade('mentor_ia')}
-            className="bg-white text-black px-8 py-3 rounded font-bold uppercase tracking-wider hover:bg-zinc-200 inline-flex items-center gap-2 transition-transform active:scale-95"
+            onClick={() => handlePurchase('mentor_ia')}
+            disabled={!!isProcessingPayment}
+            className="bg-white text-black px-8 py-3 rounded font-bold uppercase tracking-wider hover:bg-zinc-200 inline-flex items-center gap-2 transition-transform active:scale-95 disabled:opacity-50"
           >
-            Consultar o Oráculo <ChevronRight className="w-4 h-4" />
+            {isProcessingPayment ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Consultar o Oráculo <ChevronRight className="w-4 h-4" /></>}
           </button>
         </div>
       </div>

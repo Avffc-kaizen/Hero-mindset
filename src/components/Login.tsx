@@ -5,6 +5,7 @@ import { ARCHETYPE_QUESTIONS, INITIAL_LIFE_MAP_SCORES, LIFE_MAP_QUESTIONS } from
 import { ArrowRight, Compass, Loader2, LogIn, User, KeyRound, AlertCircle, Shield, Mail, Bot } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { useUser } from '../contexts/UserContext';
+import { generateDetailedLifeMapAnalysis } from '../services/geminiService';
 
 export const Onboarding: React.FC = () => {
   const { handleOnboardingComplete } = useUser();
@@ -71,7 +72,6 @@ export const Onboarding: React.FC = () => {
     setIsAnalyzing(true);
     setStep(5);
     try {
-        const { generateDetailedLifeMapAnalysis } = await import('../services/geminiService');
         const analysis = await generateDetailedLifeMapAnalysis(calculatedLifeMapScores, focusAreas);
         setAiAnalysis(analysis);
     } catch (e) {

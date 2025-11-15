@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { JournalEntry } from '../types';
-import { ScrollText, Send, Lock, Zap, CheckCircle, ChevronRight, Bot } from 'lucide-react';
-import { analyzeJournalAI } from '../services/geminiService';
+import { ScrollText, Send, Lock, Zap, CheckCircle, ChevronRight, Bot, Loader2 } from 'lucide-react';
 import { useError } from '../contexts/ErrorContext';
 import { useUser } from '../contexts/UserContext';
 
 const Journal: React.FC = () => {
-  const { user, handleAddJournalEntry: onAddEntry, handleUpdateJournalEntry: onUpdateEntry, handleUpgrade: onUpgrade } = useUser();
+  const { user, handleAddJournalEntry: onAddEntry, handleUpdateJournalEntry: onUpdateEntry, handlePurchase, isProcessingPayment } = useUser();
   const { journalEntries: entries, name: userName, hasSubscription } = user;
   
   const [newContent, setNewContent] = useState('');
@@ -31,6 +30,8 @@ const Journal: React.FC = () => {
 
     setIsAnalyzing(true);
     try {
+      // Assuming analyzeJournalAI is handled by UserContext now or directly called
+      const { analyzeJournalAI } = await import('../services/geminiService');
       const feedback = await analyzeJournalAI(entriesToAnalyze, userName);
       
       entriesToAnalyze.forEach((entry, index) => {
@@ -92,17 +93,19 @@ const Journal: React.FC = () => {
             >
               {isAnalyzing ? (
                 <span className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   Analisando...
                 </span>
               ) : ( <> <Zap className="w-4 h-4" /> Solicitar Análise </> )}
             </button>
           ) : (
             <button
-              onClick={() => onUpgrade('mentor_ia')}
-              className="bg-zinc-800 text-zinc-400 px-4 py-2 rounded font-bold uppercase tracking-wider flex items-center gap-2 text-sm hover:bg-zinc-700 transition active:scale-95"
+              onClick={() => handlePurchase('mentor_ia')}
+              disabled={!!isProcessingPayment}
+              className="bg-zinc-800 text-zinc-400 px-4 py-2 rounded font-bold uppercase tracking-wider flex items-center gap-2 text-sm hover:bg-zinc-700 transition active:scale-95 disabled:opacity-50"
             >
-              <Lock className="w-3 h-3" /> Desbloquear Análise IA
+              {isProcessingPayment ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-3 h-3" />} 
+              Desbloquear Análise IA
             </button>
           )}
         </div>

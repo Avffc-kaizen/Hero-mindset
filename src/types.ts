@@ -141,6 +141,7 @@ export interface GuildPost {
   content: string;
   channel: GuildChannelId;
   likes: number;
+  likedBy?: string[];
   reactions: Record<string, number>;
   comments: GuildComment[];
   timestamp: number;

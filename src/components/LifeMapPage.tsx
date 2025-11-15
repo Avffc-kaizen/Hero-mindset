@@ -41,8 +41,9 @@ const LifeMapPage: React.FC = () => {
         if (scores.length === 0) {
             return '0.0';
         }
-        // Fix: Operator '+' cannot be applied to types 'unknown' and 'number'.
-        // Explicitly cast `score` to a number to prevent runtime errors and fix the type error. The `score` from `Object.values` on Firestore data is of type `unknown`.
+        // FIX: The `score` value from `user.lifeMapScores` might not be a number due to loose typing from Firestore.
+        // Explicitly cast `score` to a number and provide a fallback to 0 to prevent runtime errors during the reduce operation.
+        // FIX: Cast score to a number to resolve TS errors.
         const sum = scores.reduce((currentSum, score) => currentSum + (Number(score) || 0), 0);
         const avg = sum / scores.length;
         return avg.toFixed(1);

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, ChevronRight, LogIn, CheckCircle, Play, Bot, Award, Share2, Briefcase, TrendingUp, Activity, Brain, Zap, HeartHandshake, Target, Book, ScrollText, Sparkles, GitMerge, ShieldAlert } from 'lucide-react';
+import { Shield, ChevronRight, LogIn, CheckCircle, Play, Bot, Award, Share2, Briefcase, TrendingUp, Activity, Brain, Zap, HeartHandshake, Target, Book, ScrollText, Sparkles, GitMerge, ShieldAlert, Loader2 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import { PRODUCTS, FRONTEND_URL, PROTECTION_MODULES } from '../constants';
 import ChatbotWidget from './ChatbotWidget';
@@ -75,10 +75,9 @@ const FAQItem = ({ q, a }: { q: string, a: string }) => {
 };
 
 const LandingPage: React.FC = () => {
-  const { handleBuy } = useUser();
   const navigate = useNavigate();
   const [shareText, setShareText] = useState('Convoque Aliados');
-  const stripeUrl = 'https://buy.stripe.com/4gM3cv2sm9N04Jz7MYeZ200';
+  const { handlePurchase, isProcessingPayment } = useUser();
 
   const onGoToLogin = () => {
     navigate('/login');
@@ -112,9 +111,10 @@ const LandingPage: React.FC = () => {
         </div>
         <div className="absolute left-1/2 -translate-x-1/2">
             <button 
-                onClick={() => window.location.href = stripeUrl} 
-                className="bg-black text-yellow-400 border-2 border-yellow-500 text-[10px] font-bold uppercase tracking-widest px-4 py-2 hover:bg-yellow-900/50 transition rounded-lg animate-button-glow shadow-lg shadow-yellow-500/10">
-                Acesso Black Friday
+                onClick={() => handlePurchase('hero_vitalicio')} 
+                disabled={!!isProcessingPayment}
+                className="bg-black text-yellow-400 border-2 border-yellow-500 text-[10px] font-bold uppercase tracking-widest px-4 py-2 hover:bg-yellow-900/50 transition rounded-lg animate-button-glow shadow-lg shadow-yellow-500/10 disabled:opacity-50 disabled:animate-none">
+                {isProcessingPayment === 'hero_vitalicio' ? <Loader2 className="w-4 h-4 animate-spin"/> : 'Acesso Black Friday'}
             </button>
         </div>
         <div className="flex items-center gap-4">
@@ -142,8 +142,8 @@ const LandingPage: React.FC = () => {
           <h1 className="text-5xl sm:text-7xl font-extrabold mb-6 tracking-tighter font-mono uppercase">O Fim do Homem Comum.</h1>
           <p className="text-lg text-zinc-400 mb-10 max-w-3xl mx-auto">O sistema operacional que transforma disciplina em poder e execução em legado. A Black Friday é sua única chance de entrar com acesso vitalício.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button onClick={() => handleBuy('hero_vitalicio')} className="bg-red-600 text-white px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-red-700 transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-3 shadow-lg shadow-red-600/20 hover:shadow-xl hover:shadow-red-500/40">
-              Declarar Guerra <ChevronRight />
+            <button onClick={() => handlePurchase('hero_vitalicio')} disabled={!!isProcessingPayment} className="bg-red-600 text-white px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-red-700 transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3 shadow-lg shadow-red-600/20 hover:shadow-xl hover:shadow-red-500/40 disabled:opacity-50">
+              {isProcessingPayment === 'hero_vitalicio' ? <Loader2 className="w-5 h-5 animate-spin"/> : <>Declarar Guerra <ChevronRight /></>}
             </button>
             <button onClick={handleShare} className="bg-transparent border border-zinc-700 text-zinc-300 px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-zinc-800 hover:border-zinc-600 hover:text-white transition flex items-center gap-3">
               {shareText} <Share2 className="w-4 h-4"/>
@@ -225,7 +225,9 @@ const LandingPage: React.FC = () => {
                     <li className="flex items-center gap-3"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Acesso à Guilda, Esquadrões e Panteão</li>
                   </ul>
                 </div>
-                <button onClick={() => window.location.href = stripeUrl} className="w-full mt-auto bg-gradient-to-br from-yellow-400 to-yellow-500 text-black py-4 rounded-lg font-bold uppercase tracking-widest transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/40 active:scale-95 animate-button-glow">Garantir Acesso Vitalício</button>
+                <button onClick={() => handlePurchase(product.id)} disabled={!!isProcessingPayment} className="w-full h-14 mt-auto bg-gradient-to-br from-yellow-400 to-yellow-500 text-black py-4 rounded-lg font-bold uppercase tracking-widest transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/40 active:scale-95 animate-button-glow disabled:opacity-50 disabled:animate-none flex items-center justify-center">
+                  {isProcessingPayment === product.id ? <Loader2 className="w-6 h-6 animate-spin"/> : 'Garantir Acesso Vitalício'}
+                </button>
                  <p className="text-xs text-zinc-500 mt-4">Upgrades para Mentor IA e Proteção 360 disponíveis opcionalmente dentro da plataforma.</p>
               </div>
             ))}
@@ -284,8 +286,8 @@ const LandingPage: React.FC = () => {
         <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-4xl font-bold font-mono uppercase mb-4 text-red-500">Ninguém Virá Te Salvar.</h2>
             <p className="text-lg text-zinc-300 mb-8">A decisão é sua. A hora é agora. Chegou a hora de parar de se perguntar e começar a construir, de parar de desejar e começar a executar.</p>
-            <button onClick={() => window.location.href = stripeUrl} className="bg-gradient-to-br from-yellow-400 to-yellow-500 text-black px-8 py-4 rounded-lg font-bold uppercase tracking-widest transition-all transform hover:scale-105 animate-button-glow">
-                Iniciar Ascensão
+            <button onClick={() => handlePurchase('hero_vitalicio')} disabled={!!isProcessingPayment} className="bg-gradient-to-br from-yellow-400 to-yellow-500 text-black px-8 py-4 rounded-lg font-bold uppercase tracking-widest transition-all transform hover:scale-105 animate-button-glow h-14 flex items-center justify-center disabled:opacity-50 disabled:animate-none">
+                {isProcessingPayment === 'hero_vitalicio' ? <Loader2 className="w-6 h-6 animate-spin"/> : 'Iniciar Ascensão'}
             </button>
         </div>
       </LazySection>

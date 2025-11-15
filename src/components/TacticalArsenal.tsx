@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { PROTECTION_MODULES } from '../constants';
 import { ProtectionModuleInfo } from '../types';
-import { Lock, CheckCircle, Briefcase, Shield } from 'lucide-react';
+import { Lock, CheckCircle, Briefcase, Shield, Loader2 } from 'lucide-react';
 
-const ModuleCard: React.FC<{ module: ProtectionModuleInfo; isActive: boolean; onActivate: () => void }> = ({ module, isActive, onActivate }) => {
+const ModuleCard: React.FC<{ module: ProtectionModuleInfo; isActive: boolean; onActivate: () => void; isProcessing: boolean }> = ({ module, isActive, onActivate, isProcessing }) => {
   const navigate = useNavigate();
   const Icon = module.icon;
   
@@ -35,20 +35,21 @@ const ModuleCard: React.FC<{ module: ProtectionModuleInfo; isActive: boolean; on
       </div>
       <button 
         onClick={handleAction}
-        className={`w-full mt-6 py-3 rounded font-bold uppercase tracking-widest text-xs transition-colors ${isActive ? `bg-zinc-800 hover:bg-zinc-700 text-zinc-200` : `bg-white hover:bg-zinc-200 text-black`}`}
+        disabled={isProcessing}
+        className={`w-full h-11 mt-6 py-3 rounded font-bold uppercase tracking-widest text-xs transition-colors flex items-center justify-center disabled:opacity-50 ${isActive ? `bg-zinc-800 hover:bg-zinc-700 text-zinc-200` : `bg-white hover:bg-zinc-200 text-black`}`}
       >
-        {isActive ? 'Gerenciar' : 'Ativar Protocolo'}
+        {isProcessing && !isActive ? <Loader2 className="w-5 h-5 animate-spin"/> : isActive ? 'Gerenciar' : 'Ativar Protocolo'}
       </button>
     </div>
   );
 };
 
 const TacticalArsenal: React.FC = () => {
-  const { user, handleUpgrade } = useUser();
+  const { user, handlePurchase, isProcessingPayment } = useUser();
   const allModules = Object.values(PROTECTION_MODULES);
 
   const handleActivate = () => {
-    handleUpgrade('protecao_360');
+    handlePurchase('protecao_360');
   };
 
   return (
@@ -68,6 +69,7 @@ const TacticalArsenal: React.FC = () => {
             module={moduleInfo}
             isActive={user.activeModules.includes(moduleInfo.id)}
             onActivate={handleActivate}
+            isProcessing={isProcessingPayment === 'protecao_360'}
           />
         ))}
       </div>
@@ -77,9 +79,10 @@ const TacticalArsenal: React.FC = () => {
             <p className="text-zinc-400 max-w-2xl mx-auto mb-6">Ative todos os protocolos do Arsenal Tático com uma única assinatura. Domínio total. Sem exceções.</p>
             <button 
                 onClick={handleActivate}
-                className="bg-red-600 text-white px-8 py-3 rounded font-bold uppercase tracking-wider hover:bg-red-700 transition-transform active:scale-95"
+                disabled={!!isProcessingPayment}
+                className="bg-red-600 text-white px-8 py-3 rounded font-bold uppercase tracking-wider hover:bg-red-700 transition-transform active:scale-95 h-11 w-64 flex items-center justify-center disabled:opacity-50"
             >
-                Ativar Proteção Total
+                {isProcessingPayment === 'protecao_360' ? <Loader2 className="w-5 h-5 animate-spin"/> : 'Ativar Proteção Total'}
             </button>
         </div>
     </div>

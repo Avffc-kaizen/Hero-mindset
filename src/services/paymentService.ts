@@ -1,8 +1,7 @@
-import { STRIPE_PUBLIC_KEY, PRODUCTS } from '../constants';
+import { PRODUCTS } from '../constants';
 import { PaymentProvider } from '../types';
 import { functions as firebaseFunctions, isFirebaseConfigured } from '../firebase';
 import { httpsCallable } from 'firebase/functions';
-import { loadStripe } from '@stripe/stripe-js';
 
 declare global {
   interface Window {
@@ -10,7 +9,7 @@ declare global {
   }
 }
 
-export const buyProduct = async (productId: string, metadata?: Record<string, any>) => {
+export const createCheckoutSession = async (productId: string): Promise<{ sessionUrl: string }> => {
   const product = PRODUCTS.find(p => p.id === productId);
   if (!product) throw new Error('Produto não encontrado');
 
@@ -25,45 +24,28 @@ export const buyProduct = async (productId: string, metadata?: Record<string, an
   }
 
   if (product.provider === PaymentProvider.STRIPE && product.priceId) {
-    if (!isFirebaseConfigured) {
+    if (!isFirebaseConfigured || !firebaseFunctions) {
       throw new Error('Firebase não está configurado. Pagamento indisponível.');
-    }
-    const functions = firebaseFunctions;
-    if (!functions) {
-        throw new Error('Firebase Functions indisponível.');
     }
 
     try {
-      const createCheckoutSession = httpsCallable(functions, 'createCheckoutSession');
+      const createCheckoutSessionFunc = httpsCallable(firebaseFunctions, 'createCheckoutSession');
       
-      const response = await createCheckoutSession({ 
+      const response = await createCheckoutSessionFunc({ 
           priceId: product.priceId,
           internalProductId: product.id,
-          ...metadata,
       });
 
-      const { id: sessionId } = response.data as { id?: string };
+      const { url: sessionUrl } = response.data as { url?: string };
       
-      if (sessionId) {
-        const stripePublicKey = STRIPE_PUBLIC_KEY;
-        if (!stripePublicKey || stripePublicKey.includes('REPLACE_WITH')) {
-            throw new Error("A chave pública do Stripe não está configurada corretamente em src/constants.ts.");
-        }
-        const stripe = await loadStripe(stripePublicKey);
-        if (!stripe) {
-            throw new Error("Não foi possível carregar o sistema de pagamento.");
-        }
-        const { error } = await stripe.redirectToCheckout({ sessionId });
-        if (error) {
-            console.error("Stripe redirectToCheckout error:", error);
-            throw new Error(error.message);
-        }
+      if (sessionUrl) {
+        return { sessionUrl };
       } else {
-        throw new Error('ID da sessão de checkout não recebido.');
+        throw new Error('O servidor não retornou uma URL de checkout.');
       }
     } catch (error: any) {
-      console.error("Firebase Functions call or Stripe redirect failed:", error);
-      throw new Error(error.message || 'Falha ao iniciar o processo de pagamento.');
+      console.error("Firebase Functions call failed:", error);
+      throw new Error(error.message || 'Falha ao criar a sessão de pagamento.');
     }
   } else {
     throw new Error('Configuração de pagamento inválida para este produto.');
