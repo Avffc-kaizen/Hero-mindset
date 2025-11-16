@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Shield, Calendar, Edit, Save, X, Lock, KeyRound, AlertTriangle, ChevronRight, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { User, Shield, Calendar, Edit, Save, X, Lock, KeyRound, AlertTriangle, ChevronRight, CheckCircle, Award, Loader2 } from 'lucide-react';
 // FIX: Corrected import path for UserContext
 import { useUser } from '../src/contexts/UserContext';
 
 const Profile: React.FC = () => {
-  const { user, handleUpdateUser: onUpdateProfile, handleReset: onDeleteAccount, handleUpgrade: onUpgrade, handleForgotPassword: onPasswordChange } = useUser();
+  const { user, handleUpdateUser: onUpdateProfile, handleReset: onDeleteAccount, handlePurchase, isProcessingPayment, handleForgotPassword: onPasswordChange } = useUser();
+  const navigate = useNavigate();
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(user.name);
@@ -47,9 +49,18 @@ const Profile: React.FC = () => {
 
   const joinDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('pt-BR') : '—';
 
+  const getSubscriptionStatus = () => {
+      if(user.activeModules.length > 3) return { name: "Proteção 360", color: "text-red-400" };
+      if(user.hasSubscription) return { name: "Mentor IA", color: "text-blue-400" };
+      return { name: "Acesso Vitalício", color: "text-green-400" };
+  }
+  const subscription = getSubscriptionStatus();
+
+
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6">
       <h2 className="text-2xl font-bold font-mono flex items-center gap-2 uppercase"><User className="w-6 h-6" /> Santuário do Herói</h2>
+      
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
         <h3 className="text-sm font-bold text-zinc-300 font-mono uppercase">Identidade do Herói</h3>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -74,14 +85,30 @@ const Profile: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
+        <h3 className="text-sm font-bold text-zinc-300 font-mono uppercase">Status da Assinatura</h3>
+        <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Award className={`w-6 h-6 ${subscription.color}`} />
+            <div>
+              <p className="font-bold font-mono text-white">{subscription.name}</p>
+              <p className="text-xs text-zinc-400">Seu nível de acesso atual.</p>
+            </div>
+          </div>
+          <button onClick={() => navigate('/app/arsenal')} className="w-full sm:w-auto px-4 py-2 bg-zinc-800 text-zinc-200 text-xs font-bold uppercase rounded hover:bg-zinc-700 transition-colors">Gerenciar</button>
+        </div>
+      </div>
+
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
         <h3 className="text-sm font-bold text-zinc-300 font-mono uppercase">Gestão da Conta</h3>
         {passwordMessage && <div className="bg-green-950/50 border border-green-900/50 text-green-400 text-sm p-3 rounded-lg flex items-center gap-2"><CheckCircle className="w-4 h-4" /> {passwordMessage}</div>}
         <div className="grid sm:grid-cols-2 gap-4">
           <button onClick={handleChangePassword} className="w-full text-left bg-zinc-950 border border-zinc-800 p-4 rounded-lg flex items-center gap-3"><KeyRound className="w-5 h-5" /><div><p className="font-bold">Redefinir Senha</p><p className="text-xs text-zinc-500">Enviaremos um link.</p></div></button>
-          {!user.hasSubscription && (<button onClick={() => onUpgrade('mentor_ia')} className="w-full text-left bg-red-950/40 border border-red-900/50 p-4 rounded-lg flex items-center gap-3"><Lock className="w-5 h-5" /><div><p className="font-bold text-red-400">Upgrade Oráculo IA</p><p className="text-xs">Desbloqueie o acesso.</p></div><ChevronRight className="w-5 h-5 ml-auto text-red-500" /></button>)}
+          {!user.hasSubscription && (<button onClick={() => handlePurchase('mentor_ia')} disabled={!!isProcessingPayment} className="w-full text-left bg-red-950/40 border border-red-900/50 p-4 rounded-lg flex items-center gap-3 disabled:opacity-50"><Lock className="w-5 h-5" /><div><p className="font-bold text-red-400">Upgrade Oráculo IA</p><p className="text-xs">Desbloqueie o acesso.</p></div>{isProcessingPayment ? <Loader2 className="w-5 h-5 ml-auto animate-spin" /> : <ChevronRight className="w-5 h-5 ml-auto text-red-500" />}</button>)}
         </div>
       </div>
+      
       <div className="bg-red-950/20 border-2 border-red-900/50 rounded-xl p-6 space-y-3">
         <h3 className="text-lg font-bold text-red-500 font-mono uppercase flex items-center gap-2"><AlertTriangle className="w-5 h-5" /> Zona de Risco</h3>
         <p className="text-zinc-400 text-sm">Ações nesta área são permanentes. Prossiga com cautela.</p>

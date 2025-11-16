@@ -1,14 +1,12 @@
-
-
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { RankTitle, UserState, GuildPost, GuildChannelId, Archetype, Squad, SquadMember } from './src/types';
+import { RankTitle, UserState, GuildPost, GuildChannelId, Archetype, Squad, SquadMember } from '../src/types';
 import { Shield, Trophy, MessageSquare, Loader2, Sword, Skull, Sparkles, Crown, Star, Hexagon, Clock, Send, User as UserIcon, Hash, Flame, Zap, Plus, Lock, X, ChevronRight, Menu, Info, MessageCircle, ChevronDown, Users, Target, AlertCircle, Terminal, AlertTriangle, Briefcase, LogOut, CheckCircle } from 'lucide-react';
 // FIX: Corrected import path for geminiService.
-import { generateBossVictorySpeech, generateChannelInsightAI, generateGuildMemberReply } from '../src/services/geminiService';
-import { GUILD_CHANNELS, ARCHETYPES, MIN_LEVEL_TO_CREATE_SQUAD, MAX_SQUAD_SIZE } from './src/constants';
-import { isToday } from './src/utils';
-import { useUser } from './src/contexts/UserContext';
-import { useError } from './src/contexts/ErrorContext';
+import { generateBossVictorySpeech, generateChannelInsightAI, generateGuildMemberReply } from '../services/geminiService';
+import { GUILD_CHANNELS, ARCHETYPES, MIN_LEVEL_TO_CREATE_SQUAD, MAX_SQUAD_SIZE } from '../src/constants';
+import { isToday } from '../src/utils';
+import { useUser } from '../src/contexts/UserContext';
+import { useError } from '../src/contexts/ErrorContext';
 
 type BossType = 'daily' | 'weekly' | 'monthly';
 
@@ -66,7 +64,8 @@ const MOCK_LEADERBOARD = [
 ];
 
 const Guild: React.FC = () => {
-  const { user, squads, handleUpgrade, handleAscend, handlePunish, handleCreateSquad, handleJoinSquad, handleLeaveSquad, handleBossAttack } = useUser();
+  // FIX: Replaced `handleUpgrade` with `handlePurchase` which is provided by `useUser` context.
+  const { user, squads, handlePurchase, handleAscend, handlePunish, handleCreateSquad, handleJoinSquad, handleLeaveSquad, handleBossAttack } = useUser();
   const { showError } = useError();
 
   const [activeTab, setActiveTab] = useState<'channels' | 'squads'>('channels');
@@ -165,7 +164,7 @@ const Guild: React.FC = () => {
               {GUILD_CHANNELS.map(channel => {
                   const Icon = channel.icon, isActive = activeTab === 'channels' && activeChannel === channel.id, isLocked = channel.exclusiveModule && !user.activeModules.includes(channel.exclusiveModule);
                   return (
-                      <button key={channel.id} onClick={() => { if (isLocked) { handleUpgrade('protecao_360'); } else { setActiveTab('channels'); setActiveChannel(channel.id); setMobileMenuOpen(false); } }} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-zinc-800 text-white shadow-md border border-zinc-700' : isLocked ? 'opacity-50 cursor-pointer text-zinc-500 hover:bg-zinc-800/50' : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'}`}>
+                      <button key={channel.id} onClick={() => { if (isLocked) { handlePurchase('protecao_360'); } else { setActiveTab('channels'); setActiveChannel(channel.id); setMobileMenuOpen(false); } }} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-zinc-800 text-white shadow-md border border-zinc-700' : isLocked ? 'opacity-50 cursor-pointer text-zinc-500 hover:bg-zinc-800/50' : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'}`}>
                           <div className="flex items-center gap-3"><Icon className={`w-4 h-4 ${isActive ? 'text-red-500' : ''}`} /><p className={`text-sm font-mono font-bold uppercase ${isActive ? 'text-white' : 'text-zinc-400'}`}>{channel.name}</p></div>
                           {isLocked && <Lock className="w-3 h-3 text-zinc-600" />}
                       </button>

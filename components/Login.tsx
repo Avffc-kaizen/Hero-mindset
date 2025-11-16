@@ -1,12 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Archetype, LifeMapCategory, ArchetypesList, LifeMapCategoriesList } from './src/types';
-import { ARCHETYPE_QUESTIONS, INITIAL_LIFE_MAP_SCORES, LIFE_MAP_QUESTIONS } from './src/constants';
+import { Archetype, LifeMapCategory, ArchetypesList, LifeMapCategoriesList } from '../src/types';
+import { ARCHETYPE_QUESTIONS, INITIAL_LIFE_MAP_SCORES, LIFE_MAP_QUESTIONS } from '../src/constants';
 import { ArrowRight, Compass, Loader2, LogIn, User, KeyRound, Shield, Mail, Bot } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { useUser } from './src/contexts/UserContext';
-import { useError } from './src/contexts/ErrorContext';
+import { useUser } from '../src/contexts/UserContext';
+import { generateDetailedLifeMapAnalysis } from '../src/services/geminiService';
+import { abbreviateCategory } from '../src/utils';
 
 export const Onboarding: React.FC = () => {
   const { handleOnboardingComplete } = useUser();
@@ -73,7 +73,6 @@ export const Onboarding: React.FC = () => {
     setIsAnalyzing(true);
     setStep(5);
     try {
-        const { generateDetailedLifeMapAnalysis } = await import('../services/geminiService');
         const analysis = await generateDetailedLifeMapAnalysis(calculatedLifeMapScores, focusAreas);
         setAiAnalysis(analysis);
     } catch (e) {
@@ -159,7 +158,7 @@ export const Onboarding: React.FC = () => {
                 {LifeMapCategoriesList.map(category => (<button key={category} onClick={() => handleToggleFocusArea(category)} className={`p-3 rounded-lg border-2 text-left font-mono font-bold transition-all text-sm ${focusAreas.includes(category) ? 'bg-zinc-800 border-white text-white' : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-600'} ${!focusAreas.includes(category) && focusAreas.length === 3 ? 'opacity-50' : ''}`} disabled={!focusAreas.includes(category) && focusAreas.length === 3}> {category} </button>))}
               </div>
             </div>
-            <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 h-[300px] md:h-[400px]"><ResponsiveContainer width="100%" height="100%"><RadarChart cx="50%" cy="50%" outerRadius="80%" data={LifeMapCategoriesList.map(cat => ({ subject: cat, A: calculatedLifeMapScores[cat], fullMark: 10 }))}><PolarGrid /><PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa', fontSize: 10 }} /><PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} /><Radar name="Score" dataKey="A" stroke="#dc2626" fill="#dc2626" fillOpacity={0.6} /></RadarChart></ResponsiveContainer></div>
+            <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 h-[300px] md:h-[400px]"><ResponsiveContainer width="100%" height="100%"><RadarChart cx="50%" cy="50%" outerRadius="80%" data={LifeMapCategoriesList.map(cat => ({ subject: abbreviateCategory(cat), A: calculatedLifeMapScores[cat], fullMark: 10 }))}><PolarGrid /><PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa', fontSize: 10 }} /><PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} /><Radar name="Score" dataKey="A" stroke="#dc2626" fill="#dc2626" fillOpacity={0.6} /></RadarChart></ResponsiveContainer></div>
             <div className="md:col-span-2"><button onClick={generateAnalysis} disabled={focusAreas.length !== 3} className="w-full bg-white text-zinc-950 py-4 rounded font-bold uppercase tracking-widest hover:bg-zinc-200 disabled:opacity-50">Concluir e Gerar Análise <ArrowRight className="w-5 h-5 inline" /></button></div>
           </div>
         );
@@ -190,7 +189,6 @@ export const Onboarding: React.FC = () => {
 
 export const LoginScreen: React.FC = () => {
   const { user, loadingAuth, handleLogin, handleSignUp, handleGoogleLogin, handleForgotPassword } = useUser();
-  const { showError } = useError();
   const navigate = useNavigate();
   const [view, setView] = useState<'login' | 'signup' | 'forgotPassword'>('login');
   const [name, setName] = useState('');
@@ -211,7 +209,10 @@ export const LoginScreen: React.FC = () => {
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) { showError("Email e senha são obrigatórios."); return; }
+    if (!email || !password) { 
+        // showError is now called from UserContext
+        return; 
+    }
     setLoading(true);
     setMessage('');
     const result = await handleLogin(email, password);
@@ -222,8 +223,14 @@ export const LoginScreen: React.FC = () => {
   
   const handleSignUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !password) { showError("Nome, email e senha são obrigatórios."); return; }
-    if (password.length < 6) { showError("A senha deve ter no mínimo 6 caracteres."); return; }
+    if (!name || !email || !password) {
+        // showError will be called from UserContext
+        return; 
+    }
+    if (password.length < 6) { 
+        // showError will be called from UserContext
+        return; 
+    }
     setLoading(true);
     setMessage('');
     const result = await handleSignUp(name, email, password);
@@ -243,7 +250,10 @@ export const LoginScreen: React.FC = () => {
   
   const handleForgotSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!email) { showError("O email é obrigatório."); return; }
+      if (!email) { 
+        // showError will be called from UserContext
+        return; 
+      }
       setLoading(true);
       setMessage('');
       const result = await handleForgotPassword(email);

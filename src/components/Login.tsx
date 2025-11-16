@@ -188,10 +188,9 @@ export const Onboarding: React.FC = () => {
 
 
 export const LoginScreen: React.FC = () => {
-  const { user, loadingAuth, handleLogin, handleSignUp, handleGoogleLogin, handleForgotPassword } = useUser();
+  const { user, loadingAuth, handleLogin, handleGoogleLogin, handleForgotPassword } = useUser();
   const navigate = useNavigate();
-  const [view, setView] = useState<'login' | 'signup' | 'forgotPassword'>('login');
-  const [name, setName] = useState('');
+  const [view, setView] = useState<'login' | 'forgotPassword'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -210,7 +209,6 @@ export const LoginScreen: React.FC = () => {
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) { 
-        // showError is now called from UserContext
         return; 
     }
     setLoading(true);
@@ -221,24 +219,6 @@ export const LoginScreen: React.FC = () => {
     }
   };
   
-  const handleSignUpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !email || !password) {
-        // showError will be called from UserContext
-        return; 
-    }
-    if (password.length < 6) { 
-        // showError will be called from UserContext
-        return; 
-    }
-    setLoading(true);
-    setMessage('');
-    const result = await handleSignUp(name, email, password);
-    if (!result.success) {
-      setLoading(false);
-    }
-  };
-
   const onGoogleLogin = async () => {
     setLoading(true);
     setMessage('');
@@ -250,10 +230,7 @@ export const LoginScreen: React.FC = () => {
   
   const handleForgotSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!email) { 
-        // showError will be called from UserContext
-        return; 
-      }
+      if (!email) { return; }
       setLoading(true);
       setMessage('');
       const result = await handleForgotPassword(email);
@@ -264,7 +241,6 @@ export const LoginScreen: React.FC = () => {
   const renderTitle = () => {
     switch(view) {
         case 'login': return 'Santuário do Herói';
-        case 'signup': return 'Alistamento';
         case 'forgotPassword': return 'Recuperar Acesso';
     }
   };
@@ -272,14 +248,22 @@ export const LoginScreen: React.FC = () => {
   const renderSubtitle = () => {
     switch(view) {
         case 'login': return 'Acesse seu Quartel-General.';
-        case 'signup': return 'Forje sua identidade de Herói.';
         case 'forgotPassword': return 'Insira seu email para redefinir a senha.';
     }
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
-       <div className="bg-zinc-900 p-8 rounded-xl border border-zinc-800 shadow-2xl w-full max-w-md animate-in fade-in">
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="absolute inset-0 z-0">
+            <img 
+                src="https://images.unsplash.com/photo-1581022206213-91b5a279143c?q=80&w=2670&auto=format&fit=crop"
+                alt="Fundo de login"
+                className="w-full h-full object-cover opacity-10"
+            />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-950/20 via-zinc-950 to-zinc-950"></div>
+        </div>
+
+       <div className="bg-zinc-900 p-8 rounded-xl border border-zinc-800 shadow-2xl w-full max-w-md animate-in fade-in relative z-10">
         <div className="text-center mb-8">
           <Shield className="w-16 h-16 text-red-600 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white font-mono uppercase">{renderTitle()}</h2>
@@ -331,37 +315,6 @@ export const LoginScreen: React.FC = () => {
         </form>
         )}
         
-        {view === 'signup' && (
-        <form onSubmit={handleSignUpSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Nome de Herói</label>
-            <div className="relative">
-              <User className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
-              <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:border-zinc-600 font-mono transition-colors" placeholder="Seu nome" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Email de Registro</label>
-            <div className="relative">
-              <Mail className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
-              <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:border-zinc-600 font-mono transition-colors" placeholder="seu@email.com" />
-            </div>
-          </div>
-           <div>
-            <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Senha de Comando</label>
-            <div className="relative">
-              <KeyRound className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
-              <input type="password" required autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:border-zinc-600 font-mono transition-colors" placeholder="Mínimo 6 caracteres" />
-            </div>
-          </div>
-          <div className="pt-2">
-             <button type="submit" disabled={loading} className="w-full bg-white text-zinc-950 py-4 rounded font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
-              {loading ? <Loader2 className="animate-spin" /> : "Criar Conta"}
-             </button>
-          </div>
-        </form>
-        )}
-
         {view === 'forgotPassword' && (
         <form onSubmit={handleForgotSubmit} className="space-y-4">
           <div>
@@ -380,21 +333,11 @@ export const LoginScreen: React.FC = () => {
         )}
          <div className="text-center mt-6">
             <p className="text-sm text-zinc-500">
-                {view === 'login' && 'Ainda não iniciou sua jornada?'}
-                {view === 'signup' && 'Já possui uma conta?'}
+                {view === 'login' && 'Ainda não é um herói?'}
                 {view === 'forgotPassword' && 'Lembrou sua senha?'}
                 {' '}
-                <button 
-                  onClick={() => { 
-                    setView(view === 'login' ? 'signup' : 'login'); 
-                    setMessage(''); 
-                  }} 
-                  className="font-bold text-zinc-300 hover:text-white underline"
-                >
-                    {view === 'login' && 'Aliste-se agora.'}
-                    {view === 'signup' && 'Faça o login.'}
-                    {view === 'forgotPassword' && 'Voltar para o Login.'}
-                </button>
+                {view === 'login' && <a href="/#/" className="font-bold text-zinc-300 hover:text-white underline">Garanta seu acesso.</a>}
+                {view === 'forgotPassword' && <button onClick={() => { setView('login'); setMessage(''); }} className="font-bold text-zinc-300 hover:text-white underline">Voltar para o Login.</button>}
             </p>
          </div>
       </div>

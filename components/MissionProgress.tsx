@@ -1,6 +1,6 @@
 import React from 'react';
-import { Target, CheckCircle, Flag, CalendarDays } from 'lucide-react';
-import { useUser } from './src/contexts/UserContext';
+import { Target, CheckCircle, Flag, Award } from 'lucide-react';
+import { useUser } from '../src/contexts/UserContext';
 
 const ProgressBar: React.FC<{ progress: number; label: string; count: string; color: string; allCompleted: boolean; icon: React.ElementType }> = ({ progress, label, count, color, allCompleted, icon: Icon }) => (
   <div>
@@ -11,13 +11,12 @@ const ProgressBar: React.FC<{ progress: number; label: string; count: string; co
       </label>
       <span className="text-xs font-mono font-bold text-white">{count}</span>
     </div>
-    <div className="w-full bg-zinc-950 rounded-full h-2 border border-zinc-800">
+    <div className="w-full bg-black/50 rounded-full h-2 border border-white/5 overflow-hidden">
       <div className={`${color} h-full rounded-full transition-all duration-500`} style={{ width: `${progress}%` }}></div>
     </div>
   </div>
 );
 
-// FIX: Refactored component to use useUser context instead of props.
 const MissionProgress: React.FC = () => {
   const { user } = useUser();
   const { missions } = user;
@@ -39,7 +38,7 @@ const MissionProgress: React.FC = () => {
   const milestoneProgress = totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0;
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-lg space-y-4">
+    <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-6 space-y-4 backdrop-blur-md">
       <h3 className="text-sm font-bold text-zinc-300 font-mono uppercase flex items-center gap-2">
         <Target className="w-4 h-4 text-zinc-400" />
         Progresso das Missões
@@ -53,12 +52,12 @@ const MissionProgress: React.FC = () => {
         icon={Target}
       />
       <ProgressBar
-        label="Semanais"
+        label="Desafios"
         progress={weeklyProgress}
         count={`${completedWeekly}/${totalWeekly}`}
         color="bg-gradient-to-r from-blue-600 to-blue-500"
         allCompleted={totalWeekly > 0 && completedWeekly === totalWeekly}
-        icon={CalendarDays}
+        icon={Award}
       />
       <ProgressBar
         label="Marcos"

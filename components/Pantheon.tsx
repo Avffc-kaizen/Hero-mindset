@@ -1,9 +1,9 @@
 
 
 import React from 'react';
-import { PARAGON_PERKS } from './src/constants';
+import { PARAGON_PERKS } from '../src/constants';
 import { Sparkles, Star, ShieldAlert, ArrowUpCircle, Lock } from 'lucide-react';
-import { useUser } from './src/contexts/UserContext';
+import { useUser } from '../src/contexts/UserContext';
 
 const Pantheon: React.FC = () => {
   const { user, handleSpendParagonPoint: onSpendPoint } = useUser();

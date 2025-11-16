@@ -42,10 +42,8 @@ const LifeMapPage: React.FC = () => {
         if (scores.length === 0) {
             return '0.0';
         }
-        // FIX: The error is likely due to 'scores' containing non-number values from Firestore.
-        // This causes 'sum' to become a string via concatenation, which then fails in the division for 'avg'.
-        // Explicitly casting score to a number makes the sum robust.
-        const sum = scores.reduce((currentSum, score) => currentSum + (Number(score) || 0), 0);
+        // FIX: Explicitly typed the accumulator `currentSum` to `number` to resolve a type inference issue where it was being treated as `unknown`.
+        const sum = scores.reduce((currentSum: number, score) => currentSum + Number(score), 0);
         const avg = sum / scores.length;
         return avg.toFixed(1);
     }, [user.lifeMapScores]);

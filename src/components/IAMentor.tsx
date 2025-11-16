@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-// FIX: Corrected import path for UserContext to be relative.
 import { useUser } from '../contexts/UserContext';
 import { Bot, Lock, ChevronRight, Zap, Send, Loader2, User as UserIcon } from 'lucide-react';
 import { useError } from '../contexts/ErrorContext';
@@ -14,7 +13,6 @@ const isSameDay = (ts1: number, ts2: number) => {
 };
 
 const IAMentor: React.FC = () => {
-  // FIX: Replaced `handleUpgrade` with `handlePurchase` which is provided by `useUser` context.
   const { user, handleSendMentorMessage, handleRequestDailyAnalysis, handlePurchase, isProcessingPayment } = useUser();
   const { hasSubscription, mentorChatHistory } = user;
   

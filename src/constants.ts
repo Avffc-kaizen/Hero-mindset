@@ -8,6 +8,7 @@ import type { LucideIcon } from 'lucide-react';
 
 // --- CONFIGURAÇÕES DE AMBIENTE ---
 export const FRONTEND_URL = "https://hero-mindset.web.app";
+export const EDUZZ_CHECKOUT_URL = "https://sun.eduzz.com/E05XKGE7WX";
 
 // ATENÇÃO: A CHAVE ABAIXO É PÚBLICA E SEGURA PARA SER USADA NO FRONTEND.
 export const STRIPE_PUBLIC_KEY = "pk_live_51RoTtnELwcc78QutLToQM50aQtE7YEnjEMJwBBxhAMguKiBqNWOqXqi0tixmKxnO6WVNPNRCFvGSIoatViXE2jw500H45RN2Ro";

@@ -1,17 +1,80 @@
-
-import React, { useState } from 'react';
-// FIX: Corrected import paths to be relative.
-// FIX: Removed file extensions from import paths.
+import React, { useState, useEffect } from 'react';
+// FIX: Corrected import paths to point to files within the 'src' directory.
 import { ProtectionModuleId, RoadmapItem, BioData, DailyIntention } from '../src/types';
 import { PROTECTION_MODULES, ARCHETYPES } from '../src/constants';
-import { Award, Zap, RefreshCw, Star, AlertCircle, Flame, Shield, Briefcase, Activity, TrendingUp, CheckCircle, Plus, Lock, Dumbbell, Moon, Droplets, Trash2, Bot, Target, Check, AlertTriangle } from 'lucide-react';
-// FIX: Corrected import paths to be relative.
+import { Award, Zap, RefreshCw, Star, AlertCircle, Flame, Shield, Briefcase, Activity, TrendingUp, CheckCircle, Plus, Lock, Dumbbell, Moon, Droplets, Trash2, Bot, Target, Check, AlertTriangle, Send, Loader2, X } from 'lucide-react';
+// FIX: Corrected import paths to point to files within the 'src' directory.
 import { XP_PER_LEVEL_FORMULA } from '../src/utils';
 import { useUser } from '../src/contexts/UserContext';
+import { useError } from '../src/contexts/ErrorContext';
 import MissionProgress from './MissionProgress';
 import LifeMapWidget from './LifeMapWidget';
+import LiteYouTubeEmbed from './LiteYouTubeEmbed';
+
 
 // --- MODULAR WIDGETS ---
+
+const QuickChatWidget: React.FC = () => {
+    const { user, handleSendMentorMessage } = useUser();
+    const { showError } = useError();
+    const [input, setInput] = useState('');
+    const [lastResponse, setLastResponse] = useState('');
+    const [isSending, setIsSending] = useState(false);
+
+    const handleSend = async () => {
+        if (!input.trim() || isSending) return;
+        setIsSending(true);
+        const question = input;
+        setInput('');
+        setLastResponse('');
+        try {
+            await handleSendMentorMessage(question, true); // `true` to indicate it's a quick chat
+        } catch (err: any) {
+            showError(err.message || 'Erro ao contatar o Oráculo.');
+            setInput(question); // Add message back to input
+        } finally {
+            setIsSending(false);
+        }
+    };
+    
+    const lastUserMessage = user.mentorChatHistory.filter(m => m.role === 'user' && m.isQuickChat).slice(-1)[0];
+    const lastModelMessage = user.mentorChatHistory.filter(m => m.role === 'model' && m.isQuickChat).slice(-1)[0];
+    
+    if (!user.hasSubscription) return null;
+
+    return (
+        <div className="bg-zinc-900/40 border border-blue-500/20 rounded-2xl p-6 backdrop-blur-md h-full flex flex-col">
+            <h2 className="text-sm font-bold font-mono uppercase text-blue-500 flex items-center gap-2 mb-4"><Bot className="w-4 h-4" /> Chat Rápido com Oráculo</h2>
+            <div className="flex-grow space-y-2 mb-4 overflow-y-auto text-sm">
+                 {isSending && <div className="flex justify-center items-center h-full"><Loader2 className="w-6 h-6 animate-spin text-blue-400"/></div>}
+                 {!isSending && lastUserMessage && (
+                     <p className="text-zinc-400 font-mono text-xs">Você: "{lastUserMessage.text}"</p>
+                 )}
+                 {!isSending && lastModelMessage && (
+                     <p className="text-blue-200">{lastModelMessage.text}</p>
+                 )}
+                  {!isSending && !lastUserMessage && (
+                    <p className="text-zinc-500 text-center text-xs font-mono pt-4">Faça uma pergunta direta ao seu mentor.</p>
+                  )}
+            </div>
+            <div className="flex items-center gap-2 mt-auto">
+                <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                    placeholder="Sua pergunta..."
+                    className="flex-1 bg-black/50 border border-white/10 rounded px-3 py-2 text-sm font-mono placeholder:text-zinc-600"
+                    disabled={isSending}
+                />
+                <button onClick={handleSend} disabled={isSending || !input.trim()} className="p-2 bg-blue-600 rounded-md hover:bg-blue-500 disabled:opacity-50">
+                    <Send className="w-4 h-4 text-white"/>
+                </button>
+            </div>
+        </div>
+    );
+};
+
 
 const DailyIntentionWidget = () => {
     const { user, handleUpdateUser } = useUser();
@@ -180,8 +243,22 @@ const BioShieldWidget = () => {
 }
 
 const HeroicDashboard: React.FC = () => {
-  const { user, handleRedoDiagnosis, handlePurchase: handleUpgrade } = useUser();
+  // FIX: Replaced `handleUpgrade` with `handlePurchase` which is provided by `useUser` context.
+  const { user, handleRedoDiagnosis, handlePurchase, isProcessingPayment } = useUser();
   const [showRecalibrateModal, setShowRecalibrateModal] = useState(false);
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
+
+  useEffect(() => {
+    const hasSeenBanner = localStorage.getItem('heroWelcomeBannerDismissed');
+    if (!hasSeenBanner) {
+        setShowWelcomeBanner(true);
+    }
+  }, []);
+
+  const handleDismissBanner = () => {
+      setShowWelcomeBanner(false);
+      localStorage.setItem('heroWelcomeBannerDismissed', 'true');
+  };
   
   if (!user.archetype || !user.lifeMapScores) return null;
 
@@ -191,7 +268,7 @@ const HeroicDashboard: React.FC = () => {
   const xpRemaining = nextLevelXP > 0 ? Math.max(0, nextLevelXP - user.currentXP) : 0;
 
 
-  const handleModuleUnlock = (moduleId: ProtectionModuleId) => handleUpgrade('protecao_360');
+  const handleModuleUnlock = (moduleId: ProtectionModuleId) => handlePurchase('protecao_360');
 
   const onConfirmRecalibrate = () => {
     handleRedoDiagnosis();
@@ -205,7 +282,13 @@ const HeroicDashboard: React.FC = () => {
             <div className="w-12 h-12 bg-zinc-900 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 border border-white/5"><Lock className="w-5 h-5 text-zinc-500" /></div>
             <h2 className="text-xs font-bold font-mono uppercase text-zinc-400 mb-1">Link Neural Inativo</h2>
             <p className="text-[10px] text-zinc-500 mb-4">O Oráculo requer permissão superior.</p>
-            <button onClick={() => handleUpgrade('mentor_ia')} className="text-[10px] bg-white text-black px-5 py-2.5 rounded font-bold uppercase tracking-widest hover:bg-zinc-200 shadow-lg">Ativar Oráculo</button>
+            <button 
+              onClick={() => handlePurchase('mentor_ia')} 
+              disabled={!!isProcessingPayment}
+              className="text-[10px] bg-white text-black px-5 py-2.5 rounded font-bold uppercase tracking-widest hover:bg-zinc-200 shadow-lg disabled:opacity-50 flex items-center justify-center"
+            >
+              {isProcessingPayment === 'mentor_ia' ? <Loader2 className="w-4 h-4 animate-spin"/> : 'Ativar Oráculo'}
+            </button>
         </div>
       );
     }
@@ -233,11 +316,35 @@ const HeroicDashboard: React.FC = () => {
         </div>
         <button onClick={() => setShowRecalibrateModal(true)} className="flex items-center gap-2 text-[10px] font-bold font-mono uppercase text-zinc-500 hover:text-white bg-zinc-900/50 border border-white/10 px-4 py-2.5 rounded-lg backdrop-blur-sm"><RefreshCw className="w-3 h-3"/> Recalibrar</button>
       </header>
+
+      {showWelcomeBanner && (
+        <div className="relative bg-gradient-to-r from-zinc-900 via-zinc-950 to-black border border-yellow-500/30 rounded-xl p-6 animate-in fade-in shadow-lg shadow-yellow-500/10">
+            <button onClick={handleDismissBanner} className="absolute top-3 right-3 text-zinc-500 hover:text-white transition-colors" aria-label="Dispensar banner">
+                <X className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-4">
+                <Shield className="w-10 h-10 text-yellow-500 flex-shrink-0 animate-pulse" />
+                <div>
+                    <h2 className="text-lg font-bold font-mono text-white">Bem-vindo de volta, Herói.</h2>
+                    <p className="text-zinc-400 text-sm mt-1">Sua central de comando está operacional. Execute sua missão diária e avance em sua jornada.</p>
+                </div>
+            </div>
+        </div>
+      )}
+
+      <div className="p-1 bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-2xl shadow-2xl animate-in fade-in">
+        <div className="bg-zinc-950 rounded-xl p-1">
+          <div className="aspect-video w-full relative">
+             <LiteYouTubeEmbed videoId="cWrWyPtsllM" title="Comunicado do Comando" />
+          </div>
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {renderOracleDecree()}
             <DailyIntentionWidget />
+            <QuickChatWidget />
             <LifeMapWidget />
           </div>
           <div className="space-y-6">

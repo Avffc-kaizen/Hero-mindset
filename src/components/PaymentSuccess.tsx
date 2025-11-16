@@ -18,10 +18,11 @@ const PaymentSuccess: React.FC = () => {
   const { showError } = useError();
   const { productId } = useParams<{ productId: string }>();
 
-  const [status, setStatus] = useState<'verifying' | 'input_required' | 'success' | 'error' | 'generic_success'>('verifying');
+  const [status, setStatus] = useState<'verifying' | 'input_required' | 'generic_success' | 'error'>('verifying');
   const [customerData, setCustomerData] = useState<{ name: string; email: string } | null>(null);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [sessionId, setSessionId] = useState<string | null>(null);
   
   const firedPixel = useRef(false);
   const isBaseProduct = productId === 'hero_vitalicio';
@@ -29,14 +30,12 @@ const PaymentSuccess: React.FC = () => {
   useEffect(() => {
     const verify = async () => {
       const searchParams = new URLSearchParams(location.search);
-      let foundSessionId = searchParams.get('session_id');
+      let sessionId = searchParams.get('session_id');
 
-      if (!foundSessionId) {
+      if (!sessionId) {
         const hashParams = new URLSearchParams(location.hash.split('?')[1]);
-        foundSessionId = hashParams.get('session_id');
+        sessionId = hashParams.get('session_id');
       }
-      
-      setSessionId(foundSessionId);
 
       const product = PRODUCTS.find(p => p.id === productId);
 
@@ -53,25 +52,19 @@ const PaymentSuccess: React.FC = () => {
           }
       }
 
-      if (!foundSessionId) {
-        if (product && product.provider !== 'stripe') {
-            firePurchaseEvent();
-            setStatus('generic_success');
-            return;
-        }
-
-        showError('ID da sessão de pagamento não encontrado.');
-        setStatus('error');
+      if (!sessionId) {
+        firePurchaseEvent();
+        setStatus('generic_success');
         return;
       }
       
       if (user.isLoggedIn) {
-          const result = await handleVerifyUpgrade(foundSessionId);
+          const result = await handleVerifyUpgrade(sessionId);
           if (result.success) {
               firePurchaseEvent();
               navigate('/app/dashboard', { replace: true });
           } else {
-              // showError is called inside handleVerifyUpgrade
+              showError(result.message || 'Falha ao verificar seu upgrade.');
               setStatus('error');
           }
       } else {
@@ -80,14 +73,14 @@ const PaymentSuccess: React.FC = () => {
               setStatus('error');
               return;
           }
-          const result = await handleVerifyNewPurchase(foundSessionId);
+          const result = await handleVerifyNewPurchase(sessionId);
           if (result.success && result.name && result.email) {
               firePurchaseEvent();
               setCustomerData({ name: result.name, email: result.email });
               setStatus('input_required');
           } else {
-              // showError is called inside handleVerifyNewPurchase
               setStatus('error');
+              showError(result.message || "Falha ao verificar sua compra. Contate o suporte.");
           }
       }
     };
@@ -99,20 +92,18 @@ const PaymentSuccess: React.FC = () => {
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerData || !password) {
-      showError("Dados insuficientes para criar a conta.");
+    const finalName = customerData?.name || name;
+    const finalEmail = customerData?.email || email;
+
+    if (!finalName || !finalEmail || !password) {
+      showError("Todos os campos são obrigatórios.");
       return;
     }
     if (password.length < 6) {
       showError("A senha deve ter no mínimo 6 caracteres.");
       return;
     }
-
-    const result = await handleSignUp(customerData.name, customerData.email, password, sessionId);
-
-    if (!result.success) {
-      // showError is called inside handleSignUp
-    }
+    await handleSignUp(finalName, finalEmail, password);
   };
 
   return (
@@ -126,48 +117,46 @@ const PaymentSuccess: React.FC = () => {
               <p className="text-zinc-400 mt-2 font-mono text-sm">Validando sua entrada no panteão...</p>
             </>
           )}
-          {status === 'generic_success' && (
+
+          {(status === 'generic_success' || (status === 'input_required' && customerData)) && (
             <>
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-white font-mono uppercase">Pagamento Confirmado!</h2>
               <p className="text-zinc-400 mt-2 mb-6 font-mono text-sm">
-                Sua compra foi recebida. Para acessar a plataforma, por favor, <strong>crie sua conta ou faça login</strong> com o mesmo email utilizado no pagamento.
+                {status === 'generic_success'
+                  ? 'Crie sua conta para acessar a plataforma. Use o mesmo email da compra.'
+                  : 'Bem-vindo, Herói. Defina sua senha para acessar o santuário.'
+                }
               </p>
-              <button 
-                onClick={() => navigate('/login')} 
-                className="w-full mt-2 bg-green-600 text-white py-3 rounded font-bold uppercase tracking-widest hover:bg-green-700 transition"
-              >
-                Acessar Plataforma
-              </button>
-            </>
-          )}
-          {status === 'input_required' && customerData && (
-            <>
-              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-white font-mono uppercase">Pagamento Confirmado!</h2>
-              <p className="text-zinc-400 mt-2 mb-6 font-mono text-sm">Bem-vindo, Herói. Defina sua senha para acessar o santuário.</p>
               <form onSubmit={handleCreateAccount} className="space-y-4 text-left">
                   <div>
                     <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Nome de Herói</label>
-                    <div className="relative"><User className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" /><input type="text" value={customerData.name} readOnly className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 text-zinc-300 font-mono" /></div>
+                    <div className="relative"><User className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
+                      <input type="text" value={customerData?.name || name} onChange={e => setName(e.target.value)} readOnly={!!customerData?.name} className={`w-full bg-zinc-800 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 font-mono ${customerData?.name ? 'text-zinc-300' : 'text-white'}`} />
+                    </div>
                   </div>
                    <div>
                     <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Email de Registro</label>
-                    <div className="relative"><Mail className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" /><input type="email" value={customerData.email} readOnly className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 text-zinc-300 font-mono" /></div>
+                    <div className="relative"><Mail className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
+                      <input type="email" value={customerData?.email || email} onChange={e => setEmail(e.target.value)} readOnly={!!customerData?.email} className={`w-full bg-zinc-800 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 font-mono ${customerData?.email ? 'text-zinc-300' : 'text-white'}`} placeholder="Use o email da compra"/>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Senha de Comando</label>
-                    <div className="relative"><KeyRound className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" /><input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 text-white font-mono focus:border-zinc-500" placeholder="Mínimo 6 caracteres" /></div>
+                    <div className="relative"><KeyRound className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
+                      <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 text-white font-mono focus:border-zinc-500" placeholder="Mínimo 6 caracteres" />
+                    </div>
                   </div>
                   <button type="submit" className="w-full mt-2 bg-green-600 text-white py-3 rounded font-bold uppercase tracking-widest hover:bg-green-700 transition">Finalizar e Entrar</button>
               </form>
             </>
           )}
+
           {status === 'error' && (
              <>
               <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-white font-mono uppercase">Ocorreu um Erro</h2>
-              <p className="text-zinc-400 mt-2 text-sm">Uma falha ocorreu durante a verificação. Por favor, tente novamente ou contate o suporte se o problema persistir.</p>
+              <p className="text-zinc-400 mt-2 text-sm">A verificação do pagamento falhou. Por favor, contate o suporte se o problema persistir.</p>
              </>
           )}
         </div>

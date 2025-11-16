@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { JournalEntry } from '../types';
 import { ScrollText, Send, Lock, Zap, CheckCircle, ChevronRight, Bot, Loader2 } from 'lucide-react';
+import { analyzeJournalAI } from '../services/geminiService';
 import { useError } from '../contexts/ErrorContext';
 import { useUser } from '../contexts/UserContext';
 
@@ -30,8 +31,6 @@ const Journal: React.FC = () => {
 
     setIsAnalyzing(true);
     try {
-      // Assuming analyzeJournalAI is handled by UserContext now or directly called
-      const { analyzeJournalAI } = await import('../services/geminiService');
       const feedback = await analyzeJournalAI(entriesToAnalyze, userName);
       
       entriesToAnalyze.forEach((entry, index) => {

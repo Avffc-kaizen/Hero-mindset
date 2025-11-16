@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, ChevronRight, LogIn, CheckCircle, Play, Bot, Award, Share2, Briefcase, TrendingUp, Activity, Brain, Zap, HeartHandshake, Target, Book, ScrollText, Sparkles, GitMerge } from 'lucide-react';
-import { useUser } from './src/contexts/UserContext';
-import { PRODUCTS, FRONTEND_URL, PROTECTION_MODULES } from './src/constants';
+import { Shield, ChevronRight, LogIn, CheckCircle, Play, Bot, Award, Share2, Briefcase, TrendingUp, Activity, Brain, Zap, HeartHandshake, Target, Book, ScrollText, Sparkles, GitMerge, Map, Compass } from 'lucide-react';
+import { useUser } from '../src/contexts/UserContext';
+import { PRODUCTS, FRONTEND_URL, PROTECTION_MODULES } from '../src/constants';
 import ChatbotWidget from '../src/components/ChatbotWidget';
-import { ProtectionModuleInfo } from './src/types';
+import { ProtectionModuleInfo } from '../src/types';
 
 const LazySection = ({ children, className = "", id = "", ...props }: React.HTMLAttributes<HTMLDivElement> & { children: React.ReactNode, id?: string }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -177,52 +177,179 @@ const LandingPage: React.FC = () => {
       </section>
 
       <LazySection className="py-20 px-6 bg-zinc-950 border-y border-zinc-900">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold uppercase font-mono mb-4">Sua Central de Comando</h2>
-            <p className="text-zinc-400 max-w-2xl mx-auto">Veja o sistema operacional por dentro. Onde a estratégia encontra a execução.</p>
-          </div>
-          <div className="p-1 bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-2xl shadow-2xl">
-            <div className="bg-zinc-950 rounded-xl p-1">
-              <div className="aspect-video w-full relative"><LiteYouTubeEmbed videoId="cWrWyPtsllM" title="Demonstração da Central de Comando" /></div>
-            </div>
-          </div>
-        </div>
-      </LazySection>
-
-      <LazySection className="py-20 px-6 bg-zinc-900/20 border-y border-zinc-900">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold uppercase font-mono mb-4">Seu Arsenal Completo</h2>
             <p className="text-zinc-400 max-w-2xl mx-auto">Um ecossistema integrado para a guerra contra a mediocridade.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800">
-              <h3 className="text-lg font-bold font-mono uppercase text-red-500 mb-4">Arsenal Militar</h3>
+            <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800 hover:border-red-500/50 transition-all duration-300 group">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-red-900/20 rounded-lg flex items-center justify-center border border-red-500/30 group-hover:bg-red-900/40">
+                  <Zap className="w-6 h-6 text-red-500" />
+                </div>
+                <h3 className="text-xl font-bold font-mono uppercase text-white">Militar</h3>
+              </div>
               <ul className="space-y-4 text-zinc-300 text-sm">
-                <li className="flex items-start gap-3"><Target className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Missões</span><p className="text-zinc-500">Diretrizes diárias e semanais.</p></div></li>
-                <li className="flex items-start gap-3"><Book className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Codex</span><p className="text-zinc-500">Sua biblioteca de conhecimento.</p></div></li>
-                <li className="flex items-start gap-3"><Shield className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Guilda</span><p className="text-zinc-500">Una-se a outros heróis.</p></div></li>
+                <li className="flex items-start gap-3">
+                  <Target className="w-4 h-4 text-red-400 mt-1 flex-shrink-0" />
+                  <div>
+                    <span className="font-bold text-white">Quadro de Missões</span>
+                    <p className="text-zinc-500 mt-1">Diretrizes diárias, semanais e marcos épicos para forjar disciplina e momentum.</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Book className="w-4 h-4 text-red-400 mt-1 flex-shrink-0" />
+                  <div>
+                    <span className="font-bold text-white">Codex do Conhecimento</span>
+                    <p className="text-zinc-500 mt-1">Sua biblioteca de protocolos e sabedoria heroica para dominar a jornada.</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Shield className="w-4 h-4 text-red-400 mt-1 flex-shrink-0" />
+                  <div>
+                    <span className="font-bold text-white">Guilda dos Heróis</span>
+                    <p className="text-zinc-500 mt-1">Forje alianças, compita em esquadrões e ascenda no Panteão.</p>
+                  </div>
+                </li>
               </ul>
             </div>
-            <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800">
-              <h3 className="text-lg font-bold font-mono uppercase text-blue-500 mb-4">Arsenal Estratégico</h3>
+            
+            <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800 hover:border-blue-500/50 transition-all duration-300 group">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-blue-900/20 rounded-lg flex items-center justify-center border border-blue-500/30 group-hover:bg-blue-900/40">
+                  <Brain className="w-6 h-6 text-blue-500" />
+                </div>
+                <h3 className="text-xl font-bold font-mono uppercase text-white">Estratégico</h3>
+              </div>
               <ul className="space-y-4 text-zinc-300 text-sm">
-                <li className="flex items-start gap-3"><Bot className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Oráculo IA</span><p className="text-zinc-500">Seu mentor IA personalizado.</p></div></li>
-                <li className="flex items-start gap-3"><ScrollText className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Diário de Bordo</span><p className="text-zinc-500">Registre sua jornada para análise.</p></div></li>
+                <li className="flex items-start gap-3">
+                  <Bot className="w-4 h-4 text-blue-400 mt-1 flex-shrink-0" />
+                  <div>
+                    <span className="font-bold text-white">Oráculo IA</span>
+                    <p className="text-zinc-500 mt-1">Seu mentor IA pessoal que analisa seus dados e fornece clareza estratégica.</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <ScrollText className="w-4 h-4 text-blue-400 mt-1 flex-shrink-0" />
+                  <div>
+                    <span className="font-bold text-white">Diário de Bordo</span>
+                    <p className="text-zinc-500 mt-1">Registre sua jornada para análise do Oráculo e auto-reflexão profunda.</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Map className="w-4 h-4 text-blue-400 mt-1 flex-shrink-0" />
+                  <div>
+                    <span className="font-bold text-white">Mapa de Vida 360°</span>
+                    <p className="text-zinc-500 mt-1">Diagnóstico completo para mapear seu poder e identificar alvos prioritários.</p>
+                  </div>
+                </li>
               </ul>
             </div>
-            <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800">
-              <h3 className="text-lg font-bold font-mono uppercase text-yellow-500 mb-4">Arsenal Pessoal</h3>
+
+            <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800 hover:border-yellow-500/50 transition-all duration-300 group">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-yellow-900/20 rounded-lg flex items-center justify-center border border-yellow-500/30 group-hover:bg-yellow-900/40">
+                  <Award className="w-6 h-6 text-yellow-500" />
+                </div>
+                <h3 className="text-xl font-bold font-mono uppercase text-white">Pessoal</h3>
+              </div>
               <ul className="space-y-4 text-zinc-300 text-sm">
-                <li className="flex items-start gap-3"><GitMerge className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Habilidades</span><p className="text-zinc-500">Desbloqueie ferramentas e bônus.</p></div></li>
-                <li className="flex items-start gap-3"><Sparkles className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" /> <div><span className="font-bold">Panteão</span><p className="text-zinc-500">Ascenda e ganhe bônus divinos.</p></div></li>
+                <li className="flex items-start gap-3">
+                  <GitMerge className="w-4 h-4 text-yellow-400 mt-1 flex-shrink-0" />
+                  <div>
+                    <span className="font-bold text-white">Arsenal de Habilidades</span>
+                    <p className="text-zinc-500 mt-1">Desbloqueie ferramentas táticas (Pomodoro, Box Breathing) para a execução diária.</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Sparkles className="w-4 h-4 text-yellow-400 mt-1 flex-shrink-0" />
+                  <div>
+                    <span className="font-bold text-white">Panteão Divino</span>
+                    <p className="text-zinc-500 mt-1">Ascenda após o nível 50 e desbloqueie bônus permanentes para sua jornada.</p>
+                  </div>
+                </li>
+                 <li className="flex items-start gap-3">
+                  <TrendingUp className="w-4 h-4 text-yellow-400 mt-1 flex-shrink-0" />
+                  <div>
+                    <span className="font-bold text-white">Evolução Contínua</span>
+                    <p className="text-zinc-500 mt-1">Ganhe XP, suba de nível, conquiste patentes e forje sua lenda no sistema.</p>
+                  </div>
+                </li>
               </ul>
             </div>
           </div>
         </div>
       </LazySection>
       
+       <LazySection className="py-20 px-6 bg-zinc-950 border-y border-zinc-900">
+        <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-12">
+                <h2 className="text-4xl font-bold uppercase font-mono mb-4">Os Protocolos de Proteção</h2>
+                <p className="text-zinc-400 max-w-2xl mx-auto">Ferramentas de elite para dominar áreas específicas da sua vida. Disponível com a assinatura <span className="text-white font-bold">Proteção 360</span>.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                {Object.values(PROTECTION_MODULES).map((module) => {
+                    const typedModule = module as ProtectionModuleInfo;
+                    const Icon = typedModule.icon;
+                    return (
+                        <div key={typedModule.id} className={`bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-center group transition-all hover:border-${typedModule.color}-500/50 hover:bg-zinc-900/50`}>
+                            <div className={`w-16 h-16 rounded-lg flex items-center justify-center bg-zinc-800 mx-auto mb-4 border-2 border-transparent group-hover:border-${typedModule.color}-500/50 transition-colors`}>
+                                <Icon className={`w-8 h-8 text-zinc-500 group-hover:text-${typedModule.color}-500 transition-colors`} />
+                            </div>
+                            <h3 className="font-bold font-mono uppercase text-sm text-white">{typedModule.name.split(' ')[0]}</h3>
+                            <p className="text-xs text-zinc-500 mt-1">{typedModule.description}</p>
+                        </div>
+                    )
+                })}
+            </div>
+        </div>
+      </LazySection>
+      
+      <LazySection id="comando" className="py-20 px-6 bg-zinc-950 border-y border-zinc-900">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold uppercase font-mono mb-4">Sua Central de Comando</h2>
+            <p className="text-zinc-400 max-w-3xl mx-auto">Onde a estratégia encontra a execução. Uma interface projetada para a guerra contra a mediocridade.</p>
+          </div>
+          <div className="p-1 bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-2xl shadow-2xl">
+            <div className="bg-zinc-950 rounded-xl p-1">
+              <div className="aspect-video w-full relative"><LiteYouTubeEmbed videoId="cWrWyPtsllM" title="Demonstração da Central de Comando" /></div>
+            </div>
+          </div>
+          <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+            <div className="flex flex-col items-center">
+              <div className="w-16 h-16 bg-zinc-900 border border-zinc-800 rounded-full flex items-center justify-center mb-4">
+                 <Compass className="w-8 h-8 text-zinc-400"/>
+              </div>
+              <h3 className="font-bold font-mono uppercase text-white">Dashboard 360°</h3>
+              <p className="text-sm text-zinc-500 mt-2">Visão unificada de todas as suas frentes de batalha: missões, status e métricas.</p>
+            </div>
+             <div className="flex flex-col items-center">
+              <div className="w-16 h-16 bg-zinc-900 border border-zinc-800 rounded-full flex items-center justify-center mb-4">
+                 <TrendingUp className="w-8 h-8 text-zinc-400"/>
+              </div>
+              <h3 className="font-bold font-mono uppercase text-white">Métricas de Performance</h3>
+              <p className="text-sm text-zinc-500 mt-2">Acompanhe sua ascensão através de Nível, XP, Patente e Pontos Divinos.</p>
+            </div>
+             <div className="flex flex-col items-center">
+              <div className="w-16 h-16 bg-zinc-900 border border-zinc-800 rounded-full flex items-center justify-center mb-4">
+                 <Bot className="w-8 h-8 text-zinc-400"/>
+              </div>
+              <h3 className="font-bold font-mono uppercase text-white">Diretrizes do Oráculo</h3>
+              <p className="text-sm text-zinc-500 mt-2">Receba decretos estratégicos diários do seu mentor IA para guiar suas ações.</p>
+            </div>
+             <div className="flex flex-col items-center">
+              <div className="w-16 h-16 bg-zinc-900 border border-zinc-800 rounded-full flex items-center justify-center mb-4">
+                 <Map className="w-8 h-8 text-zinc-400"/>
+              </div>
+              <h3 className="font-bold font-mono uppercase text-white">Análise do Mapa</h3>
+              <p className="text-sm text-zinc-500 mt-2">Identifique seus pontos fortes e fracos com um diagnóstico de vida completo.</p>
+            </div>
+          </div>
+        </div>
+      </LazySection>
+
       <LazySection id="pricing" className="py-20 px-4 text-center">
         <div className="max-w-4xl mx-auto">
            <div className="mb-12">
@@ -255,30 +382,6 @@ const LandingPage: React.FC = () => {
               </div>
             ))}
           </div>
-        </div>
-      </LazySection>
-
-       <LazySection className="py-20 px-6 bg-zinc-950 border-y border-zinc-900">
-        <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12">
-                <h2 className="text-4xl font-bold uppercase font-mono mb-4">Os Protocolos de Proteção</h2>
-                <p className="text-zinc-400 max-w-2xl mx-auto">Ferramentas de elite para dominar áreas específicas da sua vida. Disponível com a assinatura <span className="text-white font-bold">Proteção 360</span>.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                {Object.values(PROTECTION_MODULES).map((module) => {
-                    const typedModule = module as ProtectionModuleInfo;
-                    const Icon = typedModule.icon;
-                    return (
-                        <div key={typedModule.id} className={`bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-center group transition-all hover:border-${typedModule.color}-500/50 hover:bg-zinc-900/50`}>
-                            <div className={`w-16 h-16 rounded-lg flex items-center justify-center bg-zinc-800 mx-auto mb-4 border-2 border-transparent group-hover:border-${typedModule.color}-500/50 transition-colors`}>
-                                <Icon className={`w-8 h-8 text-zinc-500 group-hover:text-${typedModule.color}-500 transition-colors`} />
-                            </div>
-                            <h3 className="font-bold font-mono uppercase text-sm text-white">{typedModule.name.split(' ')[0]}</h3>
-                            <p className="text-xs text-zinc-500 mt-1">{typedModule.description}</p>
-                        </div>
-                    )
-                })}
-            </div>
         </div>
       </LazySection>
 
