@@ -1,9 +1,11 @@
 
 
+
 import React from 'react';
-import { PARAGON_PERKS } from '../src/constants';
+// FIX: Corrected import paths to point to files within the 'src' directory.
+import { PARAGON_PERKS } from './src/constants';
 import { Sparkles, Star, ShieldAlert, ArrowUpCircle, Lock } from 'lucide-react';
-import { useUser } from '../src/contexts/UserContext';
+import { useUser } from './src/contexts/UserContext';
 
 const Pantheon: React.FC = () => {
   const { user, handleSpendParagonPoint: onSpendPoint } = useUser();

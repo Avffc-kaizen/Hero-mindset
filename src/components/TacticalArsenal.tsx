@@ -49,7 +49,7 @@ const TacticalArsenal: React.FC = () => {
   const allModules = Object.values(PROTECTION_MODULES);
 
   const handleActivate = () => {
-    handlePurchase('protecao_360');
+    handlePurchase('plano_heroi_total');
   };
 
   return (
@@ -69,20 +69,20 @@ const TacticalArsenal: React.FC = () => {
             module={moduleInfo}
             isActive={user.activeModules.includes(moduleInfo.id)}
             onActivate={handleActivate}
-            isProcessing={isProcessingPayment === 'protecao_360'}
+            isProcessing={isProcessingPayment === 'plano_heroi_total'}
           />
         ))}
       </div>
 
        <div className="bg-zinc-900/50 border border-red-800/50 rounded-2xl p-8 text-center mt-12">
-            <h3 className="text-2xl font-bold font-mono uppercase text-white mb-2">Proteção 360</h3>
-            <p className="text-zinc-400 max-w-2xl mx-auto mb-6">Ative todos os protocolos do Arsenal Tático com uma única assinatura. Domínio total. Sem exceções.</p>
+            <h3 className="text-2xl font-bold font-mono uppercase text-white mb-2">Plano Herói Total</h3>
+            <p className="text-zinc-400 max-w-2xl mx-auto mb-6">Ative todos os protocolos do Arsenal Tático e o Oráculo IA com uma única assinatura. Domínio total. Sem exceções.</p>
             <button 
                 onClick={handleActivate}
                 disabled={!!isProcessingPayment}
                 className="bg-red-600 text-white px-8 py-3 rounded font-bold uppercase tracking-wider hover:bg-red-700 transition-transform active:scale-95 h-11 w-64 flex items-center justify-center disabled:opacity-50"
             >
-                {isProcessingPayment === 'protecao_360' ? <Loader2 className="w-5 h-5 animate-spin"/> : 'Ativar Proteção Total'}
+                {isProcessingPayment === 'plano_heroi_total' ? <Loader2 className="w-5 h-5 animate-spin"/> : 'Ativar Plano Total'}
             </button>
         </div>
     </div>

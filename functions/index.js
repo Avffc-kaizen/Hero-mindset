@@ -7,7 +7,6 @@ const db = admin.firestore();
 // --- Robust Service Initializations ---
 
 let stripe = null;
-// UPDATED: Read from process.env instead of functions.config()
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 if (stripeSecret) {
     try {
@@ -20,8 +19,6 @@ if (stripeSecret) {
 }
 
 let ai = null;
-// FIX: As per @google/genai guidelines, the API key must be sourced from process.env.API_KEY.
-// The repeated "AI model not configured" error indicates an environment issue, but the code must adhere to the standard.
 const geminiKey = process.env.API_KEY;
 if (geminiKey) {
     try {
@@ -41,8 +38,7 @@ const MENTOR_SYSTEM_INSTRUCTION = `Você é o Oráculo, um mentor estratégico, 
 
 const STRIPE_PRICES = {
   HERO_BASE: "price_1SRx9eELwcc78QutsxtesYl0",
-  IA_UPGRADE: "price_1SRxBwELwcc78QutnLm4OcVA",
-  PROTECAO_360: "price_1Pshv8ELwcc78Qut2qfW5oUh",
+  PLANO_HEROI_TOTAL: "price_1Pshv8ELwcc78Qut2qfW5oUh",
 };
 const ONE_TIME_PAYMENT_PRICE_IDS = [STRIPE_PRICES.HERO_BASE];
 
@@ -117,7 +113,6 @@ exports.stripeWebhook = functions
     }
 
     const sig = req.headers["stripe-signature"];
-    // UPDATED: Read from process.env instead of functions.config()
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
     if (!endpointSecret) {
@@ -151,9 +146,7 @@ exports.stripeWebhook = functions
           const userRef = db.collection("users").doc(uid);
           
           let updateData = {};
-          if (priceId === STRIPE_PRICES.IA_UPGRADE || internalProductId === "mentor_ia") {
-            updateData = { hasSubscription: true };
-          } else if (priceId === STRIPE_PRICES.PROTECAO_360 || internalProductId === "protecao_360") {
+          if (priceId === STRIPE_PRICES.PLANO_HEROI_TOTAL || internalProductId === "plano_heroi_total") {
             const allModules = ["soberano", "tita", "sabio", "monge", "lider"];
             updateData = { hasSubscription: true, activeModules: admin.firestore.FieldValue.arrayUnion(...allModules) };
           }
@@ -210,6 +203,75 @@ exports.stripeWebhook = functions
     } catch (err) {
       console.error(`Stripe Processing Error: ${err.message}`);
       res.status(500).send("Server Error");
+    }
+  });
+
+
+// --- NEW EDUZZ WEBHOOK ---
+exports.eduzzWebhook = functions
+  .region("southamerica-east1")
+  .https.onRequest(async (req, res) => {
+    if (req.method !== "POST") {
+      return res.status(405).send("Method Not Allowed");
+    }
+
+    try {
+      const data = req.body;
+      functions.logger.log("Eduzz Webhook Received:", data);
+
+      // Eduzz sends status '3' for "Paga" (Paid)
+      const transactionStatus = String(data.trans_status);
+      const email = (data.cus_email || "").toLowerCase();
+      const name = data.cus_name;
+      const transactionId = data.trans_id;
+      const saleId = data.sale_id;
+
+      if (transactionStatus === "3" && email && (transactionId || saleId)) {
+        const uniqueId = `eduzz-${transactionId || saleId}`;
+        const purchaseRef = db.collection("purchases").doc(uniqueId);
+        const purchaseDoc = await purchaseRef.get();
+
+        if (purchaseDoc.exists) {
+          functions.logger.log(`Eduzz webhook for tx ${uniqueId} already processed.`);
+          return res.status(200).send({ status: "ok", message: "Already processed." });
+        }
+
+        const userQuery = await db.collection('users').where('email', '==', email).limit(1).get();
+        if (!userQuery.empty) {
+            const existingUser = userQuery.docs[0];
+            functions.logger.log(`User with email ${email} already exists. Skipping new purchase record.`);
+            await purchaseRef.set({
+                email,
+                name,
+                sessionId: uniqueId,
+                internalProductId: "hero_vitalicio",
+                processedAt: admin.firestore.FieldValue.serverTimestamp(),
+                processedBy: "eduzz_webhook",
+                status: "claimed_existing_user",
+                uid: existingUser.id,
+            });
+            return res.status(200).send({ status: "ok", message: "User already exists." });
+        }
+        
+        await purchaseRef.set({
+          email,
+          name: name || email.split("@")[0],
+          sessionId: uniqueId,
+          internalProductId: "hero_vitalicio",
+          processedAt: admin.firestore.FieldValue.serverTimestamp(),
+          processedBy: "eduzz_webhook",
+          status: "verified_for_signup",
+        });
+
+        functions.logger.log(`Eduzz purchase verified for new user signup: ${email}`);
+        return res.status(200).send({ status: "ok" });
+      }
+
+      functions.logger.log("Eduzz webhook received with non-paid status or missing data.", { status: transactionStatus, email: email });
+      return res.status(200).send({ status: "ok", message: "Webhook received but not processed." });
+    } catch (err) {
+      functions.logger.error("Error processing Eduzz webhook:", err);
+      return res.status(500).send({ status: "error", message: "Internal Server Error" });
     }
   });
 

@@ -1,9 +1,11 @@
 
 
+
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Book, Lock, Play, ChevronLeft, CheckCircle, Zap, Quote as QuoteIcon, PenTool, MonitorPlay, Loader2, Search, Tag, AlertCircle, Maximize, Music, Headphones, Cloud } from 'lucide-react';
-import { Module, LessonDetails } from '../src/types';
-import { useUser } from '../src/contexts/UserContext';
+// FIX: Corrected import paths to point to files within the 'src' directory.
+import { Module, LessonDetails } from './src/types';
+import { useUser } from './src/contexts/UserContext';
 
 const Codex: React.FC<{isDailyLimitReached: boolean}> = ({ isDailyLimitReached }) => {
   const { user, handleCompleteLesson: onCompleteLesson, handleUpgrade: onUpgrade } = useUser();

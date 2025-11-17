@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Shield, Calendar, Edit, Save, X, Lock, KeyRound, AlertTriangle, ChevronRight, CheckCircle, Award, Loader2 } from 'lucide-react';
@@ -49,8 +50,7 @@ const Profile: React.FC = () => {
   const joinDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('pt-BR') : '—';
 
   const getSubscriptionStatus = () => {
-      if(user.activeModules.length > 3) return { name: "Proteção 360", color: "text-red-400" };
-      if(user.hasSubscription) return { name: "Mentor IA", color: "text-blue-400" };
+      if(user.activeModules.length > 0 || user.hasSubscription) return { name: "Plano Herói Total", color: "text-yellow-400" };
       return { name: "Acesso Vitalício", color: "text-green-400" };
   }
   const subscription = getSubscriptionStatus();
@@ -104,7 +104,7 @@ const Profile: React.FC = () => {
         {passwordMessage && <div className="bg-green-950/50 border border-green-900/50 text-green-400 text-sm p-3 rounded-lg flex items-center gap-2"><CheckCircle className="w-4 h-4" /> {passwordMessage}</div>}
         <div className="grid sm:grid-cols-2 gap-4">
           <button onClick={handleChangePassword} className="w-full text-left bg-zinc-950 border border-zinc-800 p-4 rounded-lg flex items-center gap-3"><KeyRound className="w-5 h-5" /><div><p className="font-bold">Redefinir Senha</p><p className="text-xs text-zinc-500">Enviaremos um link.</p></div></button>
-          {!user.hasSubscription && (<button onClick={() => handlePurchase('mentor_ia')} disabled={!!isProcessingPayment} className="w-full text-left bg-red-950/40 border border-red-900/50 p-4 rounded-lg flex items-center gap-3 disabled:opacity-50"><Lock className="w-5 h-5" /><div><p className="font-bold text-red-400">Upgrade Oráculo IA</p><p className="text-xs">Desbloqueie o acesso.</p></div>{isProcessingPayment ? <Loader2 className="w-5 h-5 ml-auto animate-spin" /> : <ChevronRight className="w-5 h-5 ml-auto text-red-500" />}</button>)}
+          {!user.hasSubscription && (<button onClick={() => handlePurchase('plano_heroi_total')} disabled={!!isProcessingPayment} className="w-full text-left bg-yellow-950/40 border border-yellow-900/50 p-4 rounded-lg flex items-center gap-3 disabled:opacity-50"><Lock className="w-5 h-5" /><div><p className="font-bold text-yellow-400">Upgrade Plano Herói Total</p><p className="text-xs">Desbloqueie todo o potencial.</p></div>{isProcessingPayment ? <Loader2 className="w-5 h-5 ml-auto animate-spin" /> : <ChevronRight className="w-5 h-5 ml-auto text-yellow-500" />}</button>)}
         </div>
       </div>
       

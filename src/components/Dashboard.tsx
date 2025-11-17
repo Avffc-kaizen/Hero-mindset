@@ -1,34 +1,15 @@
-import React, { useState, useEffect, useRef, HTMLAttributes } from 'react';
+import React, { useState, useEffect } from 'react';
+// FIX: Corrected import paths to point to files within the 'src' directory.
 import { ProtectionModuleId, RoadmapItem, BioData, DailyIntention } from '../types';
 import { PROTECTION_MODULES, ARCHETYPES } from '../constants';
 import { Award, Zap, RefreshCw, Star, AlertCircle, Flame, Shield, Briefcase, Activity, TrendingUp, CheckCircle, Plus, Lock, Dumbbell, Moon, Droplets, Trash2, Bot, Target, Check, AlertTriangle, Send, Loader2, X } from 'lucide-react';
+// FIX: Corrected import paths to point to files within the 'src' directory.
 import { XP_PER_LEVEL_FORMULA } from '../utils';
 import { useUser } from '../contexts/UserContext';
 import { useError } from '../contexts/ErrorContext';
 import MissionProgress from './MissionProgress';
 import LifeMapWidget from './LifeMapWidget';
 import LiteYouTubeEmbed from './LiteYouTubeEmbed';
-
-const LazySection = ({ children, className = "", id = "", ...props }: HTMLAttributes<HTMLDivElement> & { children: React.ReactNode, id?: string }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const elementRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) { setIsVisible(true); observer.disconnect(); }
-      }, { threshold: 0.1, rootMargin: '100px' }
-    );
-    if (elementRef.current) { observer.observe(elementRef.current); }
-    return () => {if (elementRef.current) observer.disconnect()};
-  }, []);
-
-  return (
-    <div id={id} ref={elementRef} className={`transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'} ${className}`} {...props}>
-      {children}
-    </div>
-  );
-};
 
 
 // --- MODULAR WIDGETS ---
@@ -286,7 +267,7 @@ const HeroicDashboard: React.FC = () => {
   const xpRemaining = nextLevelXP > 0 ? Math.max(0, nextLevelXP - user.currentXP) : 0;
 
 
-  const handleModuleUnlock = (moduleId: ProtectionModuleId) => handlePurchase('protecao_360');
+  const handleModuleUnlock = (moduleId: ProtectionModuleId) => handlePurchase('plano_heroi_total');
 
   const onConfirmRecalibrate = () => {
     handleRedoDiagnosis();
@@ -384,7 +365,7 @@ const HeroicDashboard: React.FC = () => {
           </div>
       </div>
 
-      <LazySection className="space-y-4">
+      <div className="space-y-4">
         <h3 className="text-sm font-bold font-mono uppercase text-zinc-400"><Shield className="w-4 h-4 inline mr-2" /> Protocolos de Proteção</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {user.activeModules.includes('soberano') ? <BusinessRoadmapWidget /> : <LockedModuleWidget moduleId='soberano' onUnlock={handleModuleUnlock} />}
@@ -392,7 +373,7 @@ const HeroicDashboard: React.FC = () => {
             <LockedModuleWidget moduleId='sabio' onUnlock={handleModuleUnlock} />
             <LockedModuleWidget moduleId='lider' onUnlock={handleModuleUnlock} />
         </div>
-      </LazySection>
+      </div>
 
       {showRecalibrateModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 animate-in fade-in">

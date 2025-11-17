@@ -19,13 +19,13 @@ const Codex = lazy(() => import('./components/Codex'));
 const Guild = lazy(() => import('./components/Guild'));
 const IAMentor = lazy(() => import('./components/IAMentor'));
 const Journal = lazy(() => import('./components/Journal'));
-const SkillTree = lazy(() => import('./components/SkillTree'));
+// FIX: Corrected lazy import to handle a named export from SkillTree.tsx
+const SkillTree = lazy(() => import('./components/SkillTree').then(module => ({ default: module.SkillTree })));
 const Pantheon = lazy(() => import('./components/Pantheon'));
 const Profile = lazy(() => import('./components/Profile'));
 const Settings = lazy(() => import('./components/Settings'));
 const LifeMapPage = lazy(() => import('./components/LifeMapPage'));
 const TacticalArsenal = lazy(() => import('./components/TacticalArsenal'));
-const StorageTest = lazy(() => import('./components/StorageTest'));
 
 const LoadingFallback: React.FC = () => (
     <div className="bg-black min-h-screen flex items-center justify-center">
@@ -82,7 +82,6 @@ const AppContent: React.FC = () => {
                     <Route path="pantheon" element={<Pantheon />} />
                     <Route path="profile" element={<Profile />} />
                     <Route path="settings" element={<Settings />} />
-                    <Route path="storage-test" element={<StorageTest />} />
                 </Route>
                 
                 <Route path="*" element={<Navigate to="/" replace />} />
@@ -92,6 +91,7 @@ const AppContent: React.FC = () => {
   );
 };
 
+// --- ROOT APP COMPONENT ---
 const App: React.FC = () => (
   <HashRouter>
     <ErrorProvider>

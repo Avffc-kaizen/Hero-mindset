@@ -1,9 +1,12 @@
+
+
 import React, { useState } from 'react';
-import { JournalEntry } from '../src/types';
+// FIX: Corrected import paths to point to files within the 'src' directory.
+import { JournalEntry } from './src/types';
 import { ScrollText, Send, Lock, Zap, CheckCircle, ChevronRight, Bot, Loader2 } from 'lucide-react';
-import { analyzeJournalAI } from '../services/geminiService';
-import { useError } from '../src/contexts/ErrorContext';
-import { useUser } from '../src/contexts/UserContext';
+import { analyzeJournalAI } from './src/services/geminiService';
+import { useError } from './src/contexts/ErrorContext';
+import { useUser } from './src/contexts/UserContext';
 
 const Journal: React.FC = () => {
   const { user, handleAddJournalEntry: onAddEntry, handleUpdateJournalEntry: onUpdateEntry, handlePurchase, isProcessingPayment } = useUser();

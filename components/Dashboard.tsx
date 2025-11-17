@@ -1,15 +1,16 @@
+
+
 import React, { useState, useEffect } from 'react';
 // FIX: Corrected import paths to point to files within the 'src' directory.
-import { ProtectionModuleId, RoadmapItem, BioData, DailyIntention } from '../src/types';
-import { PROTECTION_MODULES, ARCHETYPES } from '../src/constants';
+import { ProtectionModuleId, RoadmapItem, BioData, DailyIntention } from './src/types';
+import { PROTECTION_MODULES, ARCHETYPES } from './src/constants';
 import { Award, Zap, RefreshCw, Star, AlertCircle, Flame, Shield, Briefcase, Activity, TrendingUp, CheckCircle, Plus, Lock, Dumbbell, Moon, Droplets, Trash2, Bot, Target, Check, AlertTriangle, Send, Loader2, X } from 'lucide-react';
-// FIX: Corrected import paths to point to files within the 'src' directory.
-import { XP_PER_LEVEL_FORMULA } from '../src/utils';
-import { useUser } from '../src/contexts/UserContext';
-import { useError } from '../src/contexts/ErrorContext';
-import MissionProgress from './MissionProgress';
-import LifeMapWidget from './LifeMapWidget';
-import LiteYouTubeEmbed from './LiteYouTubeEmbed';
+import { XP_PER_LEVEL_FORMULA } from './src/utils';
+import { useUser } from './src/contexts/UserContext';
+import { useError } from './src/contexts/ErrorContext';
+import MissionProgress from './src/components/MissionProgress';
+import LifeMapWidget from './src/components/LifeMapWidget';
+import LiteYouTubeEmbed from './src/components/LiteYouTubeEmbed';
 
 
 // --- MODULAR WIDGETS ---
@@ -243,7 +244,6 @@ const BioShieldWidget = () => {
 }
 
 const HeroicDashboard: React.FC = () => {
-  // FIX: Replaced `handleUpgrade` with `handlePurchase` which is provided by `useUser` context.
   const { user, handleRedoDiagnosis, handlePurchase, isProcessingPayment } = useUser();
   const [showRecalibrateModal, setShowRecalibrateModal] = useState(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);

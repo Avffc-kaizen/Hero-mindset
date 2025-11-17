@@ -8,7 +8,7 @@ import type { LucideIcon } from 'lucide-react';
 
 // --- CONFIGURAÇÕES DE AMBIENTE ---
 export const FRONTEND_URL = "https://hero-mindset.web.app";
-export const EDUZZ_CHECKOUT_URL = "https://sun.eduzz.com/E05XKGE7WX";
+export const EDUZZ_CHECKOUT_URL = "https://sun.eduzz.com/2306764";
 
 // ATENÇÃO: A CHAVE ABAIXO É PÚBLICA E SEGURA PARA SER USADA NO FRONTEND.
 export const STRIPE_PUBLIC_KEY = "pk_live_51RoTtnELwcc78QutLToQM50aQtE7YEnjEMJwBBxhAMguKiBqNWOqXqi0tixmKxnO6WVNPNRCFvGSIoatViXE2jw500H45RN2Ro";
@@ -18,6 +18,7 @@ export const STRIPE_PUBLIC_KEY = "pk_live_51RoTtnELwcc78QutLToQM50aQtE7YEnjEMJwB
 export const MAX_SQUAD_SIZE = 5;
 export const MIN_LEVEL_TO_CREATE_SQUAD = 10;
 export const XP_PER_LEVEL_FORMULA = (level: number) => Math.floor(100 * Math.pow(level, 1.5));
+export const ORACLE_DAILY_MESSAGE_LIMIT = 5;
 
 // --- PRODUTOS E PAGAMENTOS (STRIPE) ---
 export const PRODUCTS: ProductDef[] = [
@@ -32,18 +33,9 @@ export const PRODUCTS: ProductDef[] = [
     isSubscription: false,
   },
   {
-    id: 'mentor_ia',
-    name: 'Assinatura: Mentor IA',
-    description: 'Desbloqueie o Oráculo. Missões, análises e guias gerados por IA.',
-    provider: PaymentProvider.STRIPE,
-    priceId: "price_1SRxBwELwcc78QutnLm4OcVA",
-    price: 4700, // Mensal
-    isSubscription: true,
-  },
-  {
-    id: 'protecao_360',
-    name: 'Assinatura: Proteção 360',
-    description: 'Acesso total. Inclui Mentor IA + todos os Módulos de Proteção.',
+    id: 'plano_heroi_total',
+    name: 'Plano Herói Total',
+    description: 'Desbloqueie todo o potencial: Mentor IA, Missões IA e todos os Protocolos de Proteção.',
     provider: PaymentProvider.STRIPE,
     priceId: "price_1Pshv8ELwcc78Qut2qfW5oUh",
     price: 9700, // Mensal
@@ -194,4 +186,5 @@ export const INITIAL_USER_STATE: UserState = {
   lastMilestoneMissionRefresh: 0, lessonsCompletedToday: 0, lastLessonCompletionDate: 0, dailyGuidance: null, activeModules: [],
   company: null, businessRoadmap: [], bioData: { sleepHours: 0, workoutsThisWeek: 0, waterIntake: 0 }, focusHistory: [],
   dailyIntention: null, keyConnections: [], joinedSquadIds: [], mentorChatHistory: [], lastAnalysisTimestamp: undefined,
+  mentorMessagesSentToday: 0, lastMentorMessageDate: 0,
 };

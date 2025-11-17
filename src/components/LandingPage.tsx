@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useRef, lazy, Suspense } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, ChevronRight, LogIn, CheckCircle, Play, Bot, Award, Share2, Briefcase, TrendingUp, Activity, Brain, Zap, HeartHandshake, Target, Book, ScrollText, Sparkles, GitMerge, Map, Compass } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
-import { PRODUCTS, FRONTEND_URL, PROTECTION_MODULES, EDUZZ_CHECKOUT_URL } from '../constants';
+import { PRODUCTS, FRONTEND_URL, PROTECTION_MODULES } from '../constants';
+import ChatbotWidget from './ChatbotWidget';
 import { ProtectionModuleInfo } from '../types';
-
-const ChatbotWidget = lazy(() => import('./ChatbotWidget'));
+import LiteYouTubeEmbed from './LiteYouTubeEmbed';
 
 const LazySection = ({ children, className = "", id = "", ...props }: React.HTMLAttributes<HTMLDivElement> & { children: React.ReactNode, id?: string }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -24,27 +24,6 @@ const LazySection = ({ children, className = "", id = "", ...props }: React.HTML
   return (
     <div id={id} ref={elementRef} className={`transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'} ${className}`} {...props}>
       {children}
-    </div>
-  );
-};
-
-const LiteYouTubeEmbed = ({ videoId, title }: { videoId: string, title: string }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  return (
-    <div className="absolute inset-0 w-full h-full bg-black group cursor-pointer overflow-hidden rounded-xl">
-      {!isLoaded ? (
-        <button onClick={() => setIsLoaded(true)} className="w-full h-full">
-            <img 
-              src={`https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`}
-              alt={title} 
-              className="w-full h-full object-cover opacity-80 group-hover:opacity-60" 
-            />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20"><div className="w-20 h-20 bg-red-600/80 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-white/20 group-hover:bg-red-500 transition-colors"><Play className="w-8 h-8 text-white ml-1" /></div></div>
-        </button>
-      ) : (
-        <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`} title={title} allow="autoplay; encrypted-media" allowFullScreen className="w-full h-full" />
-      )}
     </div>
   );
 };
@@ -378,18 +357,7 @@ const LandingPage: React.FC = () => {
                     <li className="flex items-center gap-3"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Acesso à Guilda, Esquadrões e Panteão</li>
                   </ul>
                 </div>
-                <div className="w-full mt-auto space-y-3">
-                    <button 
-                        onClick={() => handlePurchase(product.id)} 
-                        className="w-full bg-gradient-to-br from-yellow-400 to-yellow-500 text-black py-4 rounded-lg font-bold uppercase tracking-widest transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/40 active:scale-95 animate-button-glow">
-                        Garantir via Cartão
-                    </button>
-                    <button 
-                        onClick={() => window.location.href = EDUZZ_CHECKOUT_URL}
-                        className="w-full bg-zinc-800 text-white py-4 rounded-lg font-bold uppercase tracking-widest transition-all duration-300 ease-in-out transform hover:scale-105 hover:bg-zinc-700 active:scale-95 border border-zinc-700">
-                        Garantir via PIX (Eduzz)
-                    </button>
-                </div>
+                <button onClick={() => handlePurchase(product.id)} className="w-full mt-auto bg-gradient-to-br from-yellow-400 to-yellow-500 text-black py-4 rounded-lg font-bold uppercase tracking-widest transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/40 active:scale-95 animate-button-glow">Garantir Acesso Vitalício</button>
                  <p className="text-xs text-zinc-500 mt-4">Upgrades para Mentor IA e Proteção 360 disponíveis opcionalmente.</p>
               </div>
             ))}
@@ -422,9 +390,7 @@ const LandingPage: React.FC = () => {
 
       <footer className="text-center p-8 border-t border-zinc-900"><p className="text-zinc-600 font-mono text-xs">© {new Date().getFullYear()} HERO MINDSET</p></footer>
       
-      <Suspense fallback={null}>
-        <ChatbotWidget />
-      </Suspense>
+      <ChatbotWidget />
     </div>
   );
 };

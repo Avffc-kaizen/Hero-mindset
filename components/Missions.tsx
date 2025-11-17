@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Mission, MissionCategory, MissionType } from './src/types';
+import { Mission, MissionCategory, MissionType } from '../types';
 import { Target, CheckCircle, Dumbbell, BookOpen, PiggyBank, Brain, Zap, Award, Loader2 } from 'lucide-react';
-import { useUser } from './src/contexts/UserContext';
+import { useUser } from '../contexts/UserContext';
 
 const categoryIcons: Record<MissionCategory, React.ElementType> = {
   Fitness: Dumbbell, Learning: BookOpen, Finance: PiggyBank, Mindset: Brain,

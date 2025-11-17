@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Archetype, LifeMapCategory, ArchetypesList, LifeMapCategoriesList } from '../types';
@@ -188,9 +189,10 @@ export const Onboarding: React.FC = () => {
 
 
 export const LoginScreen: React.FC = () => {
-  const { user, loadingAuth, handleLogin, handleGoogleLogin, handleForgotPassword } = useUser();
+  const { user, loadingAuth, handleLogin, handleSignUp, handleGoogleLogin, handleForgotPassword } = useUser();
   const navigate = useNavigate();
-  const [view, setView] = useState<'login' | 'forgotPassword'>('login');
+  const [view, setView] = useState<'login' | 'signup' | 'forgotPassword'>('login');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -219,6 +221,22 @@ export const LoginScreen: React.FC = () => {
     }
   };
   
+  const handleSignUpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !email || !password) {
+        return; 
+    }
+    if (password.length < 6) { 
+        return; 
+    }
+    setLoading(true);
+    setMessage('');
+    const result = await handleSignUp(name, email, password);
+    if (!result.success) {
+      setLoading(false);
+    }
+  };
+
   const onGoogleLogin = async () => {
     setLoading(true);
     setMessage('');
@@ -230,7 +248,9 @@ export const LoginScreen: React.FC = () => {
   
   const handleForgotSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!email) { return; }
+      if (!email) { 
+        return; 
+      }
       setLoading(true);
       setMessage('');
       const result = await handleForgotPassword(email);
@@ -241,6 +261,7 @@ export const LoginScreen: React.FC = () => {
   const renderTitle = () => {
     switch(view) {
         case 'login': return 'Santuário do Herói';
+        case 'signup': return 'Alistamento';
         case 'forgotPassword': return 'Recuperar Acesso';
     }
   };
@@ -248,6 +269,7 @@ export const LoginScreen: React.FC = () => {
   const renderSubtitle = () => {
     switch(view) {
         case 'login': return 'Acesse seu Quartel-General.';
+        case 'signup': return 'Forje sua identidade de Herói.';
         case 'forgotPassword': return 'Insira seu email para redefinir a senha.';
     }
   };
@@ -315,6 +337,37 @@ export const LoginScreen: React.FC = () => {
         </form>
         )}
         
+        {view === 'signup' && (
+        <form onSubmit={handleSignUpSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Nome de Herói</label>
+            <div className="relative">
+              <User className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
+              <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:border-zinc-600 font-mono transition-colors" placeholder="Seu nome" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Email de Registro</label>
+            <div className="relative">
+              <Mail className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
+              <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:border-zinc-600 font-mono transition-colors" placeholder="seu@email.com" />
+            </div>
+          </div>
+           <div>
+            <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Senha de Comando</label>
+            <div className="relative">
+              <KeyRound className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
+              <input type="password" required autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:border-zinc-600 font-mono transition-colors" placeholder="Mínimo 6 caracteres" />
+            </div>
+          </div>
+          <div className="pt-2">
+             <button type="submit" disabled={loading} className="w-full bg-white text-zinc-950 py-4 rounded font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
+              {loading ? <Loader2 className="animate-spin" /> : "Criar Conta"}
+             </button>
+          </div>
+        </form>
+        )}
+
         {view === 'forgotPassword' && (
         <form onSubmit={handleForgotSubmit} className="space-y-4">
           <div>
@@ -333,11 +386,21 @@ export const LoginScreen: React.FC = () => {
         )}
          <div className="text-center mt-6">
             <p className="text-sm text-zinc-500">
-                {view === 'login' && 'Ainda não é um herói?'}
+                {view === 'login' && 'Ainda não iniciou sua jornada?'}
+                {view === 'signup' && 'Já possui uma conta?'}
                 {view === 'forgotPassword' && 'Lembrou sua senha?'}
                 {' '}
-                {view === 'login' && <a href="/#/" className="font-bold text-zinc-300 hover:text-white underline">Garanta seu acesso.</a>}
-                {view === 'forgotPassword' && <button onClick={() => { setView('login'); setMessage(''); }} className="font-bold text-zinc-300 hover:text-white underline">Voltar para o Login.</button>}
+                <button 
+                  onClick={() => { 
+                    setView(view === 'login' ? 'signup' : 'login'); 
+                    setMessage(''); 
+                  }} 
+                  className="font-bold text-zinc-300 hover:text-white underline"
+                >
+                    {view === 'login' && 'Aliste-se agora.'}
+                    {view === 'signup' && 'Faça o login.'}
+                    {view === 'forgotPassword' && 'Voltar para o Login.'}
+                </button>
             </p>
          </div>
       </div>

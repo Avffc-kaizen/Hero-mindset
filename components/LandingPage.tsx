@@ -1,10 +1,13 @@
+
+
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, ChevronRight, LogIn, CheckCircle, Play, Bot, Award, Share2, Briefcase, TrendingUp, Activity, Brain, Zap, HeartHandshake, Target, Book, ScrollText, Sparkles, GitMerge, Map, Compass } from 'lucide-react';
-import { useUser } from '../src/contexts/UserContext';
-import { PRODUCTS, FRONTEND_URL, PROTECTION_MODULES } from '../src/constants';
-import ChatbotWidget from '../src/components/ChatbotWidget';
-import { ProtectionModuleInfo } from '../src/types';
+// FIX: Corrected import paths to point to files within the 'src' directory.
+import { useUser } from './src/contexts/UserContext';
+import { PRODUCTS, FRONTEND_URL, PROTECTION_MODULES } from './src/constants';
+import ChatbotWidget from './src/components/ChatbotWidget';
+import { ProtectionModuleInfo } from './src/types';
 
 const LazySection = ({ children, className = "", id = "", ...props }: React.HTMLAttributes<HTMLDivElement> & { children: React.ReactNode, id?: string }) => {
   const [isVisible, setIsVisible] = useState(false);

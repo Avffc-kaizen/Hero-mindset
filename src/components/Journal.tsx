@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { JournalEntry } from '../types';
 import { ScrollText, Send, Lock, Zap, CheckCircle, ChevronRight, Bot, Loader2 } from 'lucide-react';
@@ -99,12 +100,12 @@ const Journal: React.FC = () => {
             </button>
           ) : (
             <button
-              onClick={() => handlePurchase('mentor_ia')}
+              onClick={() => handlePurchase('plano_heroi_total')}
               disabled={!!isProcessingPayment}
               className="bg-zinc-800 text-zinc-400 px-4 py-2 rounded font-bold uppercase tracking-wider flex items-center gap-2 text-sm hover:bg-zinc-700 transition active:scale-95 disabled:opacity-50"
             >
               {isProcessingPayment ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-3 h-3" />} 
-              Desbloquear Análise IA
+              Desbloquear Plano Herói
             </button>
           )}
         </div>

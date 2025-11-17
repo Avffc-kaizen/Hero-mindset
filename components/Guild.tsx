@@ -1,12 +1,14 @@
+
+
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { RankTitle, UserState, GuildPost, GuildChannelId, Archetype, Squad, SquadMember } from '../src/types';
+// FIX: Corrected import paths to point to files within the 'src' directory.
+import { RankTitle, UserState, GuildPost, GuildChannelId, Archetype, Squad, SquadMember } from './src/types';
 import { Shield, Trophy, MessageSquare, Loader2, Sword, Skull, Sparkles, Crown, Star, Hexagon, Clock, Send, User as UserIcon, Hash, Flame, Zap, Plus, Lock, X, ChevronRight, Menu, Info, MessageCircle, ChevronDown, Users, Target, AlertCircle, Terminal, AlertTriangle, Briefcase, LogOut, CheckCircle } from 'lucide-react';
-// FIX: Corrected import path for geminiService.
-import { generateBossVictorySpeech, generateChannelInsightAI, generateGuildMemberReply } from '../services/geminiService';
-import { GUILD_CHANNELS, ARCHETYPES, MIN_LEVEL_TO_CREATE_SQUAD, MAX_SQUAD_SIZE } from '../src/constants';
-import { isToday } from '../src/utils';
-import { useUser } from '../src/contexts/UserContext';
-import { useError } from '../src/contexts/ErrorContext';
+import { generateBossVictorySpeech, generateChannelInsightAI, generateGuildMemberReply } from './src/services/geminiService';
+import { GUILD_CHANNELS, ARCHETYPES, MIN_LEVEL_TO_CREATE_SQUAD, MAX_SQUAD_SIZE } from './src/constants';
+import { isToday } from './src/utils';
+import { useUser } from './src/contexts/UserContext';
+import { useError } from './src/contexts/ErrorContext';
 
 type BossType = 'daily' | 'weekly' | 'monthly';
 
@@ -64,7 +66,6 @@ const MOCK_LEADERBOARD = [
 ];
 
 const Guild: React.FC = () => {
-  // FIX: Replaced `handleUpgrade` with `handlePurchase` which is provided by `useUser` context.
   const { user, squads, handlePurchase, handleAscend, handlePunish, handleCreateSquad, handleJoinSquad, handleLeaveSquad, handleBossAttack } = useUser();
   const { showError } = useError();
 

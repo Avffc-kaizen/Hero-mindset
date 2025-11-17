@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { Loader2, CheckCircle, Mail, KeyRound, User, AlertCircle } from 'lucide-react';
@@ -118,37 +119,42 @@ const PaymentSuccess: React.FC = () => {
             </>
           )}
 
-          {(status === 'generic_success' || (status === 'input_required' && customerData)) && (
+          {(status ==='generic_success' || status === 'input_required') && (
             <>
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-white font-mono uppercase">Pagamento Confirmado!</h2>
-              <p className="text-zinc-400 mt-2 mb-6 font-mono text-sm">
-                {status === 'generic_success'
-                  ? 'Crie sua conta para acessar a plataforma. Use o mesmo email da compra.'
-                  : 'Bem-vindo, Herói. Defina sua senha para acessar o santuário.'
-                }
-              </p>
-              <form onSubmit={handleCreateAccount} className="space-y-4 text-left">
-                  <div>
-                    <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Nome de Herói</label>
-                    <div className="relative"><User className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
-                      <input type="text" value={customerData?.name || name} onChange={e => setName(e.target.value)} readOnly={!!customerData?.name} className={`w-full bg-zinc-800 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 font-mono ${customerData?.name ? 'text-zinc-300' : 'text-white'}`} />
-                    </div>
-                  </div>
-                   <div>
-                    <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Email de Registro</label>
-                    <div className="relative"><Mail className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
-                      <input type="email" value={customerData?.email || email} onChange={e => setEmail(e.target.value)} readOnly={!!customerData?.email} className={`w-full bg-zinc-800 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 font-mono ${customerData?.email ? 'text-zinc-300' : 'text-white'}`} placeholder="Use o email da compra"/>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Senha de Comando</label>
-                    <div className="relative"><KeyRound className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" />
-                      <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 text-white font-mono focus:border-zinc-500" placeholder="Mínimo 6 caracteres" />
-                    </div>
-                  </div>
-                  <button type="submit" className="w-full mt-2 bg-green-600 text-white py-3 rounded font-bold uppercase tracking-widest hover:bg-green-700 transition">Finalizar e Entrar</button>
-              </form>
+              {status === 'generic_success' ? (
+                <>
+                  <p className="text-zinc-400 mt-2 mb-6 font-mono text-sm">
+                    Sua compra foi recebida. Para acessar a plataforma, por favor, <strong>crie sua conta ou faça login</strong> com o mesmo email utilizado no pagamento.
+                  </p>
+                  <button 
+                    onClick={() => navigate('/login')} 
+                    className="w-full mt-2 bg-green-600 text-white py-3 rounded font-bold uppercase tracking-widest hover:bg-green-700 transition"
+                  >
+                    Acessar Plataforma
+                  </button>
+                </>
+              ) : customerData && (
+                <>
+                  <p className="text-zinc-400 mt-2 mb-6 font-mono text-sm">Bem-vindo, Herói. Defina sua senha para acessar o santuário.</p>
+                  <form onSubmit={handleCreateAccount} className="space-y-4 text-left">
+                      <div>
+                        <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Nome de Herói</label>
+                        <div className="relative"><User className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" /><input type="text" value={customerData.name} readOnly className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 text-zinc-300 font-mono" /></div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Email de Registro</label>
+                        <div className="relative"><Mail className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" /><input type="email" value={customerData.email} readOnly className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 text-zinc-300 font-mono" /></div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-400 uppercase font-mono mb-2">Senha de Comando</label>
+                        <div className="relative"><KeyRound className="w-5 h-5 text-zinc-500 absolute left-3 top-3.5" /><input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-3 pl-11 pr-4 text-white font-mono focus:border-zinc-500" placeholder="Mínimo 6 caracteres" /></div>
+                      </div>
+                      <button type="submit" className="w-full mt-2 bg-green-600 text-white py-3 rounded font-bold uppercase tracking-widest hover:bg-green-700 transition">Finalizar e Entrar</button>
+                  </form>
+                </>
+              )}
             </>
           )}
 
@@ -156,7 +162,7 @@ const PaymentSuccess: React.FC = () => {
              <>
               <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-white font-mono uppercase">Ocorreu um Erro</h2>
-              <p className="text-zinc-400 mt-2 text-sm">A verificação do pagamento falhou. Por favor, contate o suporte se o problema persistir.</p>
+              <p className="text-zinc-400 mt-2 text-sm">Ocorreu um problema ao processar seu pagamento. Por favor, tente novamente ou contate o suporte.</p>
              </>
           )}
         </div>

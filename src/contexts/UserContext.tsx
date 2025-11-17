@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { UserState, Archetype, LifeMapCategory, JournalEntry, LessonDetails, Mission, RankTitle, Squad, ProtectionModuleId, ParagonPerk, ChatMessage } from '../types';
-import { INITIAL_USER_STATE, STATIC_DAILY_MISSIONS, STATIC_WEEKLY_MISSIONS, MOCK_SQUADS, PRODUCTS, XP_PER_LEVEL_FORMULA, PARAGON_PERKS, SKILL_TREES, STATIC_MILESTONE_MISSIONS } from '../constants';
+import { INITIAL_USER_STATE, STATIC_DAILY_MISSIONS, STATIC_WEEKLY_MISSIONS, MOCK_SQUADS, PRODUCTS, XP_PER_LEVEL_FORMULA, PARAGON_PERKS, SKILL_TREES, STATIC_MILESTONE_MISSIONS, ORACLE_DAILY_MESSAGE_LIMIT } from '../constants';
 import { generateDailyMissionsAI, generateWeeklyMissionsAI, generateProactiveOracleGuidance, getMentorChatReply, generateDailyAnalysisAI } from '../services/geminiService';
 import { createCheckoutSession } from '../services/paymentService';
 import { useError } from './ErrorContext';
@@ -90,12 +90,64 @@ export const useUser = () => {
 
 const FIREBASE_UNCONFIGURED_ERROR = "Funcionalidade indisponível. A conexão com o servidor não foi configurada.";
 
+const MOCK_MASTER_USER_STATE: UserState = {
+  ...INITIAL_USER_STATE,
+  uid: 'master-user-uid-01',
+  isLoggedIn: true,
+  name: "Comandante",
+  email: 'andreferraz@consegvida.com',
+  onboardingCompleted: true,
+  archetype: 'O Governante',
+  lifeMapScores: {
+    'Saúde & Fitness': 10, 'Intelectual': 9, 'Emocional': 8, 'Caráter': 10, 'Espiritual': 9,
+    'Amoroso': 8, 'Social': 9, 'Financeiro': 10, 'Carreira': 10,
+    'Qualidade de Vida': 9, 'Visão de Vida': 10, 'Família': 8
+  },
+  level: 60,
+  currentXP: 15000,
+  rank: RankTitle.Divino,
+  isAscended: true,
+  hasSubscription: true,
+  activeModules: ['soberano', 'tita', 'sabio', 'monge', 'lider'],
+  paragonPoints: 100,
+  paragonPerks: {
+      'xp_boost': 10,
+      'stat_boost': 5,
+      'mission_reroll': 3,
+      'skill_point_mastery': 5
+  },
+  skillPoints: 20,
+  unlockedSkills: ['int_1', 'int_2', 'fit_1', 'fin_1'],
+  journalEntries: [
+    { id: 'j1', date: Date.now() - 86400000, content: "A revisão estratégica semanal foi concluída. As métricas de engajamento da Guilda aumentaram 15%. O Protocolo Titã está otimizado." },
+    { id: 'j2', date: Date.now() - 172800000, content: "Meditação matinal focada na clareza da Visão de Vida. A leitura do 'Meditações' de Marco Aurélio continua a fornecer insights valiosos." }
+  ],
+  missions: [
+      ...STATIC_DAILY_MISSIONS.map((m, i) => ({...m, id: `sd-${i}`, completed: i < 2})),
+      ...STATIC_WEEKLY_MISSIONS.map((m, i) => ({...m, id: `sw-${i}`, completed: true})),
+      ...STATIC_MILESTONE_MISSIONS.map((m, i) => ({...m, id: `sm-${i}`, completed: true})),
+  ],
+  dailyGuidance: { date: Date.now(), content: 'Sua disciplina é a forja dos deuses. Continue a ascensão.', type: 'praise' },
+  mentorChatHistory: [
+      { id: 'msg-1', role: 'model', text: 'Bem vindo de volta, Comandante. Seus sistemas estão operacionais. Qual é a diretriz de hoje?', timestamp: Date.now() }
+  ],
+  hasPaidBase: true,
+  businessRoadmap: [
+    { id: 'br1', title: 'Expandir a Guilda para o Setor Alpha', completed: false },
+    { id: 'br2', title: 'Otimizar o fluxo de recursos do Protocolo Soberano', completed: true },
+  ],
+  bioData: { sleepHours: 8, workoutsThisWeek: 5, waterIntake: 3.5 },
+  dailyIntention: { id: new Date().toISOString().split('T')[0], text: 'Finalizar o balanço de Pontos Divinos.', completed: true },
+  mentorMessagesSentToday: 0,
+  lastMentorMessageDate: 0,
+};
+
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserState>(INITIAL_USER_STATE);
+  const [user, setUser] = useState<UserState>(MOCK_MASTER_USER_STATE);
   const [squads, setSquads] = useState<Squad[]>(MOCK_SQUADS);
   const [isMissionsLoading, setIsMissionsLoading] = useState(false);
   const [levelUpData, setLevelUpData] = useState<{ level: number; rank: RankTitle } | null>(null);
-  const [loadingAuth, setLoadingAuth] = useState(true);
+  const [loadingAuth, setLoadingAuth] = useState(false); // Set to false to bypass auth check
   const [isProcessingPayment, setIsProcessingPayment] = useState('');
   
   const navigate = useNavigate();
@@ -103,17 +155,11 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const prevLevelRef = useRef(user.level);
   
   const writeUserUpdate = useCallback(async (updates: Partial<UserState>) => {
-    const auth = firebaseAuth;
-    const db = firebaseDb;
-    if (!auth?.currentUser || !db) return;
-    const userDocRef = doc(db, "users", auth.currentUser.uid);
-    try {
-      await updateDoc(userDocRef, { ...updates, updatedAt: serverTimestamp() });
-    } catch (err) {
-      console.error("Firestore update failed:", err);
-      showError("Falha ao salvar seu progresso.");
-    }
-  }, [showError]);
+    // In dev mode, we just update local state
+    setUser(prev => ({...prev, ...updates}));
+    console.log("DEV MODE: User update", updates);
+    return;
+  }, []);
 
   const addXP = useCallback((xp: number) => {
     setUser(currentUser => {
@@ -160,195 +206,28 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const handleLogin = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
-    const auth = firebaseAuth;
-    if (!auth) {
-        const message = FIREBASE_UNCONFIGURED_ERROR;
-        showError(message);
-        return { success: false, message };
-    }
-    try { 
-      await signInWithEmailAndPassword(auth, email, password); 
-      return { success: true }; 
-    } catch (error: any) {
-      const message = "Email ou Senha de Comando inválidos.";
-      showError(message);
-      return { success: false, message }; 
-    }
+    showError("Login desativado no modo de desenvolvimento.");
+    return { success: false, message: "Login desativado no modo de desenvolvimento." };
   };
   
   const handleSignUp = async (name: string, email: string, password: string, sessionId?: string | null): Promise<{success: boolean, message?: string}> => {
-      const auth = firebaseAuth;
-      const db = firebaseDb;
-      if (!auth || !db) {
-          const message = FIREBASE_UNCONFIGURED_ERROR;
-          showError(message);
-          return { success: false, message };
-      }
-      try {
-          let purchaseDocRef;
-          
-          if (sessionId) {
-              const specificPurchaseRef = doc(db, "purchases", sessionId);
-              const purchaseDoc = await getDoc(specificPurchaseRef);
-              if (purchaseDoc.exists() && purchaseDoc.data().email.toLowerCase() === email.toLowerCase() && purchaseDoc.data().status === 'verified_for_signup') {
-                  purchaseDocRef = purchaseDoc.ref;
-              } else {
-                   const message = 'A sessão de compra é inválida, não corresponde a este email ou já foi utilizada.';
-                   showError(message);
-                   return { success: false, message };
-              }
-          } else {
-              const purchasesRef = collection(db, 'purchases');
-              const q = query(purchasesRef, where("email", "==", email.toLowerCase()), where("status", "==", "verified_for_signup"), limit(1));
-              const purchaseSnap = await getDocs(q);
-
-              if (purchaseSnap.empty) {
-                  const message = 'Nenhuma compra verificada foi encontrada para este email. Garanta seu acesso e tente novamente.';
-                  showError(message);
-                  return { success: false, message };
-              }
-              purchaseDocRef = purchaseSnap.docs[0].ref;
-          }
-          
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          const userDocRef = doc(db, "users", userCredential.user.uid);
-          
-          const newUserState: UserState = {
-            ...INITIAL_USER_STATE,
-            uid: userCredential.user.uid,
-            name: name,
-            email: email,
-            createdAt: Date.now(),
-            hasPaidBase: true,
-            missions: [...STATIC_MILESTONE_MISSIONS],
-            lastMilestoneMissionRefresh: Date.now(),
-          };
-
-          const batch = writeBatch(db);
-          batch.set(userDocRef, { ...newUserState, createdAt: serverTimestamp() });
-          batch.update(purchaseDocRef, { status: 'claimed', uid: userCredential.user.uid });
-          await batch.commit();
-
-          setUser(newUserState);
-          return { success: true };
-      } catch (error: any) {
-          let message = 'Falha ao criar a conta.';
-          if (error.code === 'auth/email-already-in-use') {
-              message = 'Este email já está em uso.';
-          }
-          console.error("SignUp error:", error);
-          showError(message);
-          return { success: false, message };
-      }
+      showError("Cadastro desativado no modo de desenvolvimento.");
+      return { success: false, message: "Cadastro desativado no modo de desenvolvimento." };
   };
 
   const handleGoogleLogin = async (): Promise<{ success: boolean; message?: string }> => {
-    const auth = firebaseAuth;
-    const db = firebaseDb;
-    if (!auth || !googleProvider || !db) {
-        const message = FIREBASE_UNCONFIGURED_ERROR;
-        showError(message);
-        return { success: false, message };
-    }
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const { isNewUser } = getAdditionalUserInfo(result);
-      const userDocRef = doc(db, "users", result.user.uid);
-
-      if (isNewUser) {
-        const purchasesRef = collection(db, 'purchases');
-        const q = query(purchasesRef, where("email", "==", result.user.email), where("status", "==", "verified_for_signup"), limit(1));
-        const purchaseSnap = await getDocs(q);
-        
-        if (purchaseSnap.empty) {
-            await signOut(auth);
-            const message = 'Conta não encontrada. Por favor, compre o acesso ou use o email da compra.';
-            showError(message);
-            return { success: false, message };
-        }
-
-        const purchaseDocRef = purchaseSnap.docs[0].ref;
-        const newUserState: UserState = {
-            ...INITIAL_USER_STATE,
-            uid: result.user.uid,
-            name: result.user.displayName || "Herói",
-            email: result.user.email || '',
-            hasPaidBase: true,
-            missions: [...STATIC_MILESTONE_MISSIONS],
-            lastMilestoneMissionRefresh: Date.now(),
-        };
-
-        const batch = writeBatch(db);
-        batch.set(userDocRef, { ...newUserState, createdAt: serverTimestamp() });
-        batch.update(purchaseDocRef, { status: 'claimed', uid: result.user.uid });
-        await batch.commit();
-      }
-      return { success: true };
-    } catch (error: any) {
-      console.error("Google Login Error:", error);
-      const message = 'Falha no login com Google. Verifique se pop-ups estão bloqueados.';
-      showError(message);
-      return { success: false, message };
-    }
+    showError("Login desativado no modo de desenvolvimento.");
+    return { success: false, message: "Login desativado no modo de desenvolvimento." };
   };
   
   const handleVerifyNewPurchase = async (sessionId: string): Promise<{ success: boolean; name?: string; email?: string; message?: string; }> => {
-      const db = firebaseDb;
-      if (!db) {
-          const message = FIREBASE_UNCONFIGURED_ERROR;
-          showError(message);
-          return { success: false, message };
-      }
-
-      const retries = 5;
-      const delay = 2000;
-
-      for (let i = 0; i < retries; i++) {
-          try {
-              const purchaseRef = doc(db, "purchases", sessionId);
-              const purchaseDoc = await getDoc(purchaseRef);
-
-              if (purchaseDoc.exists() && purchaseDoc.data().status === 'verified_for_signup') {
-                  const data = purchaseDoc.data();
-                  return { success: true, name: data.name, email: data.email };
-              }
-          } catch (error) {
-              console.error(`Tentativa de verificação ${i + 1} falhou:`, error);
-          }
-          
-          if (i < retries - 1) {
-              await new Promise(resolve => setTimeout(resolve, delay));
-          }
-      }
-
-      const message = "Não foi possível verificar sua compra. Isso pode levar alguns minutos. Se o problema persistir, contate o suporte.";
-      showError(message);
-      return { success: false, message };
+      showError("Verificação desativada no modo de desenvolvimento.");
+      return { success: false, message: "Verificação desativada no modo de desenvolvimento." };
   };
 
   const handleVerifyUpgrade = async (sessionId: string) => {
-      const db = firebaseDb;
-      const auth = firebaseAuth;
-      if (!db || !auth?.currentUser) {
-          const message = "Você precisa estar logado para fazer um upgrade.";
-          showError(message);
-          return { success: false, message };
-      }
-      try {
-          const purchaseRef = doc(db, "purchases", sessionId);
-          const purchaseDoc = await getDoc(purchaseRef);
-          
-          if (purchaseDoc.exists() && purchaseDoc.data().uid === auth.currentUser.uid) {
-              return { success: true };
-          }
-          const message = "Upgrade não pôde ser verificado.";
-          showError(message);
-          return { success: false, message };
-      } catch (error) {
-          const message = "Erro ao verificar o upgrade.";
-          showError(message);
-          return { success: false, message };
-      }
+      showError("Verificação desativada no modo de desenvolvimento.");
+      return { success: false, message: "Verificação desativada no modo de desenvolvimento." };
   };
   
   const handleBossAttack = (bossType: 'daily' | 'weekly' | 'monthly', damage: number) => {
@@ -375,9 +254,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   const handleReset = async () => { 
-      const auth = firebaseAuth;
-      if (auth) await signOut(auth); 
-      setUser(INITIAL_USER_STATE);
+      // In dev mode, this will just reset to the mock state
+      setUser(MOCK_MASTER_USER_STATE);
       navigate('/'); 
   };
   
@@ -399,20 +277,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }
 
   const handleForgotPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
-    const auth = firebaseAuth;
-    if (!auth) {
-        const message = FIREBASE_UNCONFIGURED_ERROR;
-        showError(message);
-        return { success: false, message };
-    }
-    try { 
-      await sendPasswordResetEmail(auth, email); 
-      return { success: true, message: 'Se uma conta existir, um link de recuperação foi enviado.' }; 
-    } catch (error: any) { 
-        const message = 'Falha ao enviar o email.';
-        showError(message);
-        return { success: false, message }; 
-    }
+    showError("Recuperação de senha desativada no modo de desenvolvimento.");
+    return { success: false, message: "Recuperação de senha desativada no modo de desenvolvimento." };
   };
   
   const handleCompleteLesson = (completedLesson: LessonDetails) => {
@@ -487,20 +353,42 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const handleJoinSquad = (squadId: string) => {};
   const handleLeaveSquad = (squadId: string) => {};
   
-  const handleSendMentorMessage = async (message: string, isQuickChat: boolean = false) => {
+  const handleSendMentorMessage = useCallback(async (message: string, isQuickChat: boolean = false) => {
+    const currentUser = user;
+    const isNewDay = !isToday(currentUser.lastMentorMessageDate);
+    const messagesSent = isNewDay ? 0 : currentUser.mentorMessagesSentToday;
+
+    if (messagesSent >= ORACLE_DAILY_MESSAGE_LIMIT) {
+        showError("Você atingiu o limite de 5 mensagens diárias para o Oráculo.");
+        return;
+    }
+
     const userMessage: ChatMessage = { id: `msg-${Date.now()}`, role: 'user', text: message, timestamp: Date.now(), isQuickChat };
-    const updatedHistory = [...user.mentorChatHistory, userMessage];
-    setUser(prev => ({...prev, mentorChatHistory: updatedHistory}));
+    
+    const updatedHistory = [...currentUser.mentorChatHistory, userMessage];
+    const updatedCount = messagesSent + 1;
+
+    setUser(prev => ({
+        ...prev, 
+        mentorChatHistory: updatedHistory,
+        mentorMessagesSentToday: updatedCount,
+        lastMentorMessageDate: Date.now()
+    }));
 
     try {
-        const replyText = await getMentorChatReply(updatedHistory, user);
+        const replyText = await getMentorChatReply(updatedHistory, currentUser);
         const modelMessage: ChatMessage = { id: `msg-${Date.now()+1}`, role: 'model', text: replyText, timestamp: Date.now(), isQuickChat };
-        writeUserUpdate({ mentorChatHistory: [...updatedHistory, modelMessage] });
+        
+        writeUserUpdate({ 
+            mentorChatHistory: [...updatedHistory, modelMessage],
+            mentorMessagesSentToday: updatedCount,
+            lastMentorMessageDate: Date.now()
+        });
     } catch(err) {
-        setUser(prev => ({...prev, mentorChatHistory: user.mentorChatHistory}));
-        throw err;
+        setUser(prev => ({...prev, mentorChatHistory: currentUser.mentorChatHistory}));
+        showError("A conexão com o Oráculo falhou. Tente novamente.");
     }
-  };
+  }, [user, writeUserUpdate, showError]);
 
   const handleRequestDailyAnalysis = async () => {
     const analysisText = await generateDailyAnalysisAI({ rank: user.rank, stats: user.stats, journalEntries: user.journalEntries });
@@ -516,60 +404,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         lastAnalysisTimestamp: lastAnalysisTimestamp,
     });
   };
-
-  useEffect(() => {
-    if (!isFirebaseConfigured) {
-      setLoadingAuth(false);
-      return;
-    }
-    const auth = firebaseAuth;
-    if (!auth) {
-        setLoadingAuth(false);
-        return;
-    }
-    const unsubscribe = onAuthStateChanged(auth, authUser => {
-      let userSnapshotUnsubscribe: (() => void) | null = null;
-      const db = firebaseDb;
-      if (authUser && db) {
-        const userDocRef = doc(db, 'users', authUser.uid);
-        userSnapshotUnsubscribe = onSnapshot(userDocRef, userDoc => {
-          if (userDoc.exists()) {
-            let userData = userDoc.data() as UserState;
-
-            if (authUser.email === 'andreferraz@consegvida.com') {
-                userData = {
-                    ...userData,
-                    level: 60,
-                    rank: RankTitle.Divino,
-                    isAscended: true,
-                    hasSubscription: true,
-                    activeModules: ['soberano', 'tita', 'sabio', 'monge', 'lider'],
-                    paragonPoints: 100,
-                    skillPoints: 20,
-                    onboardingCompleted: true,
-                    hasPaidBase: true,
-                };
-            }
-
-            setUser({
-                ...INITIAL_USER_STATE,
-                ...userData,
-                createdAt: userData.createdAt?.toMillis ? userData.createdAt.toMillis() : userData.createdAt,
-                uid: authUser.uid, 
-                isLoggedIn: true, 
-                email: authUser.email || ''
-            });
-          }
-          setLoadingAuth(false);
-        });
-      } else {
-        setUser(INITIAL_USER_STATE);
-        setLoadingAuth(false);
-      }
-      return () => { if (userSnapshotUnsubscribe) userSnapshotUnsubscribe(); };
-    });
-    return () => unsubscribe();
-  }, []);
 
   const value: UserContextType = { user, squads, isMissionsLoading, loadingAuth, isProcessingPayment, levelUpData, closeLevelUpModal: () => setLevelUpData(null), handleOnboardingComplete, handleReset, handleRedoDiagnosis, handleCompleteLesson, handleAddJournalEntry, handleUpdateJournalEntry, handleUnlockSkill, handleSpendParagonPoint, handleAscend, handlePunish, handleLogin, handleGoogleLogin, handleSignUp, handleForgotPassword, handleUpdateUser, handlePurchase, handleVerifyNewPurchase, handleVerifyUpgrade, handleCreateSquad, handleJoinSquad, handleLeaveSquad, handleCompleteMission, handleBossAttack, handleSendMentorMessage, handleRequestDailyAnalysis };
 

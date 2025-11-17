@@ -1,6 +1,9 @@
 
+
+
 import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Navigate, Outlet, useLocation, NavLink } from 'react-router-dom';
+// FIX: Corrected import paths to point to files within the 'src' directory.
 import { Onboarding, LoginScreen } from './src/components/Login';
 import HeroicDashboard from './src/components/Dashboard';
 import Codex from './src/components/Codex';
@@ -8,7 +11,7 @@ import Guild from './src/components/Guild';
 import IAMentor from './src/components/IAMentor';
 import Journal from './src/components/Journal';
 import Pantheon from './src/components/Pantheon';
-import SkillTree from './src/components/SkillTree';
+import { SkillTree } from './src/components/SkillTree';
 import Profile from './src/components/Profile';
 import Missions from './src/components/Missions';
 import LandingPage from './src/components/LandingPage';

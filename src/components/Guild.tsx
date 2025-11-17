@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { RankTitle, UserState, GuildPost, GuildChannelId, Archetype, Squad, SquadMember } from '../types';
 import { Shield, Trophy, MessageSquare, Loader2, Sword, Skull, Sparkles, Crown, Star, Hexagon, Clock, Send, User as UserIcon, Hash, Flame, Zap, Plus, Lock, X, ChevronRight, Menu, Info, MessageCircle, ChevronDown, Users, Target, AlertCircle, Terminal, AlertTriangle, Briefcase, LogOut, CheckCircle } from 'lucide-react';
@@ -80,7 +81,6 @@ const Guild: React.FC = () => {
   const [showCreateSquadModal, setShowCreateSquadModal] = useState(false);
   const [isBossSpeechGenerating, setIsBossSpeechGenerating] = useState(false);
   const [isSimulatingMember, setIsSimulatingMember] = useState(false);
-  const [isSummoningInsight, setIsSummoningInsight] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
 
   useEffect(() => { if (activeTab === 'channels') { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); } }, [posts, activeChannel, activeTab]);
@@ -93,33 +93,6 @@ const Guild: React.FC = () => {
   }, [user.lastBossAttacks]);
   
   const filteredPosts = posts.filter(p => p.channel === activeChannel);
-
-  const handleSummonInsight = async () => {
-      if (isSummoningInsight || !user.hasSubscription) return;
-      setIsSummoningInsight(true);
-      try {
-          const insight = await generateChannelInsightAI(activeChannel, filteredPosts);
-          const insightPost: GuildPost = {
-              id: `insight-${Date.now()}`,
-              author: 'Oráculo',
-              authorId: 'system-oracle',
-              rank: 'Mentor IA',
-              content: insight,
-              channel: activeChannel,
-              likes: 0,
-              reactions: { 'zap': 1 },
-              comments: [],
-              timestamp: Date.now(),
-              isSystem: true,
-          };
-          setPosts(prev => [...prev, insightPost]);
-      } catch (e: any) {
-          showError(e.message || "Falha ao invocar o Oráculo.");
-      } finally {
-          setIsSummoningInsight(false);
-      }
-  };
-
 
   const handlePostSubmit = async () => {
       if (!newPostContent.trim()) return;
@@ -162,7 +135,7 @@ const Guild: React.FC = () => {
               {GUILD_CHANNELS.map(channel => {
                   const Icon = channel.icon, isActive = activeTab === 'channels' && activeChannel === channel.id, isLocked = channel.exclusiveModule && !user.activeModules.includes(channel.exclusiveModule);
                   return (
-                      <button key={channel.id} onClick={() => { if (isLocked) { handlePurchase('protecao_360'); } else { setActiveTab('channels'); setActiveChannel(channel.id); setMobileMenuOpen(false); } }} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-zinc-800 text-white shadow-md border border-zinc-700' : isLocked ? 'opacity-50 cursor-pointer text-zinc-500 hover:bg-zinc-800/50' : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'}`}>
+                      <button key={channel.id} onClick={() => { if (isLocked) { handlePurchase('plano_heroi_total'); } else { setActiveTab('channels'); setActiveChannel(channel.id); setMobileMenuOpen(false); } }} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-zinc-800 text-white shadow-md border border-zinc-700' : isLocked ? 'opacity-50 cursor-pointer text-zinc-500 hover:bg-zinc-800/50' : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'}`}>
                           <div className="flex items-center gap-3"><Icon className={`w-4 h-4 ${isActive ? 'text-red-500' : ''}`} /><p className={`text-sm font-mono font-bold uppercase ${isActive ? 'text-white' : 'text-zinc-400'}`}>{channel.name}</p></div>
                           {isLocked && <Lock className="w-3 h-3 text-zinc-600" />}
                       </button>
@@ -308,10 +281,6 @@ const Guild: React.FC = () => {
             <div className="flex-1 flex flex-col bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
                  <header className="p-3 border-b border-zinc-800 flex items-center justify-between gap-2">
                     <h3 className="font-bold font-mono uppercase text-white"># {activeChannel}</h3>
-                    <button onClick={handleSummonInsight} disabled={isSummoningInsight || !user.hasSubscription} className="flex items-center gap-2 text-xs font-mono uppercase bg-zinc-800/70 text-zinc-300 px-3 py-1.5 rounded-md hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title={!user.hasSubscription ? "Requer Assinatura Mentor IA" : "Invocar Oráculo"}>
-                        {isSummoningInsight ? <Loader2 className="w-4 h-4 animate-spin"/> : <Terminal className="w-4 h-4"/>}
-                        <span className="hidden sm:inline">Invocar Insight</span>
-                    </button>
                  </header>
                  <div className="flex-1 p-4 space-y-4 overflow-y-auto">
                     {filteredPosts.map(post => {

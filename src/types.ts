@@ -251,6 +251,8 @@ export interface UserState {
   dailyGuidance: DailyGuidance | null;
   mentorChatHistory: ChatMessage[];
   lastAnalysisTimestamp?: number;
+  mentorMessagesSentToday: number;
+  lastMentorMessageDate: number;
   focusHistory?: any[]; // Placeholder
   keyConnections?: any[]; // Placeholder
 }
