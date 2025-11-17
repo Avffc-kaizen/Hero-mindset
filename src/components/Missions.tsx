@@ -1,4 +1,6 @@
+
 import React, { useState } from 'react';
+// FIX: Corrected import paths for types and UserContext to be relative.
 import { Mission, MissionCategory, MissionType } from '../types';
 import { Target, CheckCircle, Dumbbell, BookOpen, PiggyBank, Brain, Zap, Award, Loader2 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';

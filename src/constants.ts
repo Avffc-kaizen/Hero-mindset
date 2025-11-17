@@ -20,16 +20,16 @@ export const MIN_LEVEL_TO_CREATE_SQUAD = 10;
 export const XP_PER_LEVEL_FORMULA = (level: number) => Math.floor(100 * Math.pow(level, 1.5));
 export const ORACLE_DAILY_MESSAGE_LIMIT = 5;
 
-// --- PRODUTOS E PAGAMENTOS (STRIPE) ---
+// --- PRODUTOS E PAGAMENTOS (STRIPE & EDUZZ) ---
 export const PRODUCTS: ProductDef[] = [
   {
     id: 'hero_vitalicio',
     name: 'Hero Mindset Vitalício',
     description: 'Acesso único à plataforma base e todas as ferramentas estáticas.',
-    provider: PaymentProvider.STRIPE,
-    priceId: "price_1SRx9eELwcc78QutsxtesYl0",
-    price: 49700,
-    originalPrice: 99700,
+    provider: PaymentProvider.EDUZZ,
+    eduzzId: "2306764",
+    price: 9700,
+    originalPrice: 49700,
     isSubscription: false,
   },
   {

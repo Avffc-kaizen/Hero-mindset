@@ -19,7 +19,6 @@ const Codex = lazy(() => import('./components/Codex'));
 const Guild = lazy(() => import('./components/Guild'));
 const IAMentor = lazy(() => import('./components/IAMentor'));
 const Journal = lazy(() => import('./components/Journal'));
-// FIX: Corrected lazy import to handle a named export from SkillTree.tsx
 const SkillTree = lazy(() => import('./components/SkillTree').then(module => ({ default: module.SkillTree })));
 const Pantheon = lazy(() => import('./components/Pantheon'));
 const Profile = lazy(() => import('./components/Profile'));
@@ -63,7 +62,7 @@ const AppContent: React.FC = () => {
         {levelUpData && <Suspense fallback={null}><LevelUpModal level={levelUpData.level} rank={levelUpData.rank} onClose={closeLevelUpModal} /></Suspense>}
         <Suspense fallback={<LoadingFallback />}>
             <Routes>
-                <Route path="/" element={user.isLoggedIn && user.onboardingCompleted ? <Navigate to="/app/dashboard" replace /> : <LandingPage />} />
+                <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginScreen />} />
                 <Route path="/payment-success/:productId" element={<PaymentSuccess />} />
                 <Route path="/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />

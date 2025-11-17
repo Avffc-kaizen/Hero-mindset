@@ -241,7 +241,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const mission = user.missions.find(m => m.id === missionId && !m.completed);
     if (mission) {
       addXP(mission.xp);
-      const updatedMissions = user.missions.map(m => m.id === missionId ? {...m, completed: true} : m);
+      const updatedMissions = user.missions.map(m => m.id === missionId ? {...m, completed: true, completionDate: Date.now()} : m);
       writeUserUpdate({ missions: updatedMissions });
     }
   };

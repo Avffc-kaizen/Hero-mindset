@@ -45,6 +45,7 @@ export interface Mission {
   completed: boolean;
   type: MissionType;
   category: MissionCategory;
+  completionDate?: number;
 }
 
 export interface LessonDetails {

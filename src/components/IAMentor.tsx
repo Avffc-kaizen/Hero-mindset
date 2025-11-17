@@ -16,7 +16,6 @@ const IAMentor: React.FC = () => {
   const { showError } = useError();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // FIX: isToday function expects only one argument (the timestamp to check).
   const hasAnalyzedToday = user.lastAnalysisTimestamp ? isToday(user.lastAnalysisTimestamp) : false;
 
   const messagesUsedToday = isToday(user.lastMentorMessageDate) ? user.mentorMessagesSentToday : 0;

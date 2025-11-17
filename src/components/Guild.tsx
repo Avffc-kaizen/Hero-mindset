@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { RankTitle, UserState, GuildPost, GuildChannelId, Archetype, Squad, SquadMember } from '../types';
-import { Shield, Trophy, MessageSquare, Loader2, Sword, Skull, Sparkles, Crown, Star, Hexagon, Clock, Send, User as UserIcon, Hash, Flame, Zap, Plus, Lock, X, ChevronRight, Menu, Info, MessageCircle, ChevronDown, Users, Target, AlertCircle, Terminal, AlertTriangle, Briefcase, LogOut, CheckCircle } from 'lucide-react';
+import { Shield, Trophy, MessageSquare, Loader2, Sword, Skull, Sparkles, Crown, Star, Hexagon, Clock, Send, User as UserIcon, Hash, Flame, Zap, Plus, Lock, X, ChevronRight, Menu, Info, MessageCircle, ChevronDown, Users, Target, AlertCircle, Terminal, AlertTriangle, Briefcase, LogOut, CheckCircle, Bot } from 'lucide-react';
 import { generateBossVictorySpeech, generateChannelInsightAI, generateGuildMemberReply } from '../services/geminiService';
 import { GUILD_CHANNELS, ARCHETYPES, MIN_LEVEL_TO_CREATE_SQUAD, MAX_SQUAD_SIZE } from '../constants';
 import { isToday } from '../utils';
@@ -64,7 +64,7 @@ const MOCK_LEADERBOARD = [
 ];
 
 const Guild: React.FC = () => {
-  const { user, squads, handlePurchase, handleAscend, handlePunish, handleCreateSquad, handleJoinSquad, handleLeaveSquad, handleBossAttack } = useUser();
+  const { user, squads, handlePurchase, handleAscend, handlePunish, handleCreateSquad, handleJoinSquad, handleLeaveSquad, handleBossAttack, isProcessingPayment } = useUser();
   const { showError } = useError();
 
   const [activeTab, setActiveTab] = useState<'channels' | 'squads'>('channels');
@@ -81,6 +81,7 @@ const Guild: React.FC = () => {
   const [showCreateSquadModal, setShowCreateSquadModal] = useState(false);
   const [isBossSpeechGenerating, setIsBossSpeechGenerating] = useState(false);
   const [isSimulatingMember, setIsSimulatingMember] = useState(false);
+  const [isSummoningInsight, setIsSummoningInsight] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
 
   useEffect(() => { if (activeTab === 'channels') { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); } }, [posts, activeChannel, activeTab]);
@@ -93,6 +94,33 @@ const Guild: React.FC = () => {
   }, [user.lastBossAttacks]);
   
   const filteredPosts = posts.filter(p => p.channel === activeChannel);
+
+  const handleSummonInsight = async () => {
+      if (isSummoningInsight || !user.hasSubscription) return;
+      setIsSummoningInsight(true);
+      try {
+          const insight = await generateChannelInsightAI(activeChannel, filteredPosts);
+          const insightPost: GuildPost = {
+              id: `insight-${Date.now()}`,
+              author: 'Oráculo',
+              authorId: 'system-oracle',
+              rank: 'Mentor IA',
+              content: insight,
+              channel: activeChannel,
+              likes: 0,
+              reactions: { 'zap': 1 },
+              comments: [],
+              timestamp: Date.now(),
+              isSystem: true,
+          };
+          setPosts(prev => [...prev, insightPost]);
+      } catch (e: any) {
+          showError(e.message || "Falha ao invocar o Oráculo.");
+      } finally {
+          setIsSummoningInsight(false);
+      }
+  };
+
 
   const handlePostSubmit = async () => {
       if (!newPostContent.trim()) return;
@@ -127,6 +155,27 @@ const Guild: React.FC = () => {
       }
   };
   
+  if (!user.hasSubscription) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto flex items-center justify-center h-full">
+        <div className="bg-zinc-900 border border-red-900/30 rounded-xl p-8 text-center relative overflow-hidden max-w-2xl">
+          <Shield className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2 font-mono uppercase">A Guilda dos Heróis: Acesso Exclusivo</h2>
+          <p className="text-zinc-400 max-w-lg mx-auto mb-6">
+            Forje alianças, junte-se a esquadrões e ascenda no Panteão. A Guilda é o coração da comunidade, disponível apenas para membros do Plano Herói Total.
+          </p>
+          <button
+            onClick={() => handlePurchase('plano_heroi_total')}
+            disabled={!!isProcessingPayment}
+            className="bg-white text-black px-8 py-3 rounded font-bold uppercase tracking-wider hover:bg-zinc-200 inline-flex items-center gap-2 transition-transform active:scale-95 disabled:opacity-50"
+          >
+            {isProcessingPayment ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Ativar Plano Herói Total <ChevronRight className="w-4 h-4" /></>}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const SidebarNav = () => (
     <div className="space-y-6">
         <div>
@@ -281,6 +330,10 @@ const Guild: React.FC = () => {
             <div className="flex-1 flex flex-col bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
                  <header className="p-3 border-b border-zinc-800 flex items-center justify-between gap-2">
                     <h3 className="font-bold font-mono uppercase text-white"># {activeChannel}</h3>
+                    <button onClick={handleSummonInsight} disabled={isSummoningInsight || !user.hasSubscription} className="flex items-center gap-2 text-xs font-mono uppercase bg-zinc-800/70 text-zinc-300 px-3 py-1.5 rounded-md hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title={!user.hasSubscription ? "Requer Assinatura Mentor IA" : "Invocar Oráculo"}>
+                        {isSummoningInsight ? <Loader2 className="w-4 h-4 animate-spin"/> : <Terminal className="w-4 h-4"/>}
+                        <span className="hidden sm:inline">Invocar Insight</span>
+                    </button>
                  </header>
                  <div className="flex-1 p-4 space-y-4 overflow-y-auto">
                     {filteredPosts.map(post => {

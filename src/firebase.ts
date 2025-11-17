@@ -14,9 +14,9 @@ let analytics: Analytics | null = null;
 let googleProvider: GoogleAuthProvider | null = null;
 let isFirebaseConfigured = false;
 
-// A configuração foi inserida diretamente para evitar problemas com variáveis de ambiente no AI Studio.
+// The configuration was inserted directly to avoid issues with environment variables in AI Studio.
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDYAR2rsJ673seTMClTGfMhp4a6GjwLEio",
+  apiKey: process.env.FIREBASE_API_KEY,
   authDomain: "hero-mindset.firebaseapp.com",
   projectId: "hero-mindset",
   storageBucket: "hero-mindset.appspot.com",
@@ -26,7 +26,7 @@ const FIREBASE_CONFIG = {
 };
 
 
-// Verificação simples para garantir que as chaves não estão vazias.
+// Simple check to ensure keys are not empty.
 if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId) {
     try {
         app = getApps().length === 0 ? initializeApp(FIREBASE_CONFIG) : getApp();
@@ -34,14 +34,19 @@ if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId) {
         db = getFirestore(app);
         functions = getFunctions(app, 'southamerica-east1');
         storage = getStorage(app);
-        analytics = getAnalytics(app);
         googleProvider = new GoogleAuthProvider();
+        
+        // Only initialize analytics in a browser environment
+        if (typeof window !== 'undefined') {
+            analytics = getAnalytics(app);
+        }
+
         isFirebaseConfigured = true;
     } catch (e) {
-        console.error("!!! FALHA NA INICIALIZAÇÃO DO FIREBASE:", e);
+        console.error("!!! FIREBASE INITIALIZATION FAILED:", e);
     }
 } else {
-    console.warn("!!! O FIREBASE NÃO ESTÁ CONFIGURADO. VERIFIQUE OS VALORES EM src/firebase.ts !!!");
+    console.warn("!!! FIREBASE IS NOT CONFIGURED. CHECK VALUES IN src/firebase.ts !!!");
 }
 
 export { auth, db, functions, storage, googleProvider, serverTimestamp, isFirebaseConfigured, analytics };

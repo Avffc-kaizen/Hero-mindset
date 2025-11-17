@@ -1,4 +1,4 @@
-import { RankTitle, LifeMapCategory } from './types';
+import { RankTitle, LifeMapCategory, Mission, MissionCategory, LifeMapCategoriesList } from './types';
 
 export const XP_PER_LEVEL_FORMULA = (level: number) => Math.floor(100 * Math.pow(level, 1.5));
 
@@ -60,4 +60,47 @@ export const abbreviateCategory = (category: LifeMapCategory): string => {
     'Família': 'Família',
   };
   return abbreviations[category] || category;
+};
+
+const missionToLifeMapCategory: Record<MissionCategory, LifeMapCategory> = {
+  'Fitness': 'Saúde & Fitness',
+  'Learning': 'Intelectual',
+  'Finance': 'Financeiro',
+  // NOTA: Mapeamento simplificado. Um sistema de categorias de missão mais granular seria benéfico.
+  'Mindset': 'Emocional', 
+};
+
+export const calculateActionScores = (missions: Mission[]): Record<LifeMapCategory, number> => {
+  const actionScores: Partial<Record<LifeMapCategory, { completed: number, total: number }>> = {};
+
+  // Considera apenas missões diárias e semanais atuais para o cálculo de Ação.
+  for (const mission of missions) {
+    if (mission.type === 'daily' || mission.type === 'weekly') {
+      const lifeMapCat = missionToLifeMapCategory[mission.category];
+      if (lifeMapCat) {
+        if (!actionScores[lifeMapCat]) {
+          actionScores[lifeMapCat] = { completed: 0, total: 0 };
+        }
+        actionScores[lifeMapCat]!.total += 1;
+        if (mission.completed) {
+          actionScores[lifeMapCat]!.completed += 1;
+        }
+      }
+    }
+  }
+
+  const finalScores: Record<LifeMapCategory, number> = LifeMapCategoriesList.reduce((acc, cat) => {
+    acc[cat] = 0;
+    return acc;
+  }, {} as Record<LifeMapCategory, number>);
+
+  for (const cat in actionScores) {
+    const category = cat as LifeMapCategory;
+    const { completed, total } = actionScores[category]!;
+    if (total > 0) {
+      finalScores[category] = Math.round((completed / total) * 10);
+    }
+  }
+
+  return finalScores;
 };

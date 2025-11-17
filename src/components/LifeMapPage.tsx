@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useUser } from '../contexts/UserContext';
-import { LifeMapCategory } from '../types';
-import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { Map, RefreshCw, Target, Bot, ShieldAlert, Zap, TrendingUp, CheckCircle, ListChecks, Share2 } from 'lucide-react';
-import { abbreviateCategory } from '../utils';
+import { LifeMapCategory, LifeMapCategoriesList } from '../types';
+import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from 'recharts';
+import { Map, RefreshCw, Target, Bot, ShieldAlert, Zap, TrendingUp, CheckCircle, ListChecks, Share2, BrainCircuit } from 'lucide-react';
+import { abbreviateCategory, calculateActionScores } from '../utils';
 import { FRONTEND_URL } from '../constants';
 
 const AnalysisCard: React.FC<{ icon: React.ElementType; title: string; children: React.ReactNode; className?: string }> = ({ icon: Icon, title, children, className = '' }) => (
@@ -29,12 +29,18 @@ const LifeMapPage: React.FC = () => {
             </div>
         );
     }
+
+    const actionScores = React.useMemo(() => calculateActionScores(user.missions), [user.missions]);
     
-    const radarData = Object.entries(user.lifeMapScores).map(([subject, score]) => ({
-        subject: abbreviateCategory(subject as LifeMapCategory),
-        score: score,
-        fullMark: 10,
-    }));
+    const radarData = React.useMemo(() => {
+        return LifeMapCategoriesList.map(cat => ({
+            subject: abbreviateCategory(cat),
+            perceived: user.lifeMapScores?.[cat] || 0,
+            action: actionScores[cat] || 0,
+            fullMark: 10,
+        }));
+    }, [user.lifeMapScores, actionScores]);
+
 
     const overallScore = React.useMemo(() => {
         if (!user.lifeMapScores) {
@@ -44,7 +50,7 @@ const LifeMapPage: React.FC = () => {
         if (scores.length === 0) {
             return '0.0';
         }
-        // FIX: Explicitly typed the accumulator and cast the score to a number in `reduce` to ensure `sum` is a number, resolving downstream type errors.
+        // FIX: Explicitly set the accumulator type to 'number' to resolve type inference issue with reduce.
         const sum = scores.reduce((currentSum: number, score) => currentSum + Number(score), 0);
         const avg = sum / scores.length;
         return avg.toFixed(1);
@@ -110,7 +116,9 @@ const LifeMapPage: React.FC = () => {
                                 <PolarGrid stroke="#27272a" />
                                 <PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa', fontSize: 12, fontFamily: 'JetBrains Mono' }} />
                                 <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
-                                <Radar name="Score" dataKey="score" stroke="#dc2626" fill="#dc2626" fillOpacity={0.6} />
+                                <Radar name="Percepção" dataKey="perceived" stroke="#a1a1aa" fill="#a1a1aa" fillOpacity={0.2} strokeDasharray="3 3" />
+                                <Radar name="Ação" dataKey="action" stroke="#dc2626" fill="#dc2626" fillOpacity={0.6} />
+                                <Legend wrapperStyle={{fontSize: "12px", fontFamily: "JetBrains Mono", paddingTop: "20px"}} />
                             </RadarChart>
                         </ResponsiveContainer>
                     </div>
@@ -137,10 +145,19 @@ const LifeMapPage: React.FC = () => {
                     </div>
                      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
                         <h3 className="text-sm font-bold font-mono uppercase text-zinc-300 mb-3 flex items-center gap-2"><Bot className="w-4 h-4 text-zinc-400" /> Dossiê Estratégico do Oráculo</h3>
-                        <p className="text-zinc-400 text-sm whitespace-pre-wrap">{user.mapAnalysis ? "Análise completa abaixo." : "Complete o diagnóstico para gerar sua análise."}</p>
+                        <p className="text-zinc-400 text-sm whitespace-pre-wrap">{user.mapAnalysis ? "Análise detalhada abaixo." : "Complete o diagnóstico para gerar sua análise."}</p>
                     </div>
                 </div>
             </div>
+
+            <AnalysisCard icon={BrainCircuit} title="Bússola do Herói: Identidade vs. Ação" className="lg:col-span-4">
+                <p>
+                    Esta bússola revela a lacuna entre sua identidade (quem você acredita ser) e suas ações (o que você realmente faz).
+                    O polígono cinza pontilhado (<span className="text-zinc-400 font-mono">Percepção</span>) é sua autoavaliação.
+                    O polígono vermelho (<span className="text-red-500 font-mono">Ação</span>) é construído a partir de suas missões concluídas.
+                    <strong className="block mt-2">Sua missão é fechar a lacuna.</strong>
+                </p>
+            </AnalysisCard>
             
             {user.mapAnalysis && (
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

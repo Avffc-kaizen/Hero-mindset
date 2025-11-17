@@ -1,4 +1,4 @@
-import { PRODUCTS } from '../constants';
+import { PRODUCTS, EDUZZ_CHECKOUT_URL } from '../constants';
 import { PaymentProvider } from '../types';
 import { functions as firebaseFunctions, isFirebaseConfigured } from '../firebase';
 import { httpsCallable } from 'firebase/functions';
@@ -22,7 +22,13 @@ export const createCheckoutSession = async (productId: string): Promise<{ sessio
       content_type: 'product',
     });
   }
+  
+  // Handle Eduzz flow for the base product
+  if (product.provider === PaymentProvider.EDUZZ) {
+    return { sessionUrl: EDUZZ_CHECKOUT_URL };
+  }
 
+  // Handle Stripe flow for other products (subscriptions)
   if (product.provider === PaymentProvider.STRIPE && product.priceId) {
     if (!isFirebaseConfigured || !firebaseFunctions) {
       throw new Error('Firebase não está configurado. Pagamento indisponível.');

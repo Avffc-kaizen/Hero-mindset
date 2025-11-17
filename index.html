@@ -151,6 +151,28 @@
     ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* Heatmap Tooltip */
+    .heatmap-cell { position: relative; }
+    .heatmap-cell[data-tooltip-text]:hover::after {
+      content: attr(data-tooltip-text);
+      position: absolute;
+      bottom: 150%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #0b0b0d;
+      color: #eaeaea;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: "JetBrains Mono", monospace;
+      white-space: nowrap;
+      z-index: 10;
+      border: 1px solid #23232a;
+      pointer-events: none;
+      opacity: 0;
+      animation: fadeIn 0.2s ease-out forwards;
+    }
   </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 antialiased selection:bg-red-900 selection:text-white">
