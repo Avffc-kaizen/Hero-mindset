@@ -1,13 +1,12 @@
-
-
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, ChevronRight, LogIn, CheckCircle, Play, Bot, Award, Share2, Briefcase, TrendingUp, Activity, Brain, Zap, HeartHandshake, Target, Book, ScrollText, Sparkles, GitMerge, Map, Compass } from 'lucide-react';
-// FIX: Corrected import paths to point to files within the 'src' directory.
-import { useUser } from './src/contexts/UserContext';
-import { PRODUCTS, FRONTEND_URL, PROTECTION_MODULES } from './src/constants';
-import ChatbotWidget from './src/components/ChatbotWidget';
-import { ProtectionModuleInfo } from './src/types';
+import { Shield, ChevronRight, LogIn, CheckCircle, Play, Bot, Award, Share2, Briefcase, TrendingUp, Activity, Brain, Zap, HeartHandshake, Target, Book, ScrollText, Sparkles, GitMerge, Map, Compass, Users } from 'lucide-react';
+// FIX: Corrected relative import path.
+import { useUser } from '../contexts/UserContext';
+import { PRODUCTS, FRONTEND_URL, PROTECTION_MODULES } from '../constants';
+import ChatbotWidget from './ChatbotWidget';
+import { ProtectionModuleInfo } from '../types';
+import LiteYouTubeEmbed from './LiteYouTubeEmbed';
 
 const LazySection = ({ children, className = "", id = "", ...props }: React.HTMLAttributes<HTMLDivElement> & { children: React.ReactNode, id?: string }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -26,27 +25,6 @@ const LazySection = ({ children, className = "", id = "", ...props }: React.HTML
   return (
     <div id={id} ref={elementRef} className={`transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'} ${className}`} {...props}>
       {children}
-    </div>
-  );
-};
-
-const LiteYouTubeEmbed = ({ videoId, title }: { videoId: string, title: string }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  return (
-    <div className="absolute inset-0 w-full h-full bg-black group cursor-pointer overflow-hidden rounded-xl">
-      {!isLoaded ? (
-        <button onClick={() => setIsLoaded(true)} className="w-full h-full">
-            <img 
-              src={`https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`}
-              alt={title} 
-              className="w-full h-full object-cover opacity-80 group-hover:opacity-60" 
-            />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20"><div className="w-20 h-20 bg-red-600/80 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-white/20 group-hover:bg-red-500 transition-colors"><Play className="w-8 h-8 text-white ml-1" /></div></div>
-        </button>
-      ) : (
-        <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`} title={title} allow="autoplay; encrypted-media" allowFullScreen className="w-full h-full" />
-      )}
     </div>
   );
 };
@@ -157,7 +135,7 @@ const LandingPage: React.FC = () => {
         </div>
         <div className="relative z-10 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-10">
           <h1 className="text-5xl sm:text-7xl font-extrabold mb-6 tracking-tighter font-mono uppercase">O Fim do Homem Comum.</h1>
-          <p className="text-lg text-zinc-400 mb-10 max-w-3xl mx-auto">O sistema operacional que transforma disciplina em poder e execução em legado. A Black Friday é sua única chance de entrar com acesso vitalício.</p>
+          <p className="text-lg text-zinc-400 mb-10 max-w-3xl mx-auto">O sistema operacional da vida que transforma disciplina em poder e execução em legado. A Black Friday é sua única chance de entrar com acesso vitalício.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="bg-red-600 text-white px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-red-700 transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-3 shadow-lg shadow-red-600/20 hover:shadow-xl hover:shadow-red-500/40">
               Declarar Guerra <ChevronRight />
@@ -209,7 +187,7 @@ const LandingPage: React.FC = () => {
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Shield className="w-4 h-4 text-red-400 mt-1 flex-shrink-0" />
+                  <Users className="w-4 h-4 text-red-400 mt-1 flex-shrink-0" />
                   <div>
                     <span className="font-bold text-white">Guilda dos Heróis</span>
                     <p className="text-zinc-500 mt-1">Forje alianças, compita em esquadrões e ascenda no Panteão.</p>
@@ -289,7 +267,7 @@ const LandingPage: React.FC = () => {
         <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
                 <h2 className="text-4xl font-bold uppercase font-mono mb-4">Os Protocolos de Proteção</h2>
-                <p className="text-zinc-400 max-w-2xl mx-auto">Ferramentas de elite para dominar áreas específicas da sua vida. Disponível com a assinatura <span className="text-white font-bold">Proteção 360</span>.</p>
+                <p className="text-zinc-400 max-w-2xl mx-auto">Ferramentas de elite para dominar áreas específicas da sua vida. Disponível com a assinatura <span className="text-white font-bold">Plano Herói Total</span>.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
                 {Object.values(PROTECTION_MODULES).map((module) => {
@@ -377,11 +355,10 @@ const LandingPage: React.FC = () => {
                     <li className="flex items-center gap-3"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Diagnóstico de Vida 360°</li>
                     <li className="flex items-center gap-3"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Acesso a todos Módulos do Codex</li>
                     <li className="flex items-center gap-3"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Missões Estáticas e Arsenal</li>
-                    <li className="flex items-center gap-3"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Acesso à Guilda, Esquadrões e Panteão</li>
                   </ul>
                 </div>
                 <button onClick={() => handlePurchase(product.id)} className="w-full mt-auto bg-gradient-to-br from-yellow-400 to-yellow-500 text-black py-4 rounded-lg font-bold uppercase tracking-widest transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/40 active:scale-95 animate-button-glow">Garantir Acesso Vitalício</button>
-                 <p className="text-xs text-zinc-500 mt-4">Upgrades para Mentor IA e Proteção 360 disponíveis opcionalmente.</p>
+                 <p className="text-xs text-zinc-500 mt-4">O <span className="font-bold text-zinc-400">Plano Herói Total</span>, que inclui Oráculo IA e a Guilda, está disponível como upgrade opcional dentro da plataforma.</p>
               </div>
             ))}
           </div>
@@ -394,7 +371,7 @@ const LandingPage: React.FC = () => {
             <h2 className="text-4xl font-bold uppercase font-mono mb-4">Dúvidas Frequentes</h2>
           </div>
           <div className="space-y-4">
-            <FAQItem q="O que é o Acesso Vitalício da Black Friday?" a="É um pagamento único que garante seu acesso para sempre a toda a plataforma base e suas futuras atualizações. Sem mensalidades. As assinaturas de IA são upgrades opcionais." />
+            <FAQItem q="O que é o Acesso Vitalício da Black Friday?" a="É um pagamento único que garante seu acesso para sempre a toda a plataforma base e suas futuras atualizações. Sem mensalidades. Recursos avançados como o Oráculo IA e a Guilda dos Heróis requerem a assinatura opcional do Plano Herói Total." />
             <FAQItem q="Para quem é o Hero Mindset?" a="É para homens que buscam um sistema de auto-responsabilidade brutal. Se você valoriza disciplina e execução, este é seu lugar." />
             <FAQItem q="E se eu não gostar? Qual a garantia?" a="A mentalidade do herói não busca rotas de escape. Nossa garantia é o impacto que este sistema terá se você se comprometer." />
           </div>

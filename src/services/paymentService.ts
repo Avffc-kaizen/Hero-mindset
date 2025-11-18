@@ -1,4 +1,4 @@
-import { PRODUCTS, EDUZZ_CHECKOUT_URL } from '../constants';
+import { PRODUCTS } from '../constants';
 import { PaymentProvider } from '../types';
 import { functions as firebaseFunctions, isFirebaseConfigured } from '../firebase';
 import { httpsCallable } from 'firebase/functions';
@@ -23,9 +23,11 @@ export const createCheckoutSession = async (productId: string): Promise<{ sessio
     });
   }
   
-  // Handle Eduzz flow for the base product
   if (product.provider === PaymentProvider.EDUZZ) {
-    return { sessionUrl: EDUZZ_CHECKOUT_URL };
+    if (!product.eduzzCheckoutUrl) {
+      throw new Error('URL de checkout da Eduzz não encontrada para este produto.');
+    }
+    return { sessionUrl: product.eduzzCheckoutUrl };
   }
 
   // Handle Stripe flow for other products (subscriptions)

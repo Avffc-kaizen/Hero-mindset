@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Archetype, LifeMapCategory, ArchetypesList, LifeMapCategoriesList } from '../types';
@@ -211,6 +210,7 @@ export const LoginScreen: React.FC = () => {
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) { 
+        // showError is now called from UserContext
         return; 
     }
     setLoading(true);
@@ -224,9 +224,11 @@ export const LoginScreen: React.FC = () => {
   const handleSignUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !password) {
+        // showError will be called from UserContext
         return; 
     }
     if (password.length < 6) { 
+        // showError will be called from UserContext
         return; 
     }
     setLoading(true);
@@ -249,6 +251,7 @@ export const LoginScreen: React.FC = () => {
   const handleForgotSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!email) { 
+        // showError will be called from UserContext
         return; 
       }
       setLoading(true);

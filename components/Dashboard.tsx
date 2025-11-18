@@ -1,16 +1,16 @@
-
-
 import React, { useState, useEffect } from 'react';
-// FIX: Corrected import paths to point to files within the 'src' directory.
-import { ProtectionModuleId, RoadmapItem, BioData, DailyIntention } from './src/types';
-import { PROTECTION_MODULES, ARCHETYPES } from './src/constants';
+import { ProtectionModuleId, RoadmapItem, BioData, DailyIntention } from '../types';
+import { PROTECTION_MODULES, ARCHETYPES } from '../constants';
 import { Award, Zap, RefreshCw, Star, AlertCircle, Flame, Shield, Briefcase, Activity, TrendingUp, CheckCircle, Plus, Lock, Dumbbell, Moon, Droplets, Trash2, Bot, Target, Check, AlertTriangle, Send, Loader2, X } from 'lucide-react';
-import { XP_PER_LEVEL_FORMULA } from './src/utils';
-import { useUser } from './src/contexts/UserContext';
-import { useError } from './src/contexts/ErrorContext';
-import MissionProgress from './src/components/MissionProgress';
-import LifeMapWidget from './src/components/LifeMapWidget';
-import LiteYouTubeEmbed from './src/components/LiteYouTubeEmbed';
+// FIX: Corrected relative import paths.
+import { XP_PER_LEVEL_FORMULA } from '../src/utils';
+import { useUser } from '../contexts/UserContext';
+import { useError } from '../contexts/ErrorContext';
+// FIX: Changed to named import for MissionProgress to resolve module loading error.
+import { MissionProgress } from './MissionProgress';
+import LifeMapWidget from './LifeMapWidget';
+import LiteYouTubeEmbed from './LiteYouTubeEmbed';
+import MissionCalendarWidget from './MissionCalendarWidget';
 
 
 // --- MODULAR WIDGETS ---
@@ -268,7 +268,7 @@ const HeroicDashboard: React.FC = () => {
   const xpRemaining = nextLevelXP > 0 ? Math.max(0, nextLevelXP - user.currentXP) : 0;
 
 
-  const handleModuleUnlock = (moduleId: ProtectionModuleId) => handlePurchase('protecao_360');
+  const handleModuleUnlock = (moduleId: ProtectionModuleId) => handlePurchase('plano_heroi_total');
 
   const onConfirmRecalibrate = () => {
     handleRedoDiagnosis();
@@ -281,13 +281,13 @@ const HeroicDashboard: React.FC = () => {
         <div className="bg-zinc-900/40 border border-dashed border-zinc-800 rounded-2xl p-6 flex flex-col justify-center items-center h-full min-h-[180px] group hover:border-zinc-700 backdrop-blur-md">
             <div className="w-12 h-12 bg-zinc-900 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 border border-white/5"><Lock className="w-5 h-5 text-zinc-500" /></div>
             <h2 className="text-xs font-bold font-mono uppercase text-zinc-400 mb-1">Link Neural Inativo</h2>
-            <p className="text-[10px] text-zinc-500 mb-4">O Oráculo requer permissão superior.</p>
+            <p className="text-[10px] text-zinc-500 mb-4">O Oráculo requer o Plano Herói Total.</p>
             <button 
-              onClick={() => handlePurchase('mentor_ia')} 
+              onClick={() => handlePurchase('plano_heroi_total')} 
               disabled={!!isProcessingPayment}
               className="text-[10px] bg-white text-black px-5 py-2.5 rounded font-bold uppercase tracking-widest hover:bg-zinc-200 shadow-lg disabled:opacity-50 flex items-center justify-center"
             >
-              {isProcessingPayment === 'mentor_ia' ? <Loader2 className="w-4 h-4 animate-spin"/> : 'Ativar Oráculo'}
+              {isProcessingPayment === 'plano_heroi_total' ? <Loader2 className="w-4 h-4 animate-spin"/> : 'Ativar Plano Total'}
             </button>
         </div>
       );
@@ -363,6 +363,7 @@ const HeroicDashboard: React.FC = () => {
               </div>
             </div>
             <MissionProgress />
+            <MissionCalendarWidget />
           </div>
       </div>
 

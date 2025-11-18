@@ -1,4 +1,3 @@
-
 import { httpsCallable } from 'firebase/functions';
 import { functions as firebaseFunctions } from '../firebase';
 import { Mission, RankTitle, JournalEntry, UserStats, UserState, DailyGuidance, LifeMapCategory, GuildPost, ChatMessage } from "../types";

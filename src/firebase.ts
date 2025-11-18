@@ -1,6 +1,6 @@
 import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, type Auth } from "firebase/auth";
-import { getFirestore, serverTimestamp, type Firestore } from "firebase/firestore";
+import { getFirestore, serverTimestamp, type Firestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getFunctions, type Functions } from "firebase/functions";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 import { getAnalytics, type Analytics } from "firebase/analytics";
@@ -16,7 +16,7 @@ let isFirebaseConfigured = false;
 
 // The configuration was inserted directly to avoid issues with environment variables in AI Studio.
 const FIREBASE_CONFIG = {
-  apiKey: process.env.FIREBASE_API_KEY,
+  apiKey: "AIzaSyDYAR2rsJ673seTMClTGfMhp4a6GjwLEio",
   authDomain: "hero-mindset.firebaseapp.com",
   projectId: "hero-mindset",
   storageBucket: "hero-mindset.appspot.com",
@@ -31,7 +31,23 @@ if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId) {
     try {
         app = getApps().length === 0 ? initializeApp(FIREBASE_CONFIG) : getApp();
         auth = getAuth(app);
-        db = getFirestore(app);
+        
+        // Initialize Firestore with offline persistence using the new API
+        if (typeof window !== 'undefined') {
+            try {
+                db = initializeFirestore(app, {
+                    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+                });
+            } catch (err: any) {
+                console.warn(`Firestore persistence could not be enabled: ${err.code}. The app will work online-only.`);
+                // Fallback to default in-memory cache if persistence fails
+                db = getFirestore(app);
+            }
+        } else {
+            // For non-browser environments
+            db = getFirestore(app);
+        }
+
         functions = getFunctions(app, 'southamerica-east1');
         storage = getStorage(app);
         googleProvider = new GoogleAuthProvider();

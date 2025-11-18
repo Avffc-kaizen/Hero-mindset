@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-// FIX: Corrected import paths for types and UserContext assuming components directory is at the project root.
-import { Mission, MissionCategory, MissionType } from './src/types';
+import { Mission, MissionCategory, MissionType } from '../types';
 import { Target, CheckCircle, Dumbbell, BookOpen, PiggyBank, Brain, Zap, Award, Loader2 } from 'lucide-react';
-import { useUser } from './src/contexts/UserContext';
+// FIX: Corrected relative import path.
+import { useUser } from '../contexts/UserContext';
 
 const categoryIcons: Record<MissionCategory, React.ElementType> = {
   Fitness: Dumbbell, Learning: BookOpen, Finance: PiggyBank, Mindset: Brain,

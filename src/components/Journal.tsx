@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { JournalEntry } from '../types';
 import { ScrollText, Send, Lock, Zap, CheckCircle, ChevronRight, Bot, Loader2 } from 'lucide-react';

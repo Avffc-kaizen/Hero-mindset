@@ -8,7 +8,6 @@ import type { LucideIcon } from 'lucide-react';
 
 // --- CONFIGURAÇÕES DE AMBIENTE ---
 export const FRONTEND_URL = "https://hero-mindset.web.app";
-export const EDUZZ_CHECKOUT_URL = "https://sun.eduzz.com/2306764";
 
 // ATENÇÃO: A CHAVE ABAIXO É PÚBLICA E SEGURA PARA SER USADA NO FRONTEND.
 export const STRIPE_PUBLIC_KEY = "pk_live_51RoTtnELwcc78QutLToQM50aQtE7YEnjEMJwBBxhAMguKiBqNWOqXqi0tixmKxnO6WVNPNRCFvGSIoatViXE2jw500H45RN2Ro";
@@ -24,21 +23,35 @@ export const ORACLE_DAILY_MESSAGE_LIMIT = 5;
 export const PRODUCTS: ProductDef[] = [
   {
     id: 'hero_vitalicio',
-    name: 'Hero Mindset Vitalício',
+    name: 'Hero Mindset v.3.0',
     description: 'Acesso único à plataforma base e todas as ferramentas estáticas.',
     provider: PaymentProvider.EDUZZ,
-    eduzzId: "2306764",
+    eduzzId: "2901313",
+    eduzzCheckoutUrl: "https://chk.eduzz.com/E05XKGE7WX",
     price: 9700,
     originalPrice: 49700,
     isSubscription: false,
   },
   {
     id: 'plano_heroi_total',
-    name: 'Plano Herói Total',
-    description: 'Desbloqueie todo o potencial: Mentor IA, Missões IA e todos os Protocolos de Proteção.',
-    provider: PaymentProvider.STRIPE,
-    priceId: "price_1Pshv8ELwcc78Qut2qfW5oUh",
-    price: 9700, // Mensal
+    name: 'Hero Mindset- IA - Mensal',
+    description: 'Desbloqueie todo o potencial: Mentor IA, Guilda e todos os Protocolos de Proteção.',
+    provider: PaymentProvider.EDUZZ,
+    eduzzId: "2907167",
+    eduzzCheckoutUrl: "https://chk.eduzz.com/39ZQPBEZ9E",
+    price: 3700,
+    originalPrice: 4700,
+    isSubscription: true,
+  },
+  {
+    id: 'plano_heroi_anual',
+    name: 'Hero Mindset- IA - Anual',
+    description: 'Acesso total por um ano com desconto. Inclui Mentor IA, Guilda e todos os Protocolos.',
+    provider: PaymentProvider.EDUZZ,
+    eduzzId: "2907268",
+    eduzzCheckoutUrl: "https://chk.eduzz.com/39YDRBDJ9O",
+    price: 29700,
+    originalPrice: 44400,
     isSubscription: true,
   }
 ];

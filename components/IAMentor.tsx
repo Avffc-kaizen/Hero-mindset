@@ -1,19 +1,10 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
-// FIX: Corrected import paths to point to files within the 'src' directory.
-import { useUser } from './src/contexts/UserContext';
+// FIX: Corrected relative import paths.
+import { useUser } from '../contexts/UserContext';
 import { Bot, Lock, ChevronRight, Zap, Send, Loader2, User as UserIcon } from 'lucide-react';
-import { useError } from './src/contexts/ErrorContext';
-
-const isSameDay = (ts1: number, ts2: number) => {
-    if (!ts1 || !ts2) return false;
-    const d1 = new Date(ts1);
-    const d2 = new Date(ts2);
-    return d1.getFullYear() === d2.getFullYear() &&
-           d1.getMonth() === d2.getMonth() &&
-           d1.getDate() === d2.getDate();
-};
+import { useError } from '../contexts/ErrorContext';
+import { isToday } from '../src/utils';
+import { ORACLE_DAILY_MESSAGE_LIMIT } from '../constants';
 
 const IAMentor: React.FC = () => {
   const { user, handleSendMentorMessage, handleRequestDailyAnalysis, handlePurchase, isProcessingPayment } = useUser();
@@ -25,22 +16,26 @@ const IAMentor: React.FC = () => {
   const { showError } = useError();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const hasAnalyzedToday = user.lastAnalysisTimestamp ? isSameDay(Date.now(), user.lastAnalysisTimestamp) : false;
+  const hasAnalyzedToday = user.lastAnalysisTimestamp ? isToday(user.lastAnalysisTimestamp) : false;
+
+  const messagesUsedToday = isToday(user.lastMentorMessageDate) ? user.mentorMessagesSentToday : 0;
+  const messagesRemaining = ORACLE_DAILY_MESSAGE_LIMIT - messagesUsedToday;
+  const limitReached = messagesRemaining <= 0;
+
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mentorChatHistory]);
 
   const handleSend = async () => {
-    if (!input.trim() || isSending) return;
+    if (!input.trim() || isSending || limitReached) return;
     setIsSending(true);
     const messageToSend = input;
     setInput('');
     try {
       await handleSendMentorMessage(messageToSend);
     } catch (err: any) {
-      showError(err.message || "Erro ao contatar o Oráculo.");
-      // Optional: Add the user message back to the input if sending fails
+      // Error is already shown by the context
       setInput(messageToSend);
     } finally {
       setIsSending(false);
@@ -67,14 +62,14 @@ const IAMentor: React.FC = () => {
           <Bot className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2 font-mono uppercase">O Oráculo IA: Acesso Exclusivo</h2>
           <p className="text-zinc-400 max-w-lg mx-auto mb-6">
-            ELEVE SUA JORNADA COM SABEDORIA DIVINA. O Oráculo não é um assistente. É um mentor ancestral, que analisa sua jornada e oferece a clareza necessária para superar seus maiores desafios.
+            Desbloqueie o potencial máximo da plataforma com o Plano Herói Total. Acesso ilimitado ao Oráculo, missões de IA, a Guilda dos Heróis e todos os Protocolos de Proteção.
           </p>
           <button
-            onClick={() => handlePurchase('mentor_ia')}
+            onClick={() => handlePurchase('plano_heroi_total')}
             disabled={!!isProcessingPayment}
             className="bg-white text-black px-8 py-3 rounded font-bold uppercase tracking-wider hover:bg-zinc-200 inline-flex items-center gap-2 transition-transform active:scale-95 disabled:opacity-50"
           >
-            {isProcessingPayment ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Consultar o Oráculo <ChevronRight className="w-4 h-4" /></>}
+            {isProcessingPayment ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Ativar Plano Herói Total <ChevronRight className="w-4 h-4" /></>}
           </button>
         </div>
       </div>
@@ -135,14 +130,17 @@ const IAMentor: React.FC = () => {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                        placeholder="Sua pergunta ao Oráculo..."
+                        placeholder={limitReached ? "Limite diário de mensagens atingido." : "Sua pergunta ao Oráculo..."}
                         className="flex-1 bg-transparent focus:outline-none text-white placeholder:text-zinc-500"
-                        disabled={isSending}
+                        disabled={isSending || limitReached}
                     />
-                    <button onClick={handleSend} disabled={isSending || !input.trim()} className="p-2 bg-zinc-800 rounded-md hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button onClick={handleSend} disabled={isSending || !input.trim() || limitReached} className="p-2 bg-zinc-800 rounded-md hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed">
                         {isSending ? <Loader2 className="w-5 h-5 animate-spin"/> : <Send className="w-5 h-5 text-white"/>}
                     </button>
                 </div>
+                <p className="text-xs text-zinc-500 text-center mt-2 font-mono">
+                  {messagesRemaining > 0 ? `${messagesRemaining} de ${ORACLE_DAILY_MESSAGE_LIMIT} mensagens restantes hoje.` : 'Você usou todas as suas mensagens hoje.'}
+                </p>
             </div>
        </div>
     </div>

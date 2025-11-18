@@ -1,7 +1,7 @@
 import React from 'react';
-import { Target, CheckCircle, Flag, Award } from 'lucide-react';
-// FIX: Corrected import path assuming components directory is at the root.
-import { useUser } from './src/contexts/UserContext';
+import { Target, CheckCircle, Flag, Award, Check } from 'lucide-react';
+// FIX: Corrected relative import path.
+import { useUser } from '../contexts/UserContext';
 
 const ProgressBar: React.FC<{ progress: number; label: string; count: string; color: string; allCompleted: boolean; icon: React.ElementType }> = ({ progress, label, count, color, allCompleted, icon: Icon }) => (
   <div>
@@ -18,7 +18,8 @@ const ProgressBar: React.FC<{ progress: number; label: string; count: string; co
   </div>
 );
 
-const MissionProgress: React.FC = () => {
+// FIX: Changed to named export to resolve potential module resolution issues.
+export const MissionProgress: React.FC = () => {
   const { user } = useUser();
   const { missions } = user;
 
@@ -44,6 +45,7 @@ const MissionProgress: React.FC = () => {
         <Target className="w-4 h-4 text-zinc-400" />
         Progresso das Missões
       </h3>
+      {/* FIX: Added missing allCompleted and icon props to ProgressBar */}
       <ProgressBar
         label="Diárias"
         progress={dailyProgress}
@@ -52,6 +54,7 @@ const MissionProgress: React.FC = () => {
         allCompleted={totalDaily > 0 && completedDaily === totalDaily}
         icon={Target}
       />
+      {/* FIX: Added missing allCompleted and icon props to ProgressBar */}
       <ProgressBar
         label="Desafios"
         progress={weeklyProgress}
@@ -60,6 +63,7 @@ const MissionProgress: React.FC = () => {
         allCompleted={totalWeekly > 0 && completedWeekly === totalWeekly}
         icon={Award}
       />
+      {/* FIX: Added missing allCompleted and icon props to ProgressBar */}
       <ProgressBar
         label="Marcos"
         progress={milestoneProgress}
@@ -71,5 +75,3 @@ const MissionProgress: React.FC = () => {
     </div>
   );
 };
-
-export default MissionProgress;

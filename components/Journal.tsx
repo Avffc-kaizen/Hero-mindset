@@ -1,12 +1,10 @@
-
-
 import React, { useState } from 'react';
-// FIX: Corrected import paths to point to files within the 'src' directory.
-import { JournalEntry } from './src/types';
+import { JournalEntry } from '../types';
 import { ScrollText, Send, Lock, Zap, CheckCircle, ChevronRight, Bot, Loader2 } from 'lucide-react';
-import { analyzeJournalAI } from './src/services/geminiService';
-import { useError } from './src/contexts/ErrorContext';
-import { useUser } from './src/contexts/UserContext';
+import { analyzeJournalAI } from '../services/geminiService';
+import { useError } from '../contexts/ErrorContext';
+// FIX: Corrected relative import path.
+import { useUser } from '../contexts/UserContext';
 
 const Journal: React.FC = () => {
   const { user, handleAddJournalEntry: onAddEntry, handleUpdateJournalEntry: onUpdateEntry, handlePurchase, isProcessingPayment } = useUser();
@@ -102,12 +100,12 @@ const Journal: React.FC = () => {
             </button>
           ) : (
             <button
-              onClick={() => handlePurchase('mentor_ia')}
+              onClick={() => handlePurchase('plano_heroi_total')}
               disabled={!!isProcessingPayment}
               className="bg-zinc-800 text-zinc-400 px-4 py-2 rounded font-bold uppercase tracking-wider flex items-center gap-2 text-sm hover:bg-zinc-700 transition active:scale-95 disabled:opacity-50"
             >
               {isProcessingPayment ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-3 h-3" />} 
-              Desbloquear Análise IA
+              Desbloquear Plano Herói
             </button>
           )}
         </div>

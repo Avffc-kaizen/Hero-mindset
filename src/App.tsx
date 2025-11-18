@@ -1,4 +1,3 @@
-
 import React, { lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
@@ -21,7 +20,7 @@ const IAMentor = lazy(() => import('./components/IAMentor'));
 const Journal = lazy(() => import('./components/Journal'));
 const SkillTree = lazy(() => import('./components/SkillTree').then(module => ({ default: module.SkillTree })));
 const Pantheon = lazy(() => import('./components/Pantheon'));
-const Profile = lazy(() => import('./components/Profile'));
+const Profile = lazy(() => import('./components/Profile').then(module => ({ default: module.Profile })));
 const Settings = lazy(() => import('./components/Settings'));
 const LifeMapPage = lazy(() => import('./components/LifeMapPage'));
 const TacticalArsenal = lazy(() => import('./components/TacticalArsenal'));

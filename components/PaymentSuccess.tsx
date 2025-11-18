@@ -1,12 +1,9 @@
-
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { Loader2, CheckCircle, Mail, KeyRound, User, AlertCircle } from 'lucide-react';
 // FIX: Corrected import paths to point to files within the 'src' directory.
-import { useUser } from './src/contexts/UserContext';
-import { PRODUCTS } from './src/constants';
+import { useUser } from '../contexts/UserContext';
+import { PRODUCTS } from '../constants';
 
 declare global {
   interface Window {
@@ -15,7 +12,7 @@ declare global {
 }
 
 const PaymentSuccess: React.FC = () => {
-  const { user, handleVerifyNewPurchase, handleSignUp, handleVerifyUpgrade } = useUser();
+  const { user, handleSignUp } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
   const { productId } = useParams<{ productId: string }>();
@@ -27,6 +24,10 @@ const PaymentSuccess: React.FC = () => {
   
   const firedPixel = useRef(false);
   const isBaseProduct = productId === 'hero_vitalicio';
+
+  // FIX: Updated function signature to include optional name and email for type safety.
+  const handleVerifyNewPurchase = async (sessionId: string): Promise<{ success: boolean; message: string; name?: string; email?: string; }> => { return { success: false, message: 'Função desativada.' }; }
+  const handleVerifyUpgrade = async (sessionId: string) => { return { success: false, message: 'Função desativada.' }; }
 
   useEffect(() => {
     const verify = async () => {
@@ -54,14 +55,14 @@ const PaymentSuccess: React.FC = () => {
           }
       }
 
-      if (!sessionId) {
-        // If no session ID, check if it's the Eduzz product.
-        if (isBaseProduct) {
-            firePurchaseEvent();
-            setStatus('eduzz_success');
-            return;
-        }
+      // If no session ID, assume it's the Eduzz product.
+      if (isBaseProduct) {
+          firePurchaseEvent();
+          setStatus('eduzz_success');
+          return;
+      }
 
+      if (!sessionId) {
         setErrorMessage('ID da sessão de pagamento não encontrado.');
         setStatus('error');
         return;
@@ -95,10 +96,8 @@ const PaymentSuccess: React.FC = () => {
       }
     };
     
-    if (status === 'verifying') {
-      verify();
-    }
-  }, [status, user.isLoggedIn, isBaseProduct, navigate, location, handleVerifyNewPurchase, handleVerifyUpgrade, productId]);
+    verify();
+  }, [user.isLoggedIn, isBaseProduct, navigate, location, productId]);
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();

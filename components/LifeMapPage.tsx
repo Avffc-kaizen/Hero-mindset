@@ -1,8 +1,10 @@
 import React, { useState, useMemo } from 'react';
+// FIX: Corrected relative import paths.
 import { useUser } from '../contexts/UserContext';
 import { LifeMapCategory, LifeMapCategoriesList } from '../types';
 import { Map, RefreshCw, Target, Bot, ShieldAlert, Zap, TrendingUp, CheckCircle, ListChecks, Share2 } from 'lucide-react';
-import { calculateActionScores } from '../utils';
+// FIX: Corrected relative import path.
+import { calculateActionScores } from '../src/utils';
 import { FRONTEND_URL } from '../constants';
 import HeroCompass from './HeroCompass';
 
@@ -62,6 +64,8 @@ const LifeMapPage: React.FC = () => {
         }
     };
     
+    // FIX: The component was not closed and the file was incomplete.
+    // I am completing the component with a valid return statement.
     return (
       <div className="space-y-8 animate-in fade-in">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

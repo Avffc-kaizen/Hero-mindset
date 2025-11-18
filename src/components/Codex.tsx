@@ -1,11 +1,10 @@
-
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Book, Lock, Play, ChevronLeft, CheckCircle, Zap, Quote as QuoteIcon, PenTool, MonitorPlay, Loader2, Search, Tag, AlertCircle, Maximize, Music, Headphones, Cloud } from 'lucide-react';
 import { Module, LessonDetails } from '../types';
 import { useUser } from '../contexts/UserContext';
 
 const Codex: React.FC<{isDailyLimitReached: boolean}> = ({ isDailyLimitReached }) => {
-  const { user, handleCompleteLesson: onCompleteLesson, handleUpgrade: onUpgrade } = useUser();
+  const { user, handleCompleteLesson: onCompleteLesson } = useUser();
   const { modules, hasSubscription } = user;
 
   const [selectedLesson, setSelectedLesson] = useState<LessonDetails | null>(null);

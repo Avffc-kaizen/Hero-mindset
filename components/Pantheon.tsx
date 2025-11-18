@@ -1,16 +1,13 @@
-
-
-
 import React from 'react';
-// FIX: Corrected import paths to point to files within the 'src' directory.
-import { PARAGON_PERKS } from './src/constants';
+import { PARAGON_PERKS } from '../constants';
 import { Sparkles, Star, ShieldAlert, ArrowUpCircle, Lock } from 'lucide-react';
-import { useUser } from './src/contexts/UserContext';
+// FIX: Corrected relative import path.
+import { useUser } from '../contexts/UserContext';
 
 const Pantheon: React.FC = () => {
   const { user, handleSpendParagonPoint: onSpendPoint } = useUser();
 
-  if (!user.isAscended) {
+  if (!user.isAscended || !user.hasSubscription) {
     return (
       <div className="p-6 max-w-4xl mx-auto text-center h-full flex flex-col items-center justify-center">
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8 sm:p-12 max-w-2xl relative overflow-hidden">
@@ -20,11 +17,13 @@ const Pantheon: React.FC = () => {
                     <Lock className="w-8 h-8 text-zinc-500" />
                 </div>
                 <h2 className="text-3xl font-black font-mono uppercase text-zinc-200 mb-4 tracking-tighter">Acesso Restrito</h2>
-                <p className="text-zinc-400 text-lg mb-8 leading-relaxed max-w-md">O Panteão é o salão dos imortais. Apenas heróis que atingiram o Nível 50 e escolheram a <span className="text-white font-bold">Ascensão</span> podem entrar.</p>
+                <p className="text-zinc-400 text-lg mb-8 leading-relaxed max-w-md">O Panteão é o salão dos imortais. O acesso requer Nível 50, o rito de <span className="text-white font-bold">Ascensão</span> e um <span className="text-white font-bold">Plano Herói Total</span> ativo.</p>
                 <div className="flex flex-col sm:flex-row gap-4 text-sm font-mono text-zinc-500 bg-zinc-950 p-4 rounded-lg border border-zinc-800">
                     <div className="flex items-center gap-2"><span className={user.level >= 50 ? "text-green-500" : "text-zinc-600"}>●</span> Requisito: Nível 50</div>
                     <div className="hidden sm:block text-zinc-700">|</div>
                     <div className="flex items-center gap-2"><span className={user.isAscended ? "text-green-500" : "text-zinc-600"}>●</span> Status: Ascendido</div>
+                    <div className="hidden sm:block text-zinc-700">|</div>
+                    <div className="flex items-center gap-2"><span className={user.hasSubscription ? "text-green-500" : "text-zinc-600"}>●</span> Plano: Herói Total</div>
                 </div>
             </div>
         </div>

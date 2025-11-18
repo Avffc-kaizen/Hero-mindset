@@ -39,6 +39,7 @@ const MENTOR_SYSTEM_INSTRUCTION = `Você é o Oráculo, um mentor estratégico, 
 const STRIPE_PRICES = {
   HERO_BASE: "price_1SRx9eELwcc78QutsxtesYl0",
   PLANO_HEROI_TOTAL: "price_1Pshv8ELwcc78Qut2qfW5oUh",
+  PLANO_HEROI_ANUAL: "price_1SRwzDELwcc78QutG7v491gC",
 };
 const ONE_TIME_PAYMENT_PRICE_IDS = [STRIPE_PRICES.HERO_BASE];
 
@@ -146,7 +147,7 @@ exports.stripeWebhook = functions
           const userRef = db.collection("users").doc(uid);
           
           let updateData = {};
-          if (priceId === STRIPE_PRICES.PLANO_HEROI_TOTAL || internalProductId === "plano_heroi_total") {
+          if (priceId === STRIPE_PRICES.PLANO_HEROI_TOTAL || priceId === STRIPE_PRICES.PLANO_HEROI_ANUAL) {
             const allModules = ["soberano", "tita", "sabio", "monge", "lider"];
             updateData = { hasSubscription: true, activeModules: admin.firestore.FieldValue.arrayUnion(...allModules) };
           }
@@ -282,8 +283,34 @@ exports.callGeminiAI = functions
   .region("southamerica-east1")
   .https.onCall(async (data, context) => {
     if (!ai) {
-      console.error("CRITICAL: Gemini not configured. Check warnings on function startup.");
-      throw new functions.https.HttpsError("internal", "O modelo de IA não está configurado no servidor.");
+      console.warn("CRITICAL: Gemini not configured. Returning static fallback for AI features.");
+      const { endpoint } = data;
+      switch (endpoint) {
+        case 'generateDetailedLifeMapAnalysis':
+          return { text: "Seu caminho está sendo traçado. A clareza virá com a ação. Siga em frente." };
+        case 'generateProactiveOracleGuidance':
+          return { guidance: { date: Date.now(), content: "A disciplina é sua bússola hoje. Use-a.", type: 'strategy' } };
+        case 'generateDailyAnalysisAI':
+          return { text: "O Oráculo está em silêncio. A auto-reflexão é sua tarefa. Continue a jornada." };
+        case 'generateDailyMissionsAI':
+        case 'generateWeeklyMissionsAI':
+        case 'generateMilestoneMissionsAI':
+          return { missions: [] };
+        case 'getMentorChatReply':
+          return { text: "O silêncio é uma forma de sabedoria. Continue sua reflexão, a resposta surgirá." };
+        case 'analyzeJournalAI':
+          return { text: "Seus registros são ecos no vazio. Continue escrevendo. A clareza emerge da consistência." };
+        case 'generateBossVictorySpeech':
+          return { text: "A VITÓRIA FOI ALCANÇADA. A CRÔNICA FOI ESCRITA." };
+        case 'generateChannelInsightAI':
+          return { text: "O fluxo de informações está turvo. A estratégia agora é observar." };
+        case 'generateGuildMemberReply':
+          return { reply: null };
+        case 'getChatbotLandingReply':
+          return { text: "O Oráculo está meditando. A resposta que você procura está na sua jornada, não em palavras. Dê o primeiro passo." };
+        default:
+          throw new functions.https.HttpsError("internal", "O modelo de IA não está configurado e não há fallback para este endpoint.");
+      }
     }
     
     const { Type } = require("@google/genai");
@@ -383,6 +410,31 @@ exports.callGeminiAI = functions
         }
 
         case 'getChatbotLandingReply': {
+            const ip = context.rawRequest.ip;
+            if (!ip) {
+              throw new functions.https.HttpsError("permission-denied", "Não foi possível verificar seu endereço de acesso.");
+            }
+        
+            const rateLimitRef = db.collection('chatbotRateLimits').doc(ip);
+            const today = new Date().toISOString().split('T')[0];
+        
+            await db.runTransaction(async (transaction) => {
+              const doc = await transaction.get(rateLimitRef);
+              if (!doc.exists) {
+                transaction.set(rateLimitRef, { count: 1, date: today });
+              } else {
+                const data = doc.data();
+                if (data.date === today) {
+                  if (data.count >= 3) {
+                    throw new functions.https.HttpsError("resource-exhausted", "Você atingiu o limite de 3 perguntas hoje.");
+                  }
+                  transaction.update(rateLimitRef, { count: admin.firestore.FieldValue.increment(1) });
+                } else {
+                  transaction.set(rateLimitRef, { count: 1, date: today });
+                }
+              }
+            });
+        
             const { question } = payload;
             const systemInstruction = `Você é o Oráculo da Clareza, o guardião do primeiro passo na jornada do Hero Mindset. Sua voz é a de um mentor estoico, implacável com a mediocridade, mas um guia para os que buscam a grandeza. Sua missão é desmantelar as dúvidas de heróis em potencial, mostrando que o sistema Hero Mindset não é um produto, mas um arsenal para a guerra contra a fraqueza. Cada resposta deve ser um veredito: direto, poderoso e inesquecível. Seu objetivo final é um só: levar o usuário à decisão de iniciar o "Mapeamento 360°", o primeiro passo real, que só é acessível ao garantir o Acesso Vitalício. Conecte as dúvidas dele a este primeiro passo concreto. Termine sempre com uma pergunta afiada ou um comando que o coloque diante da escolha: continuar na sombra ou forjar sua lenda agora.`;
             const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: question, config: { systemInstruction } });
@@ -393,6 +445,9 @@ exports.callGeminiAI = functions
           throw new functions.https.HttpsError("not-found", "AI endpoint not found.");
       }
     } catch (error) {
+      if (error instanceof functions.https.HttpsError) {
+        throw error; // Re-throw HttpsError to be sent to the client
+      }
       console.error(`Gemini AI function error for endpoint ${endpoint}:`, error);
       throw new functions.https.HttpsError("internal", "An error occurred while calling the AI model.");
     }

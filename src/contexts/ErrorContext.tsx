@@ -25,3 +25,35 @@ export const ErrorProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, []);
   
   useEffect(() => {
+    let hideTimer: ReturnType<typeof setTimeout>;
+    if (error) {
+      setIsShowing(true);
+      hideTimer = setTimeout(closeError, 6000);
+    }
+    return () => {
+      clearTimeout(hideTimer);
+    };
+  }, [error, closeError]);
+
+  const showError = useCallback((message: string) => {
+    setError(message);
+  }, []);
+
+  return (
+    <ErrorContext.Provider value={{ showError }}>
+      {children}
+      {error && (
+        <div 
+          className={`fixed top-5 right-5 z-[200] max-w-sm bg-red-800 border border-red-600 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-4 transition-all duration-300 ${isShowing ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}
+          role="alert"
+        >
+            <AlertTriangle className="w-6 h-6 flex-shrink-0" />
+            <p className="font-mono text-sm">{error}</p>
+            <button onClick={closeError} className="p-1 -mr-2 rounded-full hover:bg-red-700 transition-colors" aria-label="Fechar notificação">
+                <X className="w-4 h-4" />
+            </button>
+        </div>
+      )}
+    </ErrorContext.Provider>
+  );
+};

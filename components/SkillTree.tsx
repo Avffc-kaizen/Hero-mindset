@@ -1,11 +1,8 @@
-
-
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 // FIX: Corrected import paths to point to files within the 'src' directory.
-import { useUser } from './src/contexts/UserContext';
-import { ToolType, MissionCategory, LifeMapCategory, LifeMapCategoriesList, Skill } from './src/types';
-import { SKILL_TREES } from './src/constants';
+import { useUser } from '../contexts/UserContext';
+import { ToolType, MissionCategory, LifeMapCategory, LifeMapCategoriesList, Skill } from '../types';
+import { SKILL_TREES } from '../constants';
 import { GitMerge, Award, Brain, Dumbbell, Shield, PiggyBank, Lock, CheckCircle, Play, Pause, RotateCcw, Plus, Trash2, Calculator, Briefcase, Smile, Home, Eye, Star, Anchor, HelpCircle, Wind, ListTodo, Zap, Check } from 'lucide-react';
 
 // --- TOOL WIDGETS ---
@@ -61,6 +58,7 @@ const PomodoroTool: React.FC = () => {
   );
 };
 
+// FIX: Changed to a named export to resolve lazy loading issues in App.tsx.
 export const SkillTree: React.FC = () => {
     return (
         <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6">

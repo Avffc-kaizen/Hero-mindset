@@ -1,15 +1,13 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-// FIX: Corrected import paths to point to files within the 'src' directory.
-import { Archetype, LifeMapCategory, ArchetypesList, LifeMapCategoriesList } from './src/types';
-import { ARCHETYPE_QUESTIONS, INITIAL_LIFE_MAP_SCORES, LIFE_MAP_QUESTIONS } from './src/constants';
+import { Archetype, LifeMapCategory, ArchetypesList, LifeMapCategoriesList } from '../types';
+import { ARCHETYPE_QUESTIONS, INITIAL_LIFE_MAP_SCORES, LIFE_MAP_QUESTIONS } from '../constants';
 import { ArrowRight, Compass, Loader2, LogIn, User, KeyRound, Shield, Mail, Bot } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { useUser } from './src/contexts/UserContext';
-import { generateDetailedLifeMapAnalysis } from './src/services/geminiService';
-import { abbreviateCategory } from './src/utils';
+// FIX: Corrected relative import paths.
+import { useUser } from '../contexts/UserContext';
+import { generateDetailedLifeMapAnalysis } from '../services/geminiService';
+import { abbreviateCategory } from '../src/utils';
 
 export const Onboarding: React.FC = () => {
   const { handleOnboardingComplete } = useUser();

@@ -1,11 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { ProtectionModuleId, RoadmapItem, BioData, DailyIntention } from '../types';
 import { PROTECTION_MODULES, ARCHETYPES } from '../constants';
 import { Award, Zap, RefreshCw, Star, AlertCircle, Flame, Shield, Briefcase, Activity, TrendingUp, CheckCircle, Plus, Lock, Dumbbell, Moon, Droplets, Trash2, Bot, Target, Check, AlertTriangle, Send, Loader2, X } from 'lucide-react';
+// FIX: Corrected relative import paths.
 import { XP_PER_LEVEL_FORMULA } from '../utils';
 import { useUser } from '../contexts/UserContext';
 import { useError } from '../contexts/ErrorContext';
+// FIX: Changed to default import for MissionProgress to resolve module loading error.
 import MissionProgress from './MissionProgress';
 import LifeMapWidget from './LifeMapWidget';
 import LiteYouTubeEmbed from './LiteYouTubeEmbed';

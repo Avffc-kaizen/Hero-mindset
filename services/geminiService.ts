@@ -1,10 +1,8 @@
-
-
 import { httpsCallable } from 'firebase/functions';
-// FIX: Corrected import paths to point to files within the 'src' directory.
-import { functions as firebaseFunctions } from './src/firebase';
-// FIX: Corrected import paths to point to files within the 'src' directory.
-import { Mission, RankTitle, JournalEntry, UserStats, UserState, DailyGuidance, LifeMapCategory, GuildPost, ChatMessage } from "./src/types";
+// FIX: Corrected relative import path
+import { functions as firebaseFunctions } from '../firebase';
+// FIX: Corrected relative import path
+import { Mission, RankTitle, JournalEntry, UserStats, UserState, DailyGuidance, LifeMapCategory, GuildPost, ChatMessage } from "../types";
 
 const callGeminiAI = async (endpoint: string, payload: any): Promise<any> => {
     if (!firebaseFunctions) {

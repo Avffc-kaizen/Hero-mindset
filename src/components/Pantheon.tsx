@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { PARAGON_PERKS } from '../constants';
 import { Sparkles, Star, ShieldAlert, ArrowUpCircle, Lock } from 'lucide-react';

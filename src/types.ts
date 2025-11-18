@@ -270,6 +270,7 @@ export interface ProductDef {
   provider: PaymentProvider;
   priceId?: string;
   eduzzId?: string;
+  eduzzCheckoutUrl?: string;
   price: number;
   originalPrice?: number;
   isSubscription: boolean;

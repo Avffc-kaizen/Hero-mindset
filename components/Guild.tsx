@@ -1,14 +1,12 @@
-
-
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-// FIX: Corrected import paths to point to files within the 'src' directory.
-import { RankTitle, UserState, GuildPost, GuildChannelId, Archetype, Squad, SquadMember } from './src/types';
-import { Shield, Trophy, MessageSquare, Loader2, Sword, Skull, Sparkles, Crown, Star, Hexagon, Clock, Send, User as UserIcon, Hash, Flame, Zap, Plus, Lock, X, ChevronRight, Menu, Info, MessageCircle, ChevronDown, Users, Target, AlertCircle, Terminal, AlertTriangle, Briefcase, LogOut, CheckCircle } from 'lucide-react';
-import { generateBossVictorySpeech, generateChannelInsightAI, generateGuildMemberReply } from './src/services/geminiService';
-import { GUILD_CHANNELS, ARCHETYPES, MIN_LEVEL_TO_CREATE_SQUAD, MAX_SQUAD_SIZE } from './src/constants';
-import { isToday } from './src/utils';
-import { useUser } from './src/contexts/UserContext';
-import { useError } from './src/contexts/ErrorContext';
+import { RankTitle, UserState, GuildPost, GuildChannelId, Archetype, Squad, SquadMember } from '../types';
+import { Shield, Trophy, MessageSquare, Loader2, Sword, Skull, Sparkles, Crown, Star, Hexagon, Clock, Send, User as UserIcon, Hash, Flame, Zap, Plus, Lock, X, ChevronRight, Menu, Info, MessageCircle, ChevronDown, Users, Target, AlertCircle, Terminal, AlertTriangle, Briefcase, LogOut, CheckCircle, Bot } from 'lucide-react';
+import { generateBossVictorySpeech, generateChannelInsightAI, generateGuildMemberReply } from '../services/geminiService';
+import { GUILD_CHANNELS, ARCHETYPES, MIN_LEVEL_TO_CREATE_SQUAD, MAX_SQUAD_SIZE } from '../constants';
+// FIX: Corrected relative import paths.
+import { isToday } from '../src/utils';
+import { useUser } from '../contexts/UserContext';
+import { useError } from '../contexts/ErrorContext';
 
 type BossType = 'daily' | 'weekly' | 'monthly';
 
@@ -66,7 +64,7 @@ const MOCK_LEADERBOARD = [
 ];
 
 const Guild: React.FC = () => {
-  const { user, squads, handlePurchase, handleAscend, handlePunish, handleCreateSquad, handleJoinSquad, handleLeaveSquad, handleBossAttack } = useUser();
+  const { user, squads, handlePurchase, handleAscend, handlePunish, handleCreateSquad, handleJoinSquad, handleLeaveSquad, handleBossAttack, isProcessingPayment } = useUser();
   const { showError } = useError();
 
   const [activeTab, setActiveTab] = useState<'channels' | 'squads'>('channels');
@@ -157,6 +155,27 @@ const Guild: React.FC = () => {
       }
   };
   
+  if (!user.hasSubscription) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto flex items-center justify-center h-full">
+        <div className="bg-zinc-900 border border-red-900/30 rounded-xl p-8 text-center relative overflow-hidden max-w-2xl">
+          <Shield className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2 font-mono uppercase">A Guilda dos Heróis: Acesso Exclusivo</h2>
+          <p className="text-zinc-400 max-w-lg mx-auto mb-6">
+            Forje alianças, junte-se a esquadrões e ascenda no Panteão. A Guilda é o coração da comunidade, disponível apenas para membros do Plano Herói Total.
+          </p>
+          <button
+            onClick={() => handlePurchase('plano_heroi_total')}
+            disabled={!!isProcessingPayment}
+            className="bg-white text-black px-8 py-3 rounded font-bold uppercase tracking-wider hover:bg-zinc-200 inline-flex items-center gap-2 transition-transform active:scale-95 disabled:opacity-50"
+          >
+            {isProcessingPayment ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Ativar Plano Herói Total <ChevronRight className="w-4 h-4" /></>}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const SidebarNav = () => (
     <div className="space-y-6">
         <div>
@@ -165,7 +184,7 @@ const Guild: React.FC = () => {
               {GUILD_CHANNELS.map(channel => {
                   const Icon = channel.icon, isActive = activeTab === 'channels' && activeChannel === channel.id, isLocked = channel.exclusiveModule && !user.activeModules.includes(channel.exclusiveModule);
                   return (
-                      <button key={channel.id} onClick={() => { if (isLocked) { handlePurchase('protecao_360'); } else { setActiveTab('channels'); setActiveChannel(channel.id); setMobileMenuOpen(false); } }} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-zinc-800 text-white shadow-md border border-zinc-700' : isLocked ? 'opacity-50 cursor-pointer text-zinc-500 hover:bg-zinc-800/50' : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'}`}>
+                      <button key={channel.id} onClick={() => { if (isLocked) { handlePurchase('plano_heroi_total'); } else { setActiveTab('channels'); setActiveChannel(channel.id); setMobileMenuOpen(false); } }} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-zinc-800 text-white shadow-md border border-zinc-700' : isLocked ? 'opacity-50 cursor-pointer text-zinc-500 hover:bg-zinc-800/50' : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'}`}>
                           <div className="flex items-center gap-3"><Icon className={`w-4 h-4 ${isActive ? 'text-red-500' : ''}`} /><p className={`text-sm font-mono font-bold uppercase ${isActive ? 'text-white' : 'text-zinc-400'}`}>{channel.name}</p></div>
                           {isLocked && <Lock className="w-3 h-3 text-zinc-600" />}
                       </button>

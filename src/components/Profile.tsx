@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Shield, Calendar, Edit, Save, X, Lock, KeyRound, AlertTriangle, ChevronRight, CheckCircle, Award, Loader2 } from 'lucide-react';
+import { User, Shield, Calendar, Edit, Save, X, Lock, KeyRound, AlertTriangle, ChevronRight, CheckCircle, Award, Loader2, Briefcase } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
+import { PRODUCTS } from '../constants';
 
-const Profile: React.FC = () => {
+export const Profile: React.FC = () => {
   const { user, handleUpdateUser: onUpdateProfile, handleReset: onDeleteAccount, handlePurchase, isProcessingPayment, handleForgotPassword: onPasswordChange } = useUser();
   const navigate = useNavigate();
 
@@ -47,10 +47,10 @@ const Profile: React.FC = () => {
     }
   };
 
-  const joinDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('pt-BR') : '—';
+  const joinDate = user.createdAt?.seconds ? new Date(user.createdAt.seconds * 1000).toLocaleDateString('pt-BR') : '—';
 
   const getSubscriptionStatus = () => {
-      if(user.hasSubscription) return { name: "Plano Herói Total", color: "text-yellow-400" };
+      if (user.hasSubscription) return { name: "Plano Herói Total", color: "text-yellow-400" };
       return { name: "Acesso Vitalício", color: "text-green-400" };
   }
   const subscription = getSubscriptionStatus();
@@ -87,24 +87,42 @@ const Profile: React.FC = () => {
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
         <h3 className="text-sm font-bold text-zinc-300 font-mono uppercase">Status da Assinatura</h3>
-        <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Award className={`w-6 h-6 ${subscription.color}`} />
-            <div>
-              <p className="font-bold font-mono text-white">{subscription.name}</p>
-              <p className="text-xs text-zinc-400">Seu nível de acesso atual.</p>
-            </div>
-          </div>
-          <button onClick={() => navigate('/app/arsenal')} className="w-full sm:w-auto px-4 py-2 bg-zinc-800 text-zinc-200 text-xs font-bold uppercase rounded hover:bg-zinc-700 transition-colors">Gerenciar</button>
-        </div>
+         {user.hasSubscription ? (
+             <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-lg flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <Award className={`w-6 h-6 ${subscription.color}`} />
+                    <div>
+                        <p className="font-bold font-mono text-white">{subscription.name}</p>
+                        <p className="text-xs text-zinc-400">Acesso total ao arsenal do Oráculo.</p>
+                    </div>
+                </div>
+                <button className="px-4 py-2 bg-zinc-800 text-white text-xs font-bold uppercase rounded hover:bg-zinc-700" disabled>Gerenciar</button>
+             </div>
+         ) : (
+             <div className="grid sm:grid-cols-2 gap-4">
+                {PRODUCTS.filter(p => p.isSubscription).map(product => (
+                    <div key={product.id} className="bg-zinc-950 border border-zinc-800 hover:border-yellow-700/50 p-4 rounded-lg flex flex-col items-start gap-3">
+                         <h4 className="font-bold font-mono text-yellow-400">{product.name}</h4>
+                         <p className="text-xs text-zinc-400 flex-grow">{product.description}</p>
+                         <div className="flex items-end gap-2">
+                            <span className="text-2xl font-black text-white">R${(product.price / 100)}</span>
+                            <span className="text-zinc-500 font-mono text-sm">{product.id.includes('anual') ? '/ano' : '/mês'}</span>
+                         </div>
+                         <button onClick={() => handlePurchase(product.id)} disabled={!!isProcessingPayment} className="w-full mt-2 px-4 py-2 bg-yellow-600 text-black text-xs font-bold uppercase rounded hover:bg-yellow-500 transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+                            {isProcessingPayment === product.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Fazer Upgrade'}
+                         </button>
+                    </div>
+                ))}
+             </div>
+         )}
       </div>
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
         <h3 className="text-sm font-bold text-zinc-300 font-mono uppercase">Gestão da Conta</h3>
         {passwordMessage && <div className="bg-green-950/50 border border-green-900/50 text-green-400 text-sm p-3 rounded-lg flex items-center gap-2"><CheckCircle className="w-4 h-4" /> {passwordMessage}</div>}
         <div className="grid sm:grid-cols-2 gap-4">
-          <button onClick={handleChangePassword} className="w-full text-left bg-zinc-950 border border-zinc-800 p-4 rounded-lg flex items-center gap-3"><KeyRound className="w-5 h-5" /><div><p className="font-bold">Redefinir Senha</p><p className="text-xs text-zinc-500">Enviaremos um link.</p></div></button>
-          {!user.hasSubscription && (<button onClick={() => handlePurchase('plano_heroi_total')} disabled={!!isProcessingPayment} className="w-full text-left bg-yellow-950/40 border border-yellow-900/50 p-4 rounded-lg flex items-center gap-3 disabled:opacity-50"><Lock className="w-5 h-5 text-yellow-500" /><div><p className="font-bold text-yellow-400">Upgrade Plano Herói Total</p><p className="text-xs">Desbloqueie todo o potencial.</p></div>{isProcessingPayment ? <Loader2 className="w-5 h-5 ml-auto animate-spin" /> : <ChevronRight className="w-5 h-5 ml-auto text-yellow-500" />}</button>)}
+          <button onClick={handleChangePassword} className="w-full text-left bg-zinc-950 border border-zinc-800 p-4 rounded-lg flex items-center gap-3 hover:bg-zinc-900"><KeyRound className="w-5 h-5" /><div><p className="font-bold">Redefinir Senha</p><p className="text-xs text-zinc-500">Enviaremos um link.</p></div></button>
+          <button onClick={() => navigate('/app/arsenal')} className="w-full text-left bg-zinc-950 border border-zinc-800 p-4 rounded-lg flex items-center justify-between hover:bg-zinc-900"><div className="flex items-center gap-3"><Briefcase className="w-5 h-5" /><div><p className="font-bold">Gerenciar Arsenal</p><p className="text-xs text-zinc-500">Acesse suas ferramentas.</p></div></div><ChevronRight className="w-5 h-5" /></button>
         </div>
       </div>
       
@@ -127,5 +145,3 @@ const Profile: React.FC = () => {
     </div>
   );
 };
-
-export default Profile;

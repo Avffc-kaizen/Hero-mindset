@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, ChevronRight, LogIn, CheckCircle, Play, Bot, Award, Share2, Briefcase, TrendingUp, Activity, Brain, Zap, HeartHandshake, Target, Book, ScrollText, Sparkles, GitMerge, Map, Compass } from 'lucide-react';
+import { Shield, ChevronRight, LogIn, CheckCircle, Play, Bot, Award, Share2, Briefcase, TrendingUp, Activity, Brain, Zap, HeartHandshake, Target, Book, ScrollText, Sparkles, GitMerge, Map, Compass, Users } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import { PRODUCTS, FRONTEND_URL, PROTECTION_MODULES } from '../constants';
 import ChatbotWidget from './ChatbotWidget';
@@ -135,7 +134,7 @@ const LandingPage: React.FC = () => {
         </div>
         <div className="relative z-10 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-10">
           <h1 className="text-5xl sm:text-7xl font-extrabold mb-6 tracking-tighter font-mono uppercase">O Fim do Homem Comum.</h1>
-          <p className="text-lg text-zinc-400 mb-10 max-w-3xl mx-auto">O sistema operacional que transforma disciplina em poder e execução em legado. A Black Friday é sua única chance de entrar com acesso vitalício.</p>
+          <p className="text-lg text-zinc-400 mb-10 max-w-3xl mx-auto">O sistema operacional da vida que transforma disciplina em poder e execução em legado. A Black Friday é sua única chance de entrar com acesso vitalício.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="bg-red-600 text-white px-8 py-4 rounded font-bold uppercase tracking-widest hover:bg-red-700 transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-3 shadow-lg shadow-red-600/20 hover:shadow-xl hover:shadow-red-500/40">
               Declarar Guerra <ChevronRight />
@@ -160,130 +159,63 @@ const LandingPage: React.FC = () => {
       <LazySection className="py-20 px-6 bg-zinc-950 border-y border-zinc-900">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold uppercase font-mono mb-4">Seu Arsenal Completo</h2>
-            <p className="text-zinc-400 max-w-2xl mx-auto">Um ecossistema integrado para a guerra contra a mediocridade.</p>
+            <h2 className="text-4xl font-bold uppercase font-mono mb-4">Seu Arsenal de Batalha</h2>
+            <p className="text-zinc-400 max-w-3xl mx-auto">Tudo que você precisa, dividido entre o essencial para a guerra e a vanguarda estratégica para a dominação.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800 hover:border-red-500/50 transition-all duration-300 group">
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* --- ARSENAL MILITAR --- */}
+            <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800 h-full flex flex-col">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-red-900/20 rounded-lg flex items-center justify-center border border-red-500/30 group-hover:bg-red-900/40">
-                  <Zap className="w-6 h-6 text-red-500" />
+                <div className="w-12 h-12 bg-red-900/20 rounded-lg flex items-center justify-center border border-red-500/30"><Shield className="w-6 h-6 text-red-500" /></div>
+                <div>
+                  <h3 className="text-xl font-bold font-mono uppercase text-white">Arsenal Militar</h3>
+                  <p className="text-xs text-zinc-500 uppercase font-mono">Incluso no Acesso Vitalício</p>
                 </div>
-                <h3 className="text-xl font-bold font-mono uppercase text-white">Militar</h3>
               </div>
-              <ul className="space-y-4 text-zinc-300 text-sm">
-                <li className="flex items-start gap-3">
-                  <Target className="w-4 h-4 text-red-400 mt-1 flex-shrink-0" />
-                  <div>
-                    <span className="font-bold text-white">Quadro de Missões</span>
-                    <p className="text-zinc-500 mt-1">Diretrizes diárias, semanais e marcos épicos para forjar disciplina e momentum.</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Book className="w-4 h-4 text-red-400 mt-1 flex-shrink-0" />
-                  <div>
-                    <span className="font-bold text-white">Codex do Conhecimento</span>
-                    <p className="text-zinc-500 mt-1">Sua biblioteca de protocolos e sabedoria heroica para dominar a jornada.</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Shield className="w-4 h-4 text-red-400 mt-1 flex-shrink-0" />
-                  <div>
-                    <span className="font-bold text-white">Guilda dos Heróis</span>
-                    <p className="text-zinc-500 mt-1">Forje alianças, compita em esquadrões e ascenda no Panteão.</p>
-                  </div>
-                </li>
+              <ul className="space-y-4 text-zinc-300 text-sm flex-grow">
+                {[
+                  { icon: Map, title: 'Mapa de Vida 360°', desc: 'Diagnóstico completo para mapear seu poder e identificar alvos prioritários.' },
+                  { icon: Target, title: 'Quadro de Missões', desc: 'Diretrizes diárias, semanais e marcos épicos para forjar disciplina e momentum.' },
+                  { icon: Book, title: 'Codex do Conhecimento', desc: 'Sua biblioteca de protocolos e sabedoria heroica para dominar a jornada.' },
+                  { icon: ScrollText, title: 'Diário de Bordo', desc: 'Registre sua jornada para auto-reflexão profunda.' },
+                  { icon: GitMerge, title: 'Arsenal de Habilidades', desc: 'Desbloqueie ferramentas táticas para a execução diária.' },
+                  { icon: Sparkles, title: 'Panteão Divino', desc: 'Ascenda após o nível 50 e desbloqueie bônus permanentes.' },
+                  { icon: TrendingUp, title: 'Evolução Contínua', desc: 'Ganhe XP, suba de nível e conquiste patentes.' },
+                ].map(item => (
+                  <li key={item.title} className="flex items-start gap-3">
+                    <item.icon className="w-4 h-4 text-red-400 mt-1 flex-shrink-0" />
+                    <div><span className="font-bold text-white">{item.title}</span><p className="text-zinc-500 mt-1">{item.desc}</p></div>
+                  </li>
+                ))}
               </ul>
             </div>
             
-            <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800 hover:border-blue-500/50 transition-all duration-300 group">
+            {/* --- ARSENAL ESTRATÉGICO --- */}
+            <div className="bg-zinc-900/50 p-6 rounded-xl border-2 border-dashed border-yellow-500/30 h-full flex flex-col">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-blue-900/20 rounded-lg flex items-center justify-center border border-blue-500/30 group-hover:bg-blue-900/40">
-                  <Brain className="w-6 h-6 text-blue-500" />
+                <div className="w-12 h-12 bg-yellow-900/20 rounded-lg flex items-center justify-center border border-yellow-500/30"><Zap className="w-6 h-6 text-yellow-400" /></div>
+                 <div>
+                  <h3 className="text-xl font-bold font-mono uppercase text-yellow-400">Arsenal Estratégico</h3>
+                  <p className="text-xs text-yellow-600 uppercase font-mono">Upgrade: Plano Herói Total</p>
                 </div>
-                <h3 className="text-xl font-bold font-mono uppercase text-white">Estratégico</h3>
               </div>
-              <ul className="space-y-4 text-zinc-300 text-sm">
-                <li className="flex items-start gap-3">
-                  <Bot className="w-4 h-4 text-blue-400 mt-1 flex-shrink-0" />
-                  <div>
-                    <span className="font-bold text-white">Oráculo IA</span>
-                    <p className="text-zinc-500 mt-1">Seu mentor IA pessoal que analisa seus dados e fornece clareza estratégica.</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <ScrollText className="w-4 h-4 text-blue-400 mt-1 flex-shrink-0" />
-                  <div>
-                    <span className="font-bold text-white">Diário de Bordo</span>
-                    <p className="text-zinc-500 mt-1">Registre sua jornada para análise do Oráculo e auto-reflexão profunda.</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Map className="w-4 h-4 text-blue-400 mt-1 flex-shrink-0" />
-                  <div>
-                    <span className="font-bold text-white">Mapa de Vida 360°</span>
-                    <p className="text-zinc-500 mt-1">Diagnóstico completo para mapear seu poder e identificar alvos prioritários.</p>
-                  </div>
-                </li>
+              <ul className="space-y-4 text-zinc-300 text-sm flex-grow">
+                 {[
+                  { icon: Bot, title: 'Oráculo IA', desc: 'Seu mentor IA pessoal que analisa seus dados e fornece clareza estratégica.' },
+                  { icon: Users, title: 'Guilda dos Heróis', desc: 'Forje alianças, compita em esquadrões e ascenda no Panteão.' },
+                  { icon: Shield, title: 'Protocolos de Proteção', desc: 'Ferramentas de elite (Soberano, Titã, etc.) para dominar áreas específicas da sua vida.' },
+                ].map(item => (
+                  <li key={item.title} className="flex items-start gap-3">
+                    <item.icon className="w-4 h-4 text-yellow-400 mt-1 flex-shrink-0" />
+                    <div><span className="font-bold text-white">{item.title}</span><p className="text-zinc-500 mt-1">{item.desc}</p></div>
+                  </li>
+                ))}
               </ul>
-            </div>
-
-            <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800 hover:border-yellow-500/50 transition-all duration-300 group">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-yellow-900/20 rounded-lg flex items-center justify-center border border-yellow-500/30 group-hover:bg-yellow-900/40">
-                  <Award className="w-6 h-6 text-yellow-500" />
-                </div>
-                <h3 className="text-xl font-bold font-mono uppercase text-white">Pessoal</h3>
+              <div className="mt-6 text-center">
+                 <p className="text-xs text-zinc-500 mb-4">Disponível como upgrade opcional dentro da plataforma.</p>
               </div>
-              <ul className="space-y-4 text-zinc-300 text-sm">
-                <li className="flex items-start gap-3">
-                  <GitMerge className="w-4 h-4 text-yellow-400 mt-1 flex-shrink-0" />
-                  <div>
-                    <span className="font-bold text-white">Arsenal de Habilidades</span>
-                    <p className="text-zinc-500 mt-1">Desbloqueie ferramentas táticas (Pomodoro, Box Breathing) para a execução diária.</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Sparkles className="w-4 h-4 text-yellow-400 mt-1 flex-shrink-0" />
-                  <div>
-                    <span className="font-bold text-white">Panteão Divino</span>
-                    <p className="text-zinc-500 mt-1">Ascenda após o nível 50 e desbloqueie bônus permanentes para sua jornada.</p>
-                  </div>
-                </li>
-                 <li className="flex items-start gap-3">
-                  <TrendingUp className="w-4 h-4 text-yellow-400 mt-1 flex-shrink-0" />
-                  <div>
-                    <span className="font-bold text-white">Evolução Contínua</span>
-                    <p className="text-zinc-500 mt-1">Ganhe XP, suba de nível, conquiste patentes e forje sua lenda no sistema.</p>
-                  </div>
-                </li>
-              </ul>
             </div>
           </div>
-        </div>
-      </LazySection>
-      
-       <LazySection className="py-20 px-6 bg-zinc-950 border-y border-zinc-900">
-        <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12">
-                <h2 className="text-4xl font-bold uppercase font-mono mb-4">Os Protocolos de Proteção</h2>
-                <p className="text-zinc-400 max-w-2xl mx-auto">Ferramentas de elite para dominar áreas específicas da sua vida. Disponível com a assinatura <span className="text-white font-bold">Proteção 360</span>.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                {Object.values(PROTECTION_MODULES).map((module) => {
-                    const typedModule = module as ProtectionModuleInfo;
-                    const Icon = typedModule.icon;
-                    return (
-                        <div key={typedModule.id} className={`bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-center group transition-all hover:border-${typedModule.color}-500/50 hover:bg-zinc-900/50`}>
-                            <div className={`w-16 h-16 rounded-lg flex items-center justify-center bg-zinc-800 mx-auto mb-4 border-2 border-transparent group-hover:border-${typedModule.color}-500/50 transition-colors`}>
-                                <Icon className={`w-8 h-8 text-zinc-500 group-hover:text-${typedModule.color}-500 transition-colors`} />
-                            </div>
-                            <h3 className="font-bold font-mono uppercase text-sm text-white">{typedModule.name.split(' ')[0]}</h3>
-                            <p className="text-xs text-zinc-500 mt-1">{typedModule.description}</p>
-                        </div>
-                    )
-                })}
-            </div>
         </div>
       </LazySection>
       
@@ -358,7 +290,7 @@ const LandingPage: React.FC = () => {
                   </ul>
                 </div>
                 <button onClick={() => handlePurchase(product.id)} className="w-full mt-auto bg-gradient-to-br from-yellow-400 to-yellow-500 text-black py-4 rounded-lg font-bold uppercase tracking-widest transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/40 active:scale-95 animate-button-glow">Garantir Acesso Vitalício</button>
-                 <p className="text-xs text-zinc-500 mt-4">O Plano Herói Total, que inclui Oráculo IA e a Guilda, está disponível como upgrade.</p>
+                 <p className="text-xs text-zinc-500 mt-4">O <span className="font-bold text-zinc-400">Plano Herói Total</span> está disponível como upgrade opcional dentro da plataforma.</p>
               </div>
             ))}
           </div>
@@ -371,7 +303,7 @@ const LandingPage: React.FC = () => {
             <h2 className="text-4xl font-bold uppercase font-mono mb-4">Dúvidas Frequentes</h2>
           </div>
           <div className="space-y-4">
-            <FAQItem q="O que é o Acesso Vitalício da Black Friday?" a="É um pagamento único que garante seu acesso para sempre a toda a plataforma base e suas futuras atualizações. Sem mensalidades. As assinaturas de IA são upgrades opcionais." />
+            <FAQItem q="O que é o Acesso Vitalício da Black Friday?" a="É um pagamento único que garante seu acesso para sempre a toda a plataforma base e suas futuras atualizações. Sem mensalidades. Recursos avançados como o Oráculo IA e a Guilda dos Heróis requerem a assinatura opcional do Plano Herói Total." />
             <FAQItem q="Para quem é o Hero Mindset?" a="É para homens que buscam um sistema de auto-responsabilidade brutal. Se você valoriza disciplina e execução, este é seu lugar." />
             <FAQItem q="E se eu não gostar? Qual a garantia?" a="A mentalidade do herói não busca rotas de escape. Nossa garantia é o impacto que este sistema terá se você se comprometer." />
           </div>

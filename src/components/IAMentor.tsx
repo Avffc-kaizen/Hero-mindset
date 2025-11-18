@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { Bot, Lock, ChevronRight, Zap, Send, Loader2, User as UserIcon } from 'lucide-react';
@@ -62,7 +61,7 @@ const IAMentor: React.FC = () => {
           <Bot className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2 font-mono uppercase">O Oráculo IA: Acesso Exclusivo</h2>
           <p className="text-zinc-400 max-w-lg mx-auto mb-6">
-            Desbloqueie o potencial máximo da plataforma com o Plano Herói Total. Acesso ilimitado ao Oráculo, missões de IA e todos os Protocolos de Proteção.
+            Desbloqueie o potencial máximo da plataforma com o Plano Herói Total. Acesso ilimitado ao Oráculo, missões de IA, a Guilda dos Heróis e todos os Protocolos de Proteção.
           </p>
           <button
             onClick={() => handlePurchase('plano_heroi_total')}
